@@ -309,7 +309,9 @@ config BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTH
     bool "Bluetooth"
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
     select BR2_PACKAGE_BLUEZ5_UTILS
+    select BR2_PACKAGE_BLUEZ5_UTILS_CLIENT
     select BR2_PACKAGE_BLUEZ_ALSA
+    select BR2_PACKAGE_ALSA_UTILS_APLAY
     default n
     help
       A Bluetooth plugin to interact with Bluetooth devices.
