@@ -49,9 +49,15 @@ define RPI_FIRMWARE_MOUNT_BOOT
 	grep -q '^/dev/mmcblk0p1' $(TARGET_DIR)/etc/fstab || \
 		echo -e '/dev/mmcblk0p1 /boot vfat defaults 0 0' >> $(TARGET_DIR)/etc/fstab
 endef
+ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTH),y)
 define RPI_FIRMWARE_CMDLINE
-	$(INSTALL) -D -m 0644 package/rpi-firmware/cmdline.txt-0 $(BINARIES_DIR)/rpi-firmware/cmdline.txt
+    	$(INSTALL) -D -m 0644 package/rpi-firmware/cmdline.txt-2 $(BINARIES_DIR)/rpi-firmware/cmdline.txt
 endef
+    else
+define RPI_FIRMWARE_CMDLINE
+    	$(INSTALL) -D -m 0644 package/rpi-firmware/cmdline.txt-0 $(BINARIES_DIR)/rpi-firmware/cmdline.txt
+endef
+    endif
 endif
 
 ifeq ($(BR2_TARGET_ROOTFS_CPIO),y)
