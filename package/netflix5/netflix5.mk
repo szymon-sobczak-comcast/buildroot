@@ -88,7 +88,7 @@ NETFLIX5_CONF_OPTS += \
         -DGIBBON_GST_PLATFORM=rpi #TODO remove it once GIBBON_PLATFORM for rpi is ready
 ifeq ($(BR2_PACKAGE_WESTEROS)$(BR2_PACKAGE_WPEFRAMEWORK_COMPOSITOR),yy)
 NETFLIX5_CONF_OPTS += \
-	-DGIBBON_GRAPHICS=wpeframework 
+	-DGIBBON_GRAPHICS=wpeframework
 else ifeq ($(BR2_PACKAGE_WESTEROS)$(BR2_PACKAGE_WPEFRAMEWORK_COMPOSITOR),yn)
 NETFLIX5_CONF_OPTS += \
 	-DGIBBON_GRAPHICS=wayland-egl 
@@ -243,7 +243,7 @@ endif
 define NETFLIX5_INSTALL_STAGING_CMDS
 	make -C $(@D)/netflix install
 	$(INSTALL) -m 755 $(@D)/netflix/src/platform/gibbon/libnetflix.so $(STAGING_DIR)/usr/lib
-	$(INSTALL) -D package/netflix/netflix.pc $(STAGING_DIR)/usr/lib/pkgconfig/netflix.pc
+	$(INSTALL) -D package/netflix5/netflix.pc $(STAGING_DIR)/usr/lib/pkgconfig/netflix.pc
 	mkdir -p $(STAGING_DIR)/usr/include/netflix/src
 	mkdir -p $(STAGING_DIR)/usr/include/netflix/nrdbase
 	mkdir -p $(STAGING_DIR)/usr/include/netflix/nrd
