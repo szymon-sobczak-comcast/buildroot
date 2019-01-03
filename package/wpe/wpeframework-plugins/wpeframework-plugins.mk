@@ -144,6 +144,7 @@ WPEFRAMEWORK_PLUGINS_POST_INSTALL_TARGET_HOOKS += WPEFRAMEWORK_BLUETOOTH_POST_TA
 define WPEFRAMEWORK_BLUETOOTH_POST_TARGET_INITD
     mkdir -p $(TARGET_DIR)/etc/init.d
     $(INSTALL) -D -m 0755 package/wpe/wpeframework-plugins/S35WPEFrameworkBluetooth $(TARGET_DIR)/etc/init.d
+    $(INSTALL) -D -m 0755 package/wpe/wpeframework-plugins/.asoundrc $(TARGET_DIR)/
 endef
 endif
 endif
