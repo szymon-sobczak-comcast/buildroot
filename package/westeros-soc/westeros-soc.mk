@@ -4,14 +4,18 @@
 #
 ################################################################################
 
-WESTEROS_SOC_VERSION = 80f0b6dcc7ea525b4bf9f3af1c361f865f5555af
+WESTEROS_SOC_VERSION = e9c64619f19064420ea55efb43df98af21f0896d
 WESTEROS_SOC_SITE_METHOD = git
-WESTEROS_SOC_SITE = git://github.com/Metrological/westeros
+WESTEROS_SOC_SITE = git://github.com/rdkcmf/westeros
 WESTEROS_SOC_INSTALL_STAGING = YES
 WESTEROS_SOC_AUTORECONF = YES
 WESTEROS_SOC_AUTORECONF_OPTS = "-Icfg"
 
 WESTEROS_SOC_DEPENDENCIES = host-pkgconf host-autoconf wayland libegl
+
+ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_PLATFORM),y)
+	WESTEROS_SOC_DEPENDENCIES += wpeframework-platform
+endif
 
 WESTEROS_SOC_CONF_OPTS += \
 	--prefix=/usr/ \
@@ -28,6 +32,7 @@ else ifeq ($(BR2_PACKAGE_HAS_NEXUS),y)
 		PKG_CONFIG_SYSROOT_DIR=$(STAGING_DIR)
 	WESTEROS_SOC_CONF_OPTS += \
         --enable-vc5 \
+        --enable-nxclient_local=yes \
 		CFLAGS="$(TARGET_CFLAGS) -I ${STAGING_DIR}/usr/include/refsw/" \
 		CXXFLAGS="$(TARGET_CXXFLAGS) -I ${STAGING_DIR}/usr/include/refsw/"
 	WESTEROS_SOC_SUBDIR = brcm
@@ -46,6 +51,13 @@ WESTEROS_SOC_PRE_CONFIGURE_HOOKS += WESTEROS_SOC_RUN_AUTOCONF
 define WESTEROS_SOC_ENTER_BUILD_DIR
 	cd $(@D)/$(WESTEROS_SOC_SUBDIR)
 endef
+
 WESTEROS_SOC_PRE_BUILD_HOOKS += WESTEROS_SOC_ENTER_BUILD_DIR
+
+define WESTEROS_SOC_REMOVE_LA
+   rm $(STAGING_DIR)/usr/lib/libwesteros_gl.la
+endef
+
+WESTEROS_SOC_POST_INSTALL_STAGING_HOOKS += WESTEROS_SOC_REMOVE_LA
 
 $(eval $(autotools-package))

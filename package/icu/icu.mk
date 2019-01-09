@@ -4,7 +4,14 @@
 #
 ################################################################################
 
+ifeq ($(BR2_PACKAGE_RDK_VERSIONING),y)
 ICU_VERSION = 57.1
+else ifeq ($(BR2_PACKAGE_NETFLIX5),y)
+ICU_VERSION = 58.2
+else
+ICU_VERSION = 57.1
+endif
+
 ICU_SOURCE = icu4c-$(subst .,_,$(ICU_VERSION))-src.tgz
 ICU_SITE = http://download.icu-project.org/files/icu4c/$(ICU_VERSION)
 ICU_LICENSE = ICU License

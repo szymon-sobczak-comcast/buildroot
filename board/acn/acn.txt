@@ -113,6 +113,7 @@ libWPEFrameworkTraceControl.so
 libWPEFrameworkWebServer.so
 libWPEFrameworkInterfaces.so  
 libWPEFrameworkProxyStubs.so
+libWPEFrameworkMarshalling.so
 libWPEFrameworkCore.so
 libWPEFrameworkCryptalgo.so
 libWPEFrameworkPlugins.so
@@ -123,7 +124,7 @@ libWPEFrameworkTimeSync.so
 libWPEFrameworkWebShell.so
 libWPEFrameworkOCDM.so
 libnxclient.so
-libWPEBackend.so
+libwpe-0.2.so
 libWPEBackend-rdk.so
 libWPEBackend-default.so
 libwebpdemux.so

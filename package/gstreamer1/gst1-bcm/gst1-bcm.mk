@@ -4,24 +4,37 @@
 #
 ################################################################################
 
-ifeq ($(BR2_PACKAGE_BCM_REFSW_16_1),y)
+ifeq ($(BR2_PACKAGE_UMA_SDK),y)
+GST1_BCM_VERSION = 17.1-7
+else ifeq ($(BR2_PACKAGE_BCM_REFSW_16_1),y)
 GST1_BCM_VERSION = 16.1
 else ifeq ($(BR2_PACKAGE_BCM_REFSW_16_2),y)
 GST1_BCM_VERSION = 16.2
+else ifeq ($(BR2_PACKAGE_BCM_REFSW_17_4),y)
+GST1_BCM_VERSION = 17.4-rdkv-20180503
+else ifeq ($(BR2_PACKAGE_BCM_REFSW_17_1),y)
+GST1_BCM_VERSION = 17.1-7
 else ifeq ($(BR2_PACKAGE_BCM_REFSW_17_1_RDK),y)
 GST1_BCM_VERSION = 17.1
-else
-ifneq ($(filter y,$(BR2_PACKAGE_ACN_SDK) $(BR2_PACKAGE_HOMECAST_SDK)),)
+else ifeq ($(BR2_PACKAGE_BCM_REFSW_17_3_RDK),y)
+GST1_BCM_VERSION = 17.1-7
+else ifeq ($(BR2_PACKAGE_BCM_REFSW_18_2),y)
+GST1_BCM_VERSION = 18.2-rdkv-20180727
+else ifneq ($(filter y,$(BR2_PACKAGE_ACN_SDK)),)
+GST1_BCM_VERSION = 17.1-12
+else ifneq ($(filter y,$(BR2_PACKAGE_HOMECAST_SDK)),)
+GST1_BCM_VERSION = 961a36dcd30c91330b8a9503e12ec3ddb30b70b6
+else ifneq ($(filter y,$(BR2_PACKAGE_VSS_SDK)),)
 GST1_BCM_VERSION = 17.1-12
 else
 GST1_BCM_VERSION = 15.2
-endif
 endif
 
 GST1_BCM_SITE = git@github.com:Metrological/gstreamer-plugins-soc.git
 GST1_BCM_SITE_METHOD = git
 GST1_BCM_LICENSE = PROPRIETARY
-GST1_BCM_DEPENDENCIES = gstreamer1 gst1-plugins-base libcurl mpg123
+GST1_BCM_INSTALL_STAGING = YES
+GST1_BCM_DEPENDENCIES = gstreamer1 gst1-plugins-base
 
 ifeq ($(BR2_PACKAGE_BCM_REFSW),y)
 GST1_BCM_DEPENDENCIES += bcm-refsw
@@ -49,6 +62,10 @@ GST1_BCM_CONF_ENV += \
 	GSTREAMER_REFSW_SERVER_NXCLIENT_SUPPORT=y \
 	PKG_CONFIG_SYSROOT_DIR=$(STAGING_DIR) 
 
+ifeq ($(BR2_PACKAGE_GST1_BCM_ENABLE_SVP),y)
+GST1_BCM_CONF_ENV += GST_SVP_SUPPORT=y
+endif
+
 GST1_BCM_MAKE_ENV += \
 	$(BCM_REFSW_MAKE_ENV) \
 	PKG_CONFIG_SYSROOT_DIR=$(STAGING_DIR)
@@ -75,7 +92,9 @@ GST1_BCM_CONF_OPTS = \
 	--disable-matroska \
 	--disable-mp3swdecode \
 	--disable-mp4demux \
-	--disable-pcmsink \
+	--enable-pcmsink \
+	--disable-pesfilter \
+	--disable-pessink \
 	--disable-pesdemux \
 	--disable-playback \
 	--disable-qtdemux \
@@ -119,6 +138,30 @@ ifeq ($(BR2_PACKAGE_GST1_BCM_VIDFILTER),y)
 GST1_BCM_CONF_OPTS += --enable-vidfilter
 else
 GST1_BCM_CONF_OPTS += --disable-vidfilter
+endif
+
+ifeq ($(BR2_PACKAGE_GST1_BCM_ENABLE_SVP),y)
+GST1_BCM_CONF_OPTS += --enable-svp
+endif
+
+ifeq ($(BR2_PACKAGE_HAS_OPUS_DECODER),)
+GST1_BCM_PKGDIR = "$(TOP_DIR)/package/gstreamer1/gst1-bcm"
+endif
+
+ifeq ($(BR2_PACKAGE_VSS_SDK),y)
+# this platform needs to run this gstreamer version parallel
+# to an older version.
+GST1_BCM_CONF_OPTS += \
+	--datadir=/usr/share/gstreamer-wpe \
+	--datarootdir=/usr/share/gstreamer-wpe \
+	--sysconfdir=/etc/gstreamer-wpe \
+	--includedir=/usr/include/gstreamer-wpe \
+	--program-prefix wpe
+define GST1_BCM_APPLY_VSS_FIX
+ package/vss-sdk/gst1/brcm.no_opus.fix.sh ${@D}
+ package/vss-sdk/gst1/brcm.fix.sh ${@D}
+endef
+GST1_BCM_POST_PATCH_HOOKS += GST1_BCM_APPLY_VSS_FIX
 endif
 
 $(eval $(autotools-package))

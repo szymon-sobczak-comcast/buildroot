@@ -4,7 +4,14 @@
 #
 ################################################################################
 
-WPEWEBKIT_VERSION = 28a74d98c18cce2062939c9fc8f5b61bc9f2b486 
+# If enabled, choose the development version hash.
+ifeq ($(BR2_PACKAGE_WPEWEBKIT_BUILD_DEVELOPMENT_VERSION),y)
+WPEWEBKIT_VERSION_VALUE = d87dd8efb1ac316d270d8bc2076c800106f9507f
+else
+WPEWEBKIT_VERSION_VALUE = 5de31f2c34ab2768264c925e672f961d0223ba85
+endif
+
+WPEWEBKIT_VERSION = $(WPEWEBKIT_VERSION_VALUE)
 WPEWEBKIT_SITE = $(call github,WebPlatformForEmbedded,WPEWebKit,$(WPEWEBKIT_VERSION))
 
 WPEWEBKIT_INSTALL_STAGING = YES
@@ -60,7 +67,8 @@ WPEWEBKIT_FLAGS = \
 	-DENABLE_DATABASE_PROCESS=ON \
 	-DENABLE_INDEXED_DATABASE=ON \
 	-DENABLE_MEDIA_STATISTICS=ON \
-	-DENABLE_FETCH_API=ON
+	-DENABLE_FETCH_API=ON \
+	-DENABLE_WEBDRIVER=ON
 
 ifeq ($(BR2_TOOLCHAIN_USES_MUSL),y)
 WPEWEBKIT_FLAGS += -DENABLE_SAMPLING_PROFILER=OFF
@@ -172,6 +180,12 @@ else ifeq ($(BR2_PACKAGE_INTELCE_SDK),y)
 WPEWEBKIT_FLAGS += -DUSE_WPEWEBKIT_PLATFORM_INTEL_CE=ON
 endif
 
+ifeq ($(BR2_PACKAGE_VSS_SDK),y)
+WPEWEBKIT_FLAGS += \
+	-DENABLE_ACCELERATED_2D_CANVAS=OFF \
+	-DENABLE_WEB_CRYPTO=OFF
+endif
+
 ifeq ($(BR2_PACKAGE_WPEWEBKIT_ONLY_JSC), y)
 WPEWEBKIT_FLAGS += -DENABLE_STATIC_JSC=ON
 endif
@@ -219,8 +233,7 @@ ifeq ($(WPEWEBKIT_BUILD_JSC),y)
 WPEWEBKIT_BUILD_TARGETS += jsc
 endif
 ifeq ($(WPEWEBKIT_BUILD_WEBKIT),y)
-WPEWEBKIT_BUILD_TARGETS += libWPEWebKit.so libWPEWebInspectorResources.so \
-	WPE{Network,Storage,Web}Process
+WPEWEBKIT_BUILD_TARGETS += all
 
 endif
 
@@ -241,6 +254,7 @@ endif
 ifeq ($(WPEWEBKIT_BUILD_WEBKIT),y)
 define WPEWEBKIT_INSTALL_STAGING_CMDS_WEBKIT
 	cp $(WPEWEBKIT_BUILDDIR)/bin/WPE{Network,Storage,Web}Process $(STAGING_DIR)/usr/bin/ && \
+	cp $(WPEWEBKIT_BUILDDIR)/bin/WPEWebDriver $(STAGING_DIR)/usr/bin/ && \
 	cp -d $(WPEWEBKIT_BUILDDIR)/lib/libWPE* $(STAGING_DIR)/usr/lib/ && \
 	DESTDIR=$(STAGING_DIR) $(HOST_DIR)/usr/bin/cmake -DCOMPONENT=Development -P $(WPEWEBKIT_BUILDDIR)/Source/JavaScriptCore/cmake_install.cmake > /dev/null && \
 	DESTDIR=$(STAGING_DIR) $(HOST_DIR)/usr/bin/cmake -DCOMPONENT=Development -P $(WPEWEBKIT_BUILDDIR)/Source/WebKit/cmake_install.cmake > /dev/null
@@ -266,8 +280,9 @@ endif
 ifeq ($(WPEWEBKIT_BUILD_WEBKIT),y)
 define WPEWEBKIT_INSTALL_TARGET_CMDS_WEBKIT
 	cp $(WPEWEBKIT_BUILDDIR)/bin/WPE{Network,Storage,Web}Process $(TARGET_DIR)/usr/bin/ && \
+	cp $(WPEWEBKIT_BUILDDIR)/bin/WPEWebDriver $(TARGET_DIR)/usr/bin/ && \
 	cp -d $(WPEWEBKIT_BUILDDIR)/lib/libWPE* $(TARGET_DIR)/usr/lib/ && \
-	$(STRIPCMD) $(TARGET_DIR)/usr/lib/libWPEWebKit.so.0.0.*
+	$(STRIPCMD) $(TARGET_DIR)/usr/lib/libWPEWebKit*.so.*
 endef
 else
 WPEWEBKIT_INSTALL_TARGET_CMDS_WEBKIT = true
@@ -281,5 +296,17 @@ endef
 endif
 
 RSYNC_VCS_EXCLUSIONS += --exclude LayoutTests --exclude WebKitBuild
+
+# Temporary fix for vss platforms
+ifeq ($(BR2_PACKAGE_VSS_SDK),y)
+WPEWEBKIT_PKGDIR = "$(TOP_DIR)/package/wpe/wpewebkit"
+
+define WPEWEBKIT_APPLY_LOCAL_PATCHES
+ # this platform needs to run this gstreamer version parallel
+ # to an older version.
+ $(APPLY_PATCHES) $(@D) $(WPEWEBKIT_PKGDIR) 9999-link_to_wpe_gstreamer.patch.conditional
+endef
+WPEWEBKIT_POST_PATCH_HOOKS += WPEWEBKIT_APPLY_LOCAL_PATCHES
+endif
 
 $(eval $(cmake-package))

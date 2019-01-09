@@ -7,6 +7,8 @@ export PATH=$SOURCE/usr/bin:$PATH
 export GST_PLUGIN_SCANNER=$SOURCE/usr/libexec/gstreamer-1.0/gst-plugin-scanner
 export GST_PLUGIN_SYSTEM_PATH=$SOURCE/usr/lib/gstreamer-1.0
 
+export XKB_CONFIG_ROOT=$SOURCE/usr/share/X11/xkb
+
 case "$1" in
 bind_acn)
 	grep -q "/opt/wpe ext4" /proc/mounts &&

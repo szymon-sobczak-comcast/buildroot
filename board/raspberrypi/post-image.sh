@@ -7,17 +7,45 @@ GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
 
 echo "Post-image: processing $@"
 
+BLUETOOTH="$(grep ^BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTH=y ${BR2_CONFIG})"
+COBALT="$(grep ^BR2_PACKAGE_COBALT=y ${BR2_CONFIG})"
+if [ "x${COBALT}" != "x" ] || [ "x${BLUETOOTH}" != "x" ]; then
+	if ! grep -qE '^dtparam=audio=on' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+		echo "Adding 'dtparam=audio=on' to config.txt."
+		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Enable the onboard ALSA audio
+dtparam=audio=on
+__EOF__
+	fi
+fi
+
+AARCH64="$(grep ^BR2_aarch64=y ${BR2_CONFIG})"
+if [ "x${AARCH64}" != "x" ]; then
+	if ! grep -qE '^arm_64bit=1' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+		echo "Adding 'arm_64bit=1' to config.txt."
+		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Force 64bit
+arm_64bit=1
+__EOF__
+	fi
+fi
+
+KERNEL_4_14="$(grep ^BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14=y ${BR2_CONFIG})"
 for i in "$@"
 do
 case "$i" in
 	--add-pi3-miniuart-bt-overlay)
-	if ! grep -qE '^dtoverlay=pi3-miniuart-bt' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
-		echo "Adding 'dtoverlay=pi3-miniuart-bt' to config.txt (fixes ttyAMA0 serial console)."
-		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+	if [ "x${BLUETOOTH}" = "x" ]; then
+		if ! grep -qE '^dtoverlay=pi3-miniuart-bt' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Adding 'dtoverlay=pi3-miniuart-bt' to config.txt (fixes ttyAMA0 serial console)."
+			cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
 
 # Fixes rpi3 ttyAMA0 serial console
 dtoverlay=pi3-miniuart-bt
 __EOF__
+		fi
 	fi
 	;;
 	--tvmode-720)
@@ -49,34 +77,6 @@ __EOF__
 
 # Force dvi output
 hdmi_drive=2
-__EOF__
-	fi
-	;;
-	--overclock-pi012)
-	if ! grep -qE '^arm_freq=' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
-		echo "Adding 'overclock=pi012' to config.txt."
-		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
-
-# Overclock
-arm_freq=1000
-gpu_freq=500
-sdram_freq=500
-over_voltage=6
-avoid_warnings=1
-__EOF__
-	fi
-	;;
-	--overclock-pi3)
-	if ! grep -qE '^arm_freq=' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
-		echo "Adding 'overclock=pi3' to config.txt."
-		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
-
-# Overclock
-arm_freq=1350
-gpu_freq=500
-sdram_freq=500
-over_voltage=5
-avoid_warnings=1
 __EOF__
 	fi
 	;;
@@ -132,36 +132,65 @@ dtoverlay=lirc-rpi,gpio_in_pin=23,gpio_out_pin=22
 __EOF__
 	fi
 	;;
-	--rpi-wifi*)
-	if ! grep -qE '^dtoverlay=sdtweak' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
-		echo "Adding 'rpi wifi' functionality to config.txt."
+	--touchscreen)
+	if ! grep -qE '^dtoverlay=ads7846' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+		echo "Adding 'ads7846' functionality to config.txt."
 		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Enable ADS7846 Touchscreen
+dtoverlay=ads7846,cs=0,penirq=25,penirq_pull=2,speed=10000,keep_vref_on=0,swapxy=0,pmax=255,xohms=150,xmin=199,xmax=3999,ymin=199,ymax=3999
+__EOF__
+	fi
+	;;
+	--rpi-wifi*)
+	if [ "x${KERNEL_4_14}" = "x" ]; then
+		if ! grep -qE '^dtoverlay=sdtweak' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Adding 'rpi wifi' functionality to config.txt."
+			cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
 
 # Enable overlay for wifi functionality
 dtoverlay=sdtweak,overclock_50=80
 __EOF__
+		fi
+		if grep -qE '^dtoverlay=mmc' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Removing overlay for mmc due to wifi compatibilityin config.txt."
+			cat "${BINARIES_DIR}/rpi-firmware/config.txt" | sed '/^# Enable mmc by default/,+2d' > "${BINARIES_DIR}/rpi-firmware/config_.txt"
+			rm "${BINARIES_DIR}/rpi-firmware/config.txt"
+			mv "${BINARIES_DIR}/rpi-firmware/config_.txt" "${BINARIES_DIR}/rpi-firmware/config.txt"
+		fi
 	fi
-	if grep -qE '^dtoverlay=mmc' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
-		echo "Removing overlay for mmc due to wifi compatibilityin config.txt."
-		cat "${BINARIES_DIR}/rpi-firmware/config.txt" | sed '/^# Enable mmc by default/,+2d' > "${BINARIES_DIR}/rpi-firmware/config_.txt"
-		rm "${BINARIES_DIR}/rpi-firmware/config.txt"
-		mv "${BINARIES_DIR}/rpi-firmware/config_.txt" "${BINARIES_DIR}/rpi-firmware/config.txt"
+	;;
+	--overclock*)
+	if ! grep -qE '^arm_freq=' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+		echo "Adding 'overclock' to config.txt."
+		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Overclock
+[pi0]
+[pi0w]
+[pi1]
+[pi2]
+arm_freq=1000
+gpu_freq=500
+sdram_freq=500
+over_voltage=6
+[pi3]
+arm_freq=1350
+gpu_freq=500
+sdram_freq=500
+over_voltage=5
+[pi3+]
+arm_freq=1500
+gpu_freq=500
+sdram_freq=560
+over_voltage=5
+[all]
+avoid_warnings=1
+__EOF__
 	fi
 	;;
 esac
 done
-
-AARCH64="$(grep ^BR2_aarch64=y ${BR2_CONFIG})"
-if [ "x${AARCH64}" != "x" ]; then
-	if ! grep -qE '^arm_64bit=1' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
-		echo "Adding 'arm_64bit=1' to config.txt."
-		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
-
-# Force 64bit
-arm_64bit=1
-__EOF__
-	fi
-fi
 
 INITRAMFS="$(grep ^BR2_TARGET_ROOTFS_INITRAMFS=y ${BR2_CONFIG})"
 ROOTFS_CPIO="$(grep ^BR2_TARGET_ROOTFS_CPIO=y ${BR2_CONFIG})"
@@ -182,7 +211,7 @@ elif [ "x${INITRAMFS}" = "x" ] && [ "x${ROOTFS_CPIO}" != "x" ]; then
 	if [ "x${CPIO_XZ}" != "x" ]; then
 		sed -i 's/cpio.gz/cpio.xz/' "${BINARIES_DIR}/rpi-firmware/config.txt"
 	elif [ "x${CPIO_GZIP}" = "x" ]; then
-		sed -i 's/cpio.gz/rootfs.cpio/' "${BINARIES_DIR}/rpi-firmware/config.txt"
+		sed -i 's/cpio.gz/cpio/' "${BINARIES_DIR}/rpi-firmware/config.txt"
 	fi
 fi
 

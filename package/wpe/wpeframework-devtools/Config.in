@@ -5,7 +5,23 @@ config BR2_PACKAGE_WPEFRAMEWORK_DEBUG
 	help
 	   Allow the WPE Framework to be more verbose. All development traces
            are turned on.
- 
+
+config BR2_PACKAGE_WPEFRAMEWORK_SYMBOLS
+	bool "Build with symbols"
+	help
+	   Allow the WPE Framework to be compiled with symbols for better backtraces.
+
+if BR2_PACKAGE_WPEFRAMEWORK_SYMBOLS
+
+config BR2_PACKAGE_WPEFRAMEWORK_NO_OPTIMIZATIONS
+	bool "Build with no optimizations"
+        default y if BR2_PACKAGE_WPEFRAMEWORK_SYMBOLS
+        default n
+	help
+           Compile with no optimizations.
+
+endif
+
 config BR2_PACKAGE_WPEFRAMEWORK_VERBOSE_BUILD
 	bool "Verbose build"
 	help
@@ -39,10 +55,34 @@ config BR2_PACKAGE_WPEFRAMEWORK_TEST_LOADER
 		TestLoader is a verification and analyze tool for 
 		WPEFramework software and plugins.
 
+config BR2_PACKAGE_WPEFRAMEWORK_NETWORKTEST
+	bool "NetworkTest"
+	help
+		NetworkTest is a verification and analyze tool for 
+		WPEFramework software network functionality.
+
 config BR2_PACKAGE_WPEFRAMEWORK_TEST_RPCLINK
 	bool "RPC link test"
 	help
 		RPCLINK test tests the usage of RPC calls to out of process plugins.
+
+config BR2_PACKAGE_WPEFRAMEWORK_EGLTEST
+	select BR2_PACKAGE_WPEFRAMEWORK_COMMON
+	bool "EGLTest"
+	help
+	   EGLTest Plugin
+
+config BR2_PACKAGE_WPEFRAMEWORK_LINUX_ONEWIRE
+	select BR2_PACKAGE_WPEFRAMEWORK_COMMON
+	bool "Linux1Wire"
+	help
+	   Test application for the Core (Netlink/Connector) functionality.
+
+config BR2_PACKAGE_WPEFRAMEWORK_TEST_UNITTESTS
+   select BR2_PACKAGE_GTEST
+	bool "Unit Tests"
+	help
+	   Builds Unit Tests
 
 endmenu
 

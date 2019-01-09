@@ -43,6 +43,10 @@ config BR2_PACKAGE_WPEFRAMEWORK_OOM_ADJUST
 	string "oom-adjust"
 	default ""
 
+config BR2_PACKAGE_WPEFRAMEWORK_SYSTEM_PREFIX
+	string "system prefix"
+	default ""
+
 source "package/wpe/wpeframework-devtools/Config.in"
 
 endmenu
@@ -65,16 +69,34 @@ config BR2_PACKAGE_WPEFRAMEWORK_PROVISIONPROXY
 	select BR2_PACKAGE_LIBPROVISION
 	help
 	  Allows provisioning of modules from the cloud.
+
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_BROADCAST
+	bool "Broadcast"
+        default n
+	help
+	  Abstraction on QAM tuner and PSI/SI parser functionality.
+
+if BR2_PACKAGE_WPEFRAMEWORK_BROADCAST
+config BR2_PACKAGE_WPEFRAMEWORK_BROADCAST_SI_PARSING
+	bool "SI Parsing"
+        default n
+	help
+	  Enable functionality to automatically parse SI information on the 
+          tuned streams.
+endif
           
 endmenu
 
 menu "Plugins"
 source "package/wpe/wpeframework-plugins/Config.in"
 source "package/wpe/wpeframework-amazon/Config.in"
+source "package/wpe/wpeframework-avnclient/Config.in"
 source "package/wpe/wpeframework-cobalt/Config.in"
 source "package/wpe/wpeframework-dialserver/Config.in"
+source "package/wpe/wpeframework-launcher/Config.in"
 source "package/wpe/wpeframework-netflix/Config.in"
-source "package/wpe/wpeframework-power/Config.in"
+source "package/wpe/wpeframework-packager/Config.in"
+source "package/wpe/wpeframework-playgiga/Config.in"
 source "package/wpe/wpeframework-provisioning/Config.in"
 source "package/wpe/wpeframework-spotify/Config.in"
 source "package/wpe/wpeframework-switchboard/Config.in"

@@ -1,0 +1,8 @@
+WPE*
+libWPE*.so
+libwpe-*.so
+libwpegst*.so
+libepoxy.so
+libocdm.so
+libbrcm*.so
+libogg*.so

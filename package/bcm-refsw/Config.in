@@ -45,6 +45,17 @@ choice
 	config BR2_PACKAGE_BCM_REFSW_17_2
 		bool "bcm-refsw 17.2"
 
+	config BR2_PACKAGE_BCM_REFSW_17_3
+		bool "bcm-refsw 17.3"
+
+	config BR2_PACKAGE_BCM_REFSW_17_3_RDK
+		bool "bcm-refsw 17.3 RDK"
+
+	config BR2_PACKAGE_BCM_REFSW_17_4
+		bool "bcm-refsw 17.4"
+
+    config BR2_PACKAGE_BCM_REFSW_18_2
+        bool "bcm-refsw 18.2"
 endchoice
 
 choice
@@ -64,8 +75,12 @@ choice
 		bool "BCM 7429 IPC"
 		depends on BR2_mipsel
 
+	config BR2_PACKAGE_BCM_REFSW_PLATFORM_7241
+		bool "BCM 7241 DCSFBTSFF"
+		depends on BR2_mipsel
+
 	config BR2_PACKAGE_BCM_REFSW_PLATFORM_7439
-		bool "BCM 7429"
+		bool "BCM 7439"
 		depends on BR2_arm
 
 	config BR2_PACKAGE_BCM_REFSW_PLATFORM_7252
@@ -87,6 +102,10 @@ choice
 	config BR2_PACKAGE_BCM_REFSW_PLATFORM_7437
 		bool "BCM 7437"
 		depends on BR2_arm
+        
+    config BR2_PACKAGE_BCM_REFSW_PLATFORM_UMAR5
+		bool "UMA r5"
+		depends on BR2_arm
 
 	config BR2_PACKAGE_BCM_REFSW_PLATFORM_DCX960
 		bool "Arris DCX960 EPR2/PPR2"
@@ -94,12 +113,96 @@ choice
 
 endchoice
 
+menu "Codec support"
+config BR2_PACKAGE_BCM_OPUS_DECODER_SUPPORT
+    bool "OPUS decoder"
+	default y
+    select BR2_PACKAGE_HAS_OPUS_DECODER
+    help
+       Enable OPUS for other OPUS depending packages.
+
+if BR2_PACKAGE_BCM_OPUS_DECODER_SUPPORT
+config BR2_PACKAGE_PROVIDES_OPUS_DECODER
+	default "bcm-refsw"
+endif
+
+config BR2_PACKAGE_BCM_VP9_DECODER_SUPPORT
+    bool "VP9 decoder"
+	default y
+    select BR2_PACKAGE_HAS_VP9_DECODER
+    help
+       Enable VP9 for other VP9 depending packages.
+
+if BR2_PACKAGE_BCM_VP9_SUPPORT
+config BR2_PACKAGE_PROVIDES_VP9_DECODER
+	default "bcm-refsw"
+endif
+endmenu
+
 config BR2_PACKAGE_BCM_REFSW_SAGE
 	bool "SAGE v3.x"
 	default n
-	depends on BR2_PACKAGE_BCM_REFSW && (BR2_PACKAGE_BCM_REFSW_16_2 || BR2_PACKAGE_BCM_REFSW_16_3)
+	depends on BR2_PACKAGE_BCM_REFSW
+	depends on !BR2_PACKAGE_BCM_REFSW_13_1 && !BR2_PACKAGE_BCM_REFSW_13_4 && !BR2_PACKAGE_BCM_REFSW_15_2 && !BR2_PACKAGE_BCM_REFSW_16_1
+        select BR2_PACKAGE_SAGE_FIRMWARE
 	help
 	  Add SAGE support in Nexus.
+
+config BR2_PACKAGE_BCM_REFSW_SAGE_PATH
+        string "SAGE Path"
+        default "/usr/bin/"
+        depends on BR2_PACKAGE_BCM_REFSW_SAGE
+	help
+	  Sage binaries path
+
+config BR2_PACKAGE_BCM_REFSW_PAK_PATH
+        string "PAK Path"
+        default "/usr/bin/"
+        depends on BR2_PACKAGE_BCM_REFSW_18_2
+	help
+	  PAK binaries path
+
+config BR2_PACKAGE_BCM_REFSW_DRM_PATH
+        string "DRM Path"
+        default "/usr/bin/"
+        depends on BR2_PACKAGE_BCM_REFSW_18_2
+	help
+	  DRM binaries path
+
+config BR2_PACKAGE_BCM_REFSW_SAGE_MANUFACTURING
+        bool "SAGE Manufacturing"
+        default n
+        depends on BR2_PACKAGE_BCM_REFSW_SAGE
+    help
+      Sage manufacturing lib for on-field provisioning
+
+config BR2_PACKAGE_BCM_REFSW_SAGE_EXAMPLES
+        bool "SAGE examples"
+	default n
+        depends on BR2_PACKAGE_BCM_REFSW_SAGE
+        help
+          Sage examples
+
+config BR2_PACKAGE_BCM_REFSW_SAGE_BSECBUF
+        bool "SAGE/SVP b_secbuf library"
+        default n
+        depends on BR2_PACKAGE_BCM_REFSW_SAGE
+        help
+          Sage/SVP secure library for multiprocess environment
+
+config BR2_PACKAGE_BCM_REFSW_SAGE_PLAYREADY_30
+        bool "Playready 3.0 SVP"
+        default n
+        depends on BR2_PACKAGE_BCM_REFSW_SAGE
+        help
+          Playready 3.0 SVP
+
+config BR2_PACKAGE_BCM_REFSW_SAGE_PLAYREADY_30_EXAMPLE
+        bool "Playready 3.0 SVP example"
+        default n
+        depends on BR2_PACKAGE_BCM_REFSW_SAGE
+        help
+          Playready 3.0 SVP example
 
 config BR2_PACKAGE_PROVIDES_NEXUS
 	default "bcm-refsw"
@@ -109,6 +212,13 @@ config BR2_PACKAGE_PROVIDES_LIBEGL
 
 config BR2_PACKAGE_PROVIDES_LIBGLES
 	default "bcm-refsw"
+
+config BR2_PACKAGE_BCM_REFSW_V3D_DRM
+	bool "V3D DRM"
+	default n
+	depends on BR2_PACKAGE_BCM_REFSW_18_2
+        help
+          Enable V3D DRM	
 
 config BR2_PACKAGE_BCM_REFSW_EGLCUBE
 	bool "eglcube"
@@ -128,4 +238,15 @@ config BR2_PACKAGE_BCM_REFSW_NXCLIENT_EXAMPLES
 	help
 	  Build the Nexus client exaples.
 
+config BR2_PACKAGE_BCM_REFSW_BOXMODE
+    string "Memory Box Mode"
+    depends on BR2_PACKAGE_BCM_REFSW
+    help
+      Memory box mode, you can find details from release notes per platform
+
+config BR2_PACKAGE_BCM_REFSW_KERNELSPACE_HEADERS
+	bool "Kernelspace headers"
+	default n
+	help
+	  Installs kernelspace nexus headers used to build some kernelmodules like greenpeak.
 endif

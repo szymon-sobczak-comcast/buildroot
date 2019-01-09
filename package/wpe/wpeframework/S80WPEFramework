@@ -7,18 +7,49 @@ start() {
 	#echo "/root/cores/core-pid_%p--process%E" > /proc/sys/kernel/core_pattern
 	#mkdir -p /root/cores
 	#ulimit -c unlimited
-	if [ ! -d /root/Netflix/dpi ]; then
+
+	# wait a bit
+	sleep 3
+
+	mount -a
+
+	# make sure netflix has proper mapping
+	if [ -f /etc/WPEFramework/plugins/Netflix.json ] && [ ! -d /root/Netflix/dpi ]; then
 		mkdir -p /root/Netflix/dpi
 		ln -sfn /etc/playready /root/Netflix/dpi/playready
 	fi
-	mount -a
-	export TZ=$(wget -qO- http://jsonip.metrological.com/ | sed -e 's/^.*"tz":"\([^"]*\)".*$/\1/')
-    
-    # needed for wayland/westeros/weston
-    export XDG_RUNTIME_DIR=/tmp
-    
+
+	# needed for wayland/westeros/weston
+	export XDG_RUNTIME_DIR=/tmp
+
+	# wait for cpuinfo to come available
+	while [ ! -f /proc/cpuinfo ];
+	do
+		sleep 1
+	done
+
+	# override index.html
+	if [ -f /boot/index.html ]; then
+		cp /boot/index.html /www/
+	fi
+
+	# override config.json
+	if [ -f /boot/config.json ]; then
+		cp /boot/config.json /www/
+	fi
+
+	# read proxy settings from /boot/proxy
+	if [ -f /boot/proxy ]; then
+		PROXY_IP=`cat /boot/proxy`
+		export http_proxy="http://$PROXY_IP"
+		export HTTP_PROXY="http://$PROXY_IP"
+		export no_proxy="127.0.0.1,localhost,ws.metrological.com,widgets.metrological.com"
+		export NO_PROXY="127.0.0.1,localhost,ws.metrological.com,widgets.metrological.com"
+	fi
+	export
+
 	echo -n "Starting WPEFramework: "
-	start-stop-daemon -S -q -b -m -p /var/run/WPEFramework.pid --exec /usr/bin/WPEFramework -- -b </dev/null >/dev/null 2>&1
+	start-stop-daemon -S -q -b -m -p /var/run/WPEFramework.pid --exec /usr/bin/WPEFramework -- -b -c /etc/WPEFramework/config.json </dev/null >/dev/null 2>&1
 	[ $? == 0 ] && echo "OK" || echo "FAIL"
 }
 stop() {
@@ -29,7 +60,6 @@ stop() {
 }
 restart() {
 	stop
-	sleep 3
 	start
 }
 
