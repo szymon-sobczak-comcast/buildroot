@@ -100,6 +100,7 @@ libWPEBackend-rdk.so
 libwebpdemux.so
 NetworkInfo
 libepoxy.so
+libnvram_bsl.so
 WPEStorageProcess
 libnvram_bsl.so
 libmigration.so

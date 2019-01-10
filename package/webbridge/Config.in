@@ -309,6 +309,11 @@ config BR2_PACKAGE_WEBBRIDGE_PLUGIN_QUEUECOMMUNICATOR
 	  A plugin that receives and sends messages into a queue to interact
 		  with specific middleware.
 
+config BR2_PACKAGE_WEBBRIDGE_PLUGIN_MIGRATION
+        bool "migration"
+        select BR2_PACKAGE_CPPSDK_MQC
+        help
+          A plugin helps with selene Migration
 
 menuconfig BR2_PACKAGE_WEBBRIDGE_PLUGIN_DIALSERVER
 	bool "dialserver"
