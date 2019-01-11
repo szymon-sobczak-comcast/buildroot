@@ -34,9 +34,6 @@ rsync -ar --files-from="${ROOTFS_FILES}" "${TARGET_DIR}" "${ROOTFS_DIR}"
 mkdir -p "${ROOTFS_DIR}/usr/share/fonts/ttf-bitstream-vera"
 cp -f "${TARGET_DIR}/usr/share/fonts/ttf-bitstream-vera/Vera.ttf" "${ROOTFS_DIR}/usr/share/fonts/ttf-bitstream-vera/"
 
-#copy frequency lookup table
-mkdir -p "${ROOTFS_DIR}/usr/share/webbridge/Migration/Storage"
-cp -pf "${BOARD_DIR}/horizon/FrequencyLookup.json" "${ROOTFS_DIR}/usr/share/webbridge/Migration/Storage"
 # WebBridge startup script
 mkdir -p "${ROOTFS_DIR}/NDS"
 cp -pf "${BOARD_DIR}/horizon/webbridge" "${ROOTFS_DIR}/NDS"
