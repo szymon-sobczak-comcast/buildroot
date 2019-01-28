@@ -10,6 +10,9 @@ choice
 	prompt "glibc version"
 	default BR2_GLIBC_VERSION_2_24
 
+config BR2_GLIBC_VERSION_2_18
+	bool "2.18"
+
 config BR2_GLIBC_VERSION_2_23
 	bool "2.23"
 
@@ -32,6 +35,7 @@ endif
 
 config BR2_GLIBC_VERSION_STRING
 	string
+	default "2.18" if BR2_GLIBC_VERSION_2_18
 	default "2.23" if BR2_GLIBC_VERSION_2_23
 	default "2.24" if BR2_GLIBC_VERSION_2_24
 	default "2.25" if BR2_GLIBC_VERSION_2_25

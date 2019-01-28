@@ -1,0 +1,36 @@
+#!/bin/sh
+
+SCRIPT_NAME="wpe.sh"
+SOURCE=/WPE
+
+cleanup() {
+	echo "${SCRIPT_NAME}: '$1'"
+		killall -9 WPEProcess 2>/dev/null
+		killall -9 WPEFramework 2>/dev/null
+}
+
+# Shutdown all our processes in non stub version
+cleanup restart
+
+# Exports
+export HOME=$SOURCE/root
+export PATH=$SOURCE/usr/bin:/bin:/usr/bin
+export GST_PLUGIN_PATH=$SOURCE/usr/lib/gstreamer-1.0
+export LD_LIBRARY_PATH=$SOURCE/lib:$SOURCE/usr/lib:$SOURCE/usr/lib/gstreamer-1.0:/lib/:/usr/lib:/mnt/app/refsw/lib
+
+
+	echo -n "Starting WPEFramework: "
+		$SOURCE/usr/bin/WPEFramework -c $SOURCE/etc/WPEFramework/config.json
+
+	[ $? == 0 ] && echo "OK" || echo "FAIL"
+
+stop() {
+	echo -n "Stopping WPEFramework: "
+	start-stop-daemon -K -q -p /var/run/WPEFramework.pid
+	[ $? == 0 ] && echo "OK" || echo "FAIL"
+	rm -rf /var/run/WPEFramework.pid
+}
+restart() {
+	stop
+	start
+}
