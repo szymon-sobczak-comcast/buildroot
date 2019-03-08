@@ -6,9 +6,9 @@
 
 # If enabled, choose the development version hash.
 ifeq ($(BR2_PACKAGE_WPEWEBKIT_BUILD_DEVELOPMENT_VERSION),y)
-WPEWEBKIT_VERSION_VALUE = 7640d609f70abd2e1c78e78fe946e9231702cfb7
+WPEWEBKIT_VERSION_VALUE = 1719dcbc4925df4573b4a6e578bed2f04188b89e
 else
-WPEWEBKIT_VERSION_VALUE = 5d203113051bd28e233dad1b9633f37b911ac13f 
+WPEWEBKIT_VERSION_VALUE = 1719dcbc4925df4573b4a6e578bed2f04188b89e
 endif
 
 WPEWEBKIT_VERSION = $(WPEWEBKIT_VERSION_VALUE)
@@ -253,9 +253,13 @@ endif
 
 ifeq ($(WPEWEBKIT_BUILD_WEBKIT),y)
 define WPEWEBKIT_INSTALL_STAGING_CMDS_WEBKIT
-	cp $(WPEWEBKIT_BUILDDIR)/bin/WPE{Network,Web}Process $(STAGING_DIR)/usr/bin/ && \
+	mkdir -p $(STAGING_DIR)/usr/libexec/wpe-webkit-0.1 && \
+	cp $(WPEWEBKIT_BUILDDIR)/bin/WPE{Network,Web}Process $(STAGING_DIR)/usr/libexec/wpe-webkit-0.1/ && \
 	cp $(WPEWEBKIT_BUILDDIR)/bin/WPEWebDriver $(STAGING_DIR)/usr/bin/ && \
-	cp -d $(WPEWEBKIT_BUILDDIR)/lib/libWPE* $(STAGING_DIR)/usr/lib/ && \
+	cp -d $(WPEWEBKIT_BUILDDIR)/lib/libWPEWebKit* $(STAGING_DIR)/usr/lib/ && \
+	mkdir -p $(STAGING_DIR)/usr/lib/wpe-webkit-0.1/injected-bundle && \
+	cp -d $(WPEWEBKIT_BUILDDIR)/lib/libWPEInjectedBundle.so $(STAGING_DIR)/usr/lib/wpe-webkit-0.1/injected-bundle/ && \
+	cp -d $(WPEWEBKIT_BUILDDIR)/lib/libWPEWebInspectorResources.so $(STAGING_DIR)/usr/lib/wpe-webkit-0.1/ && \
 	DESTDIR=$(STAGING_DIR) $(HOST_DIR)/usr/bin/cmake -DCOMPONENT=Development -P $(WPEWEBKIT_BUILDDIR)/Source/JavaScriptCore/cmake_install.cmake > /dev/null && \
 	DESTDIR=$(STAGING_DIR) $(HOST_DIR)/usr/bin/cmake -DCOMPONENT=Development -P $(WPEWEBKIT_BUILDDIR)/Source/WebKit/cmake_install.cmake > /dev/null
 endef
@@ -279,9 +283,13 @@ endif
 
 ifeq ($(WPEWEBKIT_BUILD_WEBKIT),y)
 define WPEWEBKIT_INSTALL_TARGET_CMDS_WEBKIT
-	cp $(WPEWEBKIT_BUILDDIR)/bin/WPE{Network,Web}Process $(TARGET_DIR)/usr/bin/ && \
+	mkdir -p $(TARGET_DIR)/usr/libexec/wpe-webkit-0.1 && \
+	cp $(WPEWEBKIT_BUILDDIR)/bin/WPE{Network,Web}Process $(TARGET_DIR)/usr/libexec/wpe-webkit-0.1/ && \
 	cp $(WPEWEBKIT_BUILDDIR)/bin/WPEWebDriver $(TARGET_DIR)/usr/bin/ && \
-	cp -d $(WPEWEBKIT_BUILDDIR)/lib/libWPE* $(TARGET_DIR)/usr/lib/ && \
+	cp -d $(WPEWEBKIT_BUILDDIR)/lib/libWPEWebKit* $(TARGET_DIR)/usr/lib/ && \
+	mkdir -p $(TARGET_DIR)/usr/lib/wpe-webkit-0.1/injected-bundle && \
+	cp -d $(WPEWEBKIT_BUILDDIR)/lib/libWPEInjectedBundle.so $(TARGET_DIR)/usr/lib/wpe-webkit-0.1/injected-bundle/ && \
+	cp -d $(WPEWEBKIT_BUILDDIR)/lib/libWPEWebInspectorResources.so $(TARGET_DIR)/usr/lib/wpe-webkit-0.1/ && \
 	$(STRIPCMD) $(TARGET_DIR)/usr/lib/libWPEWebKit*.so.*
 endef
 else

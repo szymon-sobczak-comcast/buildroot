@@ -4,7 +4,8 @@
 #
 ################################################################################
 
-WPEFRAMEWORK_PLUGINS_VERSION = 9532e34c1ef2912b9ed6c7d7f0b75eb6f8b0b205 
+
+WPEFRAMEWORK_PLUGINS_VERSION = 145863de2972ef08666bcd2dc92bda7b45a066d8
 WPEFRAMEWORK_PLUGINS_SITE = $(call github,WebPlatformForEmbedded,WPEFrameworkPlugins,$(WPEFRAMEWORK_PLUGINS_VERSION))
 WPEFRAMEWORK_PLUGINS_INSTALL_STAGING = YES
 WPEFRAMEWORK_PLUGINS_DEPENDENCIES = wpeframework libpng
