@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WPEBACKEND_VERSION = 4be4c7df5734d125148367a90da477c8d40d9eaf
+WPEBACKEND_VERSION = da487fac43576123cc2c58782e9d1d3725e02618
 WPEBACKEND_SITE = $(call github,WebPlatformForEmbedded,WPEBackend,$(WPEBACKEND_VERSION))
 WPEBACKEND_INSTALL_STAGING = YES
 WPEBACKEND_DEPENDENCIES += libegl libxkbcommon
