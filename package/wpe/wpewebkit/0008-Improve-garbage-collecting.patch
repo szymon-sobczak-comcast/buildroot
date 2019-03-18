@@ -1,0 +1,88 @@
+From dc8eb5dc52257c9e2b9d3de9f088608106f665bf Mon Sep 17 00:00:00 2001
+From: Albert Dahan <albert@dahan.nl>
+Date: Tue, 9 Oct 2018 18:31:20 +0200
+Subject: [PATCH 08/10] Improve garbage collecting
+
+---
+ Source/WTF/wtf/linux/MemoryPressureHandlerLinux.cpp          | 6 +++---
+ Source/WebCore/page/MemoryRelease.cpp                        | 6 +++++-
+ Source/WebCore/platform/linux/MemoryPressureHandlerLinux.cpp | 6 +++---
+ 3 files changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/Source/WTF/wtf/linux/MemoryPressureHandlerLinux.cpp b/Source/WTF/wtf/linux/MemoryPressureHandlerLinux.cpp
+index 5920290e584..51597b703c4 100644
+--- a/Source/WTF/wtf/linux/MemoryPressureHandlerLinux.cpp
++++ b/Source/WTF/wtf/linux/MemoryPressureHandlerLinux.cpp
+@@ -316,7 +316,7 @@ void MemoryPressureHandler::pollMemoryPressure()
+ 
+     MemoryPressureHandler::singleton().setUnderMemoryPressure(critical);
+     callOnMainThread([critical] {
+-        MemoryPressureHandler::singleton().respondToMemoryPressure(critical ? Critical::Yes : Critical::No);
++        MemoryPressureHandler::singleton().respondToMemoryPressure(critical ? Critical::Yes : Critical::No, critical ? Synchronous::Yes : Synchronous::No);
+     });
+ }
+ 
+@@ -397,9 +397,9 @@ void MemoryPressureHandler::install()
+ 
+         setUnderMemoryPressure(critical);
+         if (isMainThread())
+-            respondToMemoryPressure(critical ? Critical::Yes : Critical::No);
++            respondToMemoryPressure(critical ? Critical::Yes : Critical::No, critical ? Synchronous::Yes : Synchronous::No);
+         else
+-            RunLoop::main().dispatch([this, critical] { respondToMemoryPressure(critical ? Critical::Yes : Critical::No); });
++            RunLoop::main().dispatch([this, critical] { respondToMemoryPressure(critical ? Critical::Yes : Critical::No, critical ? Synchronous::Yes : Synchronous::No); });
+     });
+ 
+     if (ReliefLogger::loggingEnabled() && isUnderMemoryPressure())
+diff --git a/Source/WebCore/page/MemoryRelease.cpp b/Source/WebCore/page/MemoryRelease.cpp
+index 1089db04667..6f61997d7e5 100644
+--- a/Source/WebCore/page/MemoryRelease.cpp
++++ b/Source/WebCore/page/MemoryRelease.cpp
+@@ -71,6 +71,10 @@ static void releaseNoncriticalMemory()
+     MemoryCache::singleton().pruneDeadResourcesToSize(0);
+ 
+     InlineStyleSheetOwner::clearCache();
++
++#if PLATFORM(WPE)
++    GCController::singleton().garbageCollectSoon();
++#endif
+ }
+ 
+ static void releaseCriticalMemory(Synchronous synchronous)
+@@ -102,7 +106,7 @@ static void releaseCriticalMemory(Synchronous synchronous)
+     if (synchronous == Synchronous::Yes) {
+         GCController::singleton().garbageCollectNow();
+     } else {
+-#if PLATFORM(IOS)
++#if PLATFORM(IOS) || PLATFORM(WPE)
+         GCController::singleton().garbageCollectNowIfNotDoneRecently();
+ #else
+         GCController::singleton().garbageCollectSoon();
+diff --git a/Source/WebCore/platform/linux/MemoryPressureHandlerLinux.cpp b/Source/WebCore/platform/linux/MemoryPressureHandlerLinux.cpp
+index 5e1bc1e9422..79144ee4f28 100644
+--- a/Source/WebCore/platform/linux/MemoryPressureHandlerLinux.cpp
++++ b/Source/WebCore/platform/linux/MemoryPressureHandlerLinux.cpp
+@@ -306,7 +306,7 @@ void MemoryPressureHandler::pollMemoryPressure(void*)
+ 
+     MemoryPressureHandler::singleton().setUnderMemoryPressure(critical);
+     callOnMainThread([critical] {
+-        MemoryPressureHandler::singleton().respondToMemoryPressure(critical ? Critical::Yes : Critical::No);
++        MemoryPressureHandler::singleton().respondToMemoryPressure(critical ? Critical::Yes : Critical::No, critical ? Synchronous::Yes : Synchronous::No);
+     });
+ }
+ 
+@@ -392,9 +392,9 @@ void MemoryPressureHandler::install()
+ 
+         setUnderMemoryPressure(critical);
+         if (isMainThread())
+-            respondToMemoryPressure(critical ? Critical::Yes : Critical::No);
++            respondToMemoryPressure(critical ? Critical::Yes : Critical::No, critical ? Synchronous::Yes : Synchronous::No);
+         else
+-            RunLoop::main().dispatch([this, critical] { respondToMemoryPressure(critical ? Critical::Yes : Critical::No); });
++            RunLoop::main().dispatch([this, critical] { respondToMemoryPressure(critical ? Critical::Yes : Critical::No, critical ? Synchronous::Yes : Synchronous::No); });
+     });
+ 
+     if (ReliefLogger::loggingEnabled() && isUnderMemoryPressure())
+-- 
+2.11.0
+
