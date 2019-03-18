@@ -1,0 +1,26 @@
+From aa8471a76681c7f2db0df36668dc16b06f9d2d49 Mon Sep 17 00:00:00 2001
+From: wouterlucas <wouter@wouterlucas.com>
+Date: Thu, 7 Mar 2019 13:51:12 -0800
+Subject: [PATCH] [Homecast] Fix plugin instantiation
+
+---
+ Source/WPEFramework/PluginServer.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/Source/WPEFramework/PluginServer.cpp b/Source/WPEFramework/PluginServer.cpp
+index 135d6e8..cdffbdb 100644
+--- a/Source/WPEFramework/PluginServer.cpp
++++ b/Source/WPEFramework/PluginServer.cpp
+@@ -626,7 +626,8 @@ void Server::Open() {
+ 
+         if (service->AutoStart() == true) {
+ 
+-            _dispatcher.Submit(PluginHost::IShell::Job::Create(&(*service), PluginHost::IShell::ACTIVATED, PluginHost::IShell::STARTUP));
++            //_dispatcher.Submit(PluginHost::IShell::Job::Create(&(*service), PluginHost::IShell::ACTIVATED, PluginHost::IShell::STARTUP));
++            service->Activate(PluginHost::IShell::STARTUP);
+         } else {
+             SYSLOG(Logging::Startup, (_T("Activation of plugin [%s]:[%s] blocked"), service->ClassName().c_str(), service->Callsign().c_str()));
+         }
+-- 
+2.11.0
+
