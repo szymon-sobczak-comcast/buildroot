@@ -1,5 +1,12 @@
-WPE*
-gst-*
+WPENetworkProcess
+WPEWebProcess
+WPEStorageProcess
+WPEFramework
+WPEProcess
+gst-plugin-scanner
+gst-inspect-1.0
+gst-launch-1.0
+gst-typefind-1.0
 libatomic.so
 libudev.so
 libcairo.so
