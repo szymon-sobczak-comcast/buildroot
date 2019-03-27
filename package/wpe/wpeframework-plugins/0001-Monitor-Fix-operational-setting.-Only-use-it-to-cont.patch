@@ -1,0 +1,26 @@
+From 45e6b50bba4f466d0b8c7a84236850f4fbc5d86c Mon Sep 17 00:00:00 2001
+From: wouterlucas <wouter@wouterlucas.com>
+Date: Tue, 26 Mar 2019 20:45:05 -0700
+Subject: [PATCH] [Monitor] Fix operational setting. Only use it to control
+ restart allowed and always measure. If you don't measure, you can't restart.
+
+---
+ Monitor/Monitor.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Monitor/Monitor.h b/Monitor/Monitor.h
+index a6d20fa..739ffeb 100644
+--- a/Monitor/Monitor.h
++++ b/Monitor/Monitor.h
+@@ -543,7 +543,7 @@ namespace Plugin {
+                         if ((_operationalInterval != 0) && (_operationalSlots == 0)) {
+                             bool operational = _source->IsOperational();
+                             _measurement.Operational(operational);
+-                            if ((operational == false) && (_operationalEvaluate == true) ) {
++                            if (operational == false) {
+                                 status |= NOT_OPERATIONAL;
+                                 TRACE_L1("Status not operational. %d", __LINE__);
+                             }
+-- 
+2.11.0
+
