@@ -300,8 +300,26 @@ config BR2_PACKAGE_WPEFRAMEWORK_CDMI_GROUP
     help
         run OpenCDM as this group, leave empty to use the same as 
         WPEframework
-        
-source "package/wpe/wpeframework-cdmi/Config.in"
+
+    if (BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY || \
+        BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_NEXUS || \
+        BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_NEXUS_SVP || \
+        BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_VGDRM \
+        )
+        config BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_READ_DIR
+            string "Playready read-dir"
+            default "${BR2_PACKAGE_WPEFRAMEWORK_PERSISTENT_PATH}/Netflix/dpi/playready"
+            help
+                Sets the Playready read-dir
+
+        config BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_STORE_LOCATION
+            string "Playready store-location"
+            default "${BR2_PACKAGE_WPEFRAMEWORK_PERSISTENT_PATH}/Netflix/dpi/playready/storage/drmstore"
+            help
+                Sets the Playready store-location
+    endif
+
+    source "package/wpe/wpeframework-cdmi/Config.in"
 endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTH
