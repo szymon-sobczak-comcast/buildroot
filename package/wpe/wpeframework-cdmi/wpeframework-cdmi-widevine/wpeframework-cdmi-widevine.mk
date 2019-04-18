@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WPEFRAMEWORK_CDMI_WIDEVINE_VERSION = ac3a765bdf96027fcb4ff67b0ca69858eb5dd665
+WPEFRAMEWORK_CDMI_WIDEVINE_VERSION = eab63197d0c77a9d14fbfd4ef0ba0f6f156b4a7d
 WPEFRAMEWORK_CDMI_WIDEVINE_SITE_METHOD = git
 WPEFRAMEWORK_CDMI_WIDEVINE_SITE = git@github.com:WebPlatformForEmbedded/OCDM-Widevine.git
 WPEFRAMEWORK_CDMI_WIDEVINE_INSTALL_STAGING = NO
