@@ -609,6 +609,27 @@ config BR2_PACKAGE_WPEFRAMEWORK_UX_USERAGENT
 
 endif
 
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_LIGHTNING
+    depends on BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER
+    bool "Lightning"
+    help
+      A WPEFramework Lightning enabled tab.
+
+if BR2_PACKAGE_WPEFRAMEWORK_LIGHTNING
+
+config BR2_PACKAGE_WPEFRAMEWORK_LIGHTNING_AUTOSTART
+    bool "autostart"
+
+config BR2_PACKAGE_WPEFRAMEWORK_LIGHTNING_MEMORYPRESSURE
+    string "memory-pressure"
+    default "databaseprocess:50m,networkprocess:100m,webprocess:300m,rpcprocess:50m"
+
+config BR2_PACKAGE_WPEFRAMEWORK_LIGHTNING_NONCOMPOSITEDWEBGL
+    bool "noncompositedwebgl"
+    default true
+
+endif
+
 config BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_CLIENTIDENTIFIER
     string "clientidentifier"
     default ""
