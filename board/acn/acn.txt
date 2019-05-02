@@ -113,7 +113,7 @@ libWPEFrameworkTraceControl.so
 libWPEFrameworkWebServer.so
 libWPEFrameworkInterfaces.so  
 libWPEFrameworkProxyStubs.so
-libWPEFrameworkMarshalling.so
+libWPEFrameworkMarshallings.so
 libWPEFrameworkCore.so
 libWPEFrameworkCryptalgo.so
 libWPEFrameworkPlugins.so
@@ -129,8 +129,9 @@ libWPEBackend-rdk.so
 libWPEBackend-default.so
 libwebpdemux.so
 libbrcmgstutil.so
+libbrcmsvpmeta.so
 libbrcmaudiodecoder.so
-libbrcmaudiofilter.so
+libbrcmaudfilter.so
 libbrcmaudiosink.so
 libbrcmvideodecoder.so
 libbrcmvideosink.so

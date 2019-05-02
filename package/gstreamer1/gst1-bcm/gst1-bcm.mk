@@ -21,7 +21,7 @@ GST1_BCM_VERSION = 17.3-rdkv-20180327
 else ifeq ($(BR2_PACKAGE_BCM_REFSW_18_2),y)
 GST1_BCM_VERSION = 18.2-rdkv-20180727
 else ifneq ($(filter y,$(BR2_PACKAGE_ACN_SDK)),)
-GST1_BCM_VERSION = 17.1-12
+GST1_BCM_VERSION = 18.2-rdkv-20180727
 else ifneq ($(filter y,$(BR2_PACKAGE_HOMECAST_SDK)),)
 GST1_BCM_VERSION = 961a36dcd30c91330b8a9503e12ec3ddb30b70b6
 else ifneq ($(filter y,$(BR2_PACKAGE_VSS_SDK)),)
@@ -36,7 +36,7 @@ GST1_BCM_SITE = git@github.com:Metrological/gstreamer-plugins-soc.git
 GST1_BCM_SITE_METHOD = git
 GST1_BCM_LICENSE = PROPRIETARY
 GST1_BCM_INSTALL_STAGING = YES
-GST1_BCM_DEPENDENCIES = gstreamer1 gst1-plugins-base
+GST1_BCM_DEPENDENCIES = gstreamer1 gst1-plugins-base libcurl
 
 ifeq ($(BR2_PACKAGE_BCM_REFSW),y)
 GST1_BCM_DEPENDENCIES += bcm-refsw
@@ -104,7 +104,8 @@ GST1_BCM_CONF_OPTS = \
 	--disable-tsdemux \
 	--disable-tsparse \
 	--disable-playersinkbin \
-	--disable-gfxsink
+	--disable-gfxsink \
+	--disable-streamextractor
 
 ifeq ($(BR2_PACKAGE_GST1_BCM_AUDFILTER),y)
 GST1_BCM_CONF_OPTS += --enable-audfilter
