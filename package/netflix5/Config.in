@@ -13,6 +13,7 @@ config BR2_PACKAGE_NETFLIX5
 	select BR2_PACKAGE_LIBCURL
 	select BR2_PACKAGE_GRAPHITE2
 	select BR2_PACKAGE_NGHTTP2
+	select BR2_PACKAGE_TREMOR
 	help
 	  Netflix5
 
@@ -21,8 +22,25 @@ if BR2_PACKAGE_NETFLIX5
 menu "Extra options"
 
 choice
+	bool "NETFLIX5 Minor Version"
+	default BR2_PACKAGE_NETFLIX5_1
+	help
+	  Choose NF5 minor version - 5.0 or 5.1, default - 5.1
+
+config BR2_PACKAGE_NETFLIX5_0
+	bool "5.0"
+	help
+	  Netflix5.0
+
+config BR2_PACKAGE_NETFLIX5_1
+        bool "5.1"
+        help
+          Netflix5.1
+endchoice
+
+choice
 	bool "Application type"
-	default BR2_PACKAGE_NETFLIX5_APP
+	default BR2_PACKAGE_NETFLIX5_LIB
 	help
 	  Choose application type.
 
@@ -61,7 +79,7 @@ config BR2_PACKAGE_NETFLIX5_WESTEROS_SINK
 config BR2_PACKAGE_NETFLIX5_AUDIO_MIXER
         bool "audio-mixer"
         select BR2_PACKAGE_TREMOR
-        default n
+        default BR2_PACKAGE_HAS_NEXUS
 
 if BR2_PACKAGE_NETFLIX5_AUDIO_MIXER
 
@@ -83,9 +101,27 @@ config BR2_PACKAGE_NETFLIX5_AUDIO_MIXER_NEXUS
 	  Nexus Audio Mixer
 
 endchoice
-
-
 endif
+
+choice
+	bool "DRM"
+	default BR2_PACKAGE_NETFLIX5_DRM_PLAYREADY
+	help
+	  Choose DRM Type
+
+config BR2_PACKAGE_NETFLIX5_DRM_PLAYREADY
+	bool "playready"
+	select BR2_PACKAGE_PLAYREADY
+	help
+	  DRM Playready
+
+config BR2_PACKAGE_NETFLIX5_DRM_OCDM
+	bool "ocdm"
+	depends on BR2_PACKAGE_WPEFRAMEWORK_CDMI
+	help
+	  DRM Ocdm
+
+endchoice
 
 endmenu
 endif

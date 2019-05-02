@@ -7,9 +7,10 @@ GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
 
 echo "Post-image: processing $@"
 
-BLUETOOTH="$(grep ^BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTH=y ${BR2_CONFIG})"
+BLUETOOTH="$(grep ^BR2_PACKAGE_BLUEZ5_UTILS=y ${BR2_CONFIG})"
+ALSA="$(grep ^BR2_PACKAGE_ALSA_LIB=y ${BR2_CONFIG})"
 COBALT="$(grep ^BR2_PACKAGE_COBALT=y ${BR2_CONFIG})"
-if [ "x${COBALT}" != "x" ] || [ "x${BLUETOOTH}" != "x" ]; then
+if [ "x${COBALT}" != "x" ] || [ "x${ALSA}" != "x" ]; then
 	if ! grep -qE '^dtparam=audio=on' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
 		echo "Adding 'dtparam=audio=on' to config.txt."
 		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
@@ -46,6 +47,15 @@ case "$i" in
 dtoverlay=pi3-miniuart-bt
 __EOF__
 		fi
+	else
+		echo "Adding serial console to /dev/ttyS0 to config.txt."
+		sed -i 's/ttyAMA0/ttyS0/g' "${BINARIES_DIR}/rpi-firmware/cmdline.txt"
+		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Fixes rpi3 ttyS0 serial console
+enable_uart=1
+__EOF__
+ 
 	fi
 	;;
 	--tvmode-720)

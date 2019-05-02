@@ -4,7 +4,16 @@
 #
 ################################################################################
 
+GST1_PLUGINS_UGLY_VERSION = 1.14.4
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_10),y)
 GST1_PLUGINS_UGLY_VERSION = 1.10.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_14),y)
+GST1_PLUGINS_UGLY_VERSION = 1.14.4
+endif
+
 GST1_PLUGINS_UGLY_SOURCE = gst-plugins-ugly-$(GST1_PLUGINS_UGLY_VERSION).tar.xz
 GST1_PLUGINS_UGLY_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-ugly
 GST1_PLUGINS_UGLY_LICENSE_FILES = COPYING
@@ -136,7 +145,7 @@ endif
 # Use the following command to extract license info for plugins.
 # # find . -name 'plugin-*.xml' | xargs grep license
 
-ifeq ($(BR2_PACKAGE_VSS_SDK),y)
+ifeq ($(BR2_PACKAGE_VSS_SDK_MOVE_GSTREAMER),y)
 # this platform needs to run this gstreamer version parallel
 # to an older version.
 GST1_PLUGINS_UGLY_AUTORECONF = YES

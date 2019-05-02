@@ -1,10 +1,10 @@
 ################################################################################
 #
-# WPEBackend
+# wpebackend-rdk
 #
 ################################################################################
 
-WPEBACKEND_RDK_VERSION = 744b30b655088a17f77c0349ff5e82968f41b732
+WPEBACKEND_RDK_VERSION = 09e4643651cc8855a57c620d869ceea7e014b67a
 WPEBACKEND_RDK_SITE = $(call github,WebPlatformForEmbedded,WPEBackend-rdk,$(WPEBACKEND_RDK_VERSION))
 WPEBACKEND_RDK_INSTALL_STAGING = YES
 WPEBACKEND_RDK_DEPENDENCIES = wpebackend libglib2
@@ -52,7 +52,7 @@ else ifeq ($(BR2_PACKAGE_WAYLAND)$(BR2_PACKAGE_WESTEROS)$(BR2_PACKAGE_WPEFRAMEWO
 	WPEBACKEND_RDK_DEPENDENCIES += wayland westeros
 	WPEBACKEND_RDK_FLAGS +=-DUSE_BACKEND_WESTEROS=ON -DUSE_HOLE_PUNCH_GSTREAMER=OFF -DUSE_WESTEROS_SINK=OFF
 else ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_COMPOSITOR),y)
-    WPEBACKEND_RDK_DEPENDENCIES += wpeframework wpeframework-plugins bcm-refsw
+    WPEBACKEND_RDK_DEPENDENCIES += wpeframework wpeframework-plugins
     WPEBACKEND_RDK_FLAGS +=-DUSE_BACKEND_WPEFRAMEWORK=ON -DUSE_HOLE_PUNCH_GSTREAMER=OFF -DUSE_VIRTUAL_KEYBOARD=OFF -DUSE_INPUT_LIBINPUT=OFF
 
     ifeq ($(BR2_PACKAGE_WAYLAND)$(BR2_PACKAGE_WESTEROS),yy)
