@@ -300,8 +300,26 @@ config BR2_PACKAGE_WPEFRAMEWORK_CDMI_GROUP
     help
         run OpenCDM as this group, leave empty to use the same as 
         WPEframework
-        
-source "package/wpe/wpeframework-cdmi/Config.in"
+
+    if (BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY || \
+        BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_NEXUS || \
+        BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_NEXUS_SVP || \
+        BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_VGDRM \
+        )
+        config BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_READ_DIR
+            string "Playready read-dir"
+            default "${BR2_PACKAGE_WPEFRAMEWORK_PERSISTENT_PATH}/Netflix/dpi/playready"
+            help
+                Sets the Playready read-dir
+
+        config BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_STORE_LOCATION
+            string "Playready store-location"
+            default "${BR2_PACKAGE_WPEFRAMEWORK_PERSISTENT_PATH}/Netflix/dpi/playready/storage/drmstore"
+            help
+                Sets the Playready store-location
+    endif
+
+    source "package/wpe/wpeframework-cdmi/Config.in"
 endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTH
@@ -588,6 +606,27 @@ config BR2_PACKAGE_WPEFRAMEWORK_UX_AUTOSTART
 config BR2_PACKAGE_WPEFRAMEWORK_UX_USERAGENT
     string "useragent"
     default ""
+
+endif
+
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_LIGHTNING
+    depends on BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER
+    bool "Lightning"
+    help
+      A WPEFramework Lightning enabled tab.
+
+if BR2_PACKAGE_WPEFRAMEWORK_LIGHTNING
+
+config BR2_PACKAGE_WPEFRAMEWORK_LIGHTNING_AUTOSTART
+    bool "autostart"
+
+config BR2_PACKAGE_WPEFRAMEWORK_LIGHTNING_MEMORYPRESSURE
+    string "memory-pressure"
+    default "databaseprocess:50m,networkprocess:100m,webprocess:300m,rpcprocess:50m"
+
+config BR2_PACKAGE_WPEFRAMEWORK_LIGHTNING_NONCOMPOSITEDWEBGL
+    bool "noncompositedwebgl"
+    default true
 
 endif
 

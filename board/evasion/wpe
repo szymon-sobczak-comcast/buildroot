@@ -35,7 +35,7 @@ ln -s /etc/playready/  $PERSISTANTPATH/Netflix/dpi/playready
 
 # Exports
 export HOME=$SOURCE/root
-export PATH=$SOURCE/usr/bin:/bin:/usr/bin
+export PATH=$SOURCE/usr/bin:/bin:/usr/bin:/sbin
 export GST_PLUGIN_PATH=$SOURCE/usr/lib/gstreamer-1.0
 export GST_PLUGIN_SCANNER=$SOURCE/usr/libexec/gstreamer-1.0/gst-plugin-scanner
 export GST_PLUGIN_SYSTEM_PATH=$SOURCE/usr/lib/gstreamer-1.0
