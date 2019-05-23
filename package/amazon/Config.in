@@ -12,6 +12,10 @@ config BR2_PACKAGE_AMAZON
 if BR2_PACKAGE_AMAZON
 menu "Options"
 
+config BR2_PACKAGE_AMAZON_INCLUDE_IGNITION
+	bool "ignition"
+	default "n"
+
 config BR2_PACKAGE_AMAZON_PLATFORM_FAMILY_NAME
 	string "family name"
 	default "rpi-metrological"
@@ -40,6 +44,8 @@ choice
 		bool "release with debug symbols"
 	config BR2_PACKAGE_AMAZON_BUILD_TYPE_DEBUG
 		bool "debug"
+	config BR2_PACKAGE_AMAZON_BUILD_TYPE_TESTING
+		bool "testing"
 endchoice
 
 choice

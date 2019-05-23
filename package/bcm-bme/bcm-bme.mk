@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-BCM_BME_VERSION = 1c99b11cc71a1aefa742da1c4b7df8a2960268eb
+BCM_BME_VERSION = 9b065dbafbaf075e69d561e3ced725616b7725f1
 BCM_BME_SITE = git@github.com:Metrological/bcm-bme.git
 BCM_BME_SITE_METHOD = git
 BCM_BME_DEPENDENCIES = gyp host-ninja
@@ -12,7 +12,7 @@ BCM_BME_LICENSE = PROPRIETARY
 BCM_BME_INSTALL_STAGING = YES
 
 ifeq ($(BR2_PACKAGE_BCM_REFSW),y)
-GST1_BCM_DEPENDENCIES += bcm-refsw
+BCM_BME_DEPENDENCIES += bcm-refsw
 endif
 
 NEXUS_CFLAGS=$(shell cat ${STAGING_DIR}/usr/include/platform_app.inc | grep NEXUS_CFLAGS | cut -d' ' -f3- | awk -F "-std=c89" '{print $$1 $$2}')
@@ -20,7 +20,7 @@ NEXUS_LDFLAGS=$(shell cat ${STAGING_DIR}/usr/include/platform_app.inc | grep NEX
 NEXUS_CLIENT_LD_LIBRARIES=$(shell cat ${STAGING_DIR}/usr/include/platform_app.inc | grep NEXUS_CLIENT_LD_LIBRARIES | cut -d' ' -f4-)
 
 BCM_BME_CFLAGS = $(TARGET_CFLAGS) ${NEXUS_CFLAGS} -I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/usr/include/refsw
-BCM_BME_LDFLAGS = $(TARGET_LDFLAGS) -L${STAGING_DIR}/usr/lib $(NEXUS_LDFLAGS) $(NEXUS_CLIENT_LD_LIBRARIES) -lnxclient
+BCM_BME_LDFLAGS = $(TARGET_LDFLAGS) -L${STAGING_DIR}/usr/lib $(NEXUS_LDFLAGS) $BCM_BME_DEPENDENCIES(NEXUS_CLIENT_LD_LIBRARIES) -lnxclient
 
 BCM_BME_CFLAGS_FILTERED = $(filter-out -std=c89 -Wstrict-prototypes -pedantic, $(BCM_BME_CFLAGS))
 
@@ -110,6 +110,7 @@ define  BCM_BME_INSTALL_DEV
 	$(call BCM_BME_INSTALL_PC,$(STAGING_DIR))
 	$(INSTALL) -m 755 -d $(STAGING_DIR)/usr/include/bme
 	$(INSTALL) -m 644 $(@D)/player/include/*.h $(STAGING_DIR)/usr/include/bme/
+	$(INSTALL) -m 644 $(@D)/shared/*.h $(STAGING_DIR)/usr/include/bme/
 endef
 
 define BCM_BME_BUILD_CMDS
@@ -125,3 +126,5 @@ define BCM_BME_INSTALL_TARGET_CMDS
 endef
 
 $(eval $(generic-package))
+
+include package/bcm-bme/bme-amazon-backend/bme-amazon-backend.mk
