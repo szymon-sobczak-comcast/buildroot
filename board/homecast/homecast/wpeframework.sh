@@ -25,4 +25,4 @@ echo 3 > /proc/sys/vm/drop_caches
 #ulimit -c unlimited
 
 # Firewall for non-prod builds
-LD_PRELOAD=$SOURCE/lib/libstdc\+\+.so.6.0.21:/lib/libnexus.so WPEFramework -c $SOURCE/etc/WPEFramework/config.json
+LD_PRELOAD=$SOURCE/lib/libstdc\+\+.so.6.0.21:/lib/libnexus.so WPEFramework -b -c $SOURCE/etc/WPEFramework/config.json
