@@ -1,0 +1,22 @@
+From f490849db2187b10bac7ca66f1ead4518fc87ab6 Mon Sep 17 00:00:00 2001
+From: Pawel Stanek <p.stanek@metrological.com>
+Date: Thu, 7 Mar 2019 16:19:40 +0100
+Subject: [PATCH] [WPE-261][CORE] Abort IPC channel in case link goes down.
+
+This will make ones waiting for a response to move on as well.
+---
+ Source/core/IPCConnector.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Source/core/IPCConnector.h b/Source/core/IPCConnector.h
+index e429da9..ae00084 100644
+--- a/Source/core/IPCConnector.h
++++ b/Source/core/IPCConnector.h
+@@ -1152,6 +1152,7 @@ namespace Core {
+             {
+                 if (_parent.Source().IsOpen() == false) {
+                     // Whatever s hapening, Flush what we were doing..
++                    _parent.Abort();
+                     _factory.Flush();
+                 }
+

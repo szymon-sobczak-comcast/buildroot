@@ -1,0 +1,13 @@
+diff --git a/Source/plugins/VirtualInput.cpp b/Source/plugins/VirtualInput.cpp
+index 0d31d47..59fc9b7 100644
+--- a/Source/plugins/VirtualInput.cpp
++++ b/Source/plugins/VirtualInput.cpp
+@@ -612,7 +612,7 @@ ENUM_CONVERSION_END(PluginHost::VirtualInput::KeyMap::modifier)
+             Core::ProxyType<Core::IIPC> base(Core::proxy_cast<Core::IIPC>(message));
+
+             TRACE_L1("Sending keycode to all clients: %d", code);
+-            _service.Invoke(base, Core::infinite);
++            _service.Invoke(base, RPC::CommunicationTimeOut);
+         }
+
+         /* virtual */ void IPCKeyboardInput::MapChanges(ChangeIterator&) {}

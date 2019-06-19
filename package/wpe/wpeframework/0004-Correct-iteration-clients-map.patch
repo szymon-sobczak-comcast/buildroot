@@ -1,0 +1,29 @@
+From 3e7f89d0956cbbfe5983ab74b270c752d581db86 Mon Sep 17 00:00:00 2001
+From: Vivek Arumugam <vivek_arumugam@comcast.com>
+Date: Wed, 13 Mar 2019 19:25:26 +0530
+Subject: [PATCH] Correct iteration through _clients map
+
+---
+ Source/core/IPCChannel.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/Source/core/IPCChannel.h b/Source/core/IPCChannel.h
+index e677f3a..f1fcf55 100644
+--- a/Source/core/IPCChannel.h
++++ b/Source/core/IPCChannel.h
+@@ -251,6 +251,7 @@ namespace Core {
+
+             while ((steps != 0) && (current != _clients.end())) {
+                 --steps;
++                ++current;
+             }
+
+             if (current != _clients.end()) {
+@@ -272,6 +273,7 @@ namespace Core {
+
+             while ((steps != 0) && (current != _clients.end())) {
+                 --steps;
++                ++current;
+             }
+
+             if (current != _clients.end()) {
