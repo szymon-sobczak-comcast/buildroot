@@ -1,0 +1,39 @@
+From 48e4c147afb7fe5033c76d2a6ce1f5713ffd3558 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Enrique=20Oca=C3=B1a=20Gonz=C3=A1lez?= <eocanha@igalia.com>
+Date: Fri, 21 Jun 2019 13:27:44 +0000
+Subject: [PATCH] Request parsed audio/mpeg streams for audfilter
+
+This solves an issue with this id3 audio stream:
+
+  https://cdn-cms.tunein.com/content/podcasts/TuneInConversation/FalzTheBahdGuyConvo.mp3
+
+That stream causes:
+
+  brcmaudiodecoder gst_brcm_audio_decoder.c:598:cdb_underflow_cb: Audio underflow: FIFO=145 Frms=0 pts=0x164970 diff=110331029 err=1
+
+after some time. Requesting a GstMpegAudioParse element before the audfilter
+solves the issue.
+
+However, the parser might become confused if Secure Video Path (SVP) is used,
+because encrypted buffers with the same caps as clear buffers would flow
+through the parser.
+---
+ audfilter/src/gst_brcm_aud_filter.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/audfilter/src/gst_brcm_aud_filter.c b/audfilter/src/gst_brcm_aud_filter.c
+index b3ef098..889682f 100644
+--- a/audfilter/src/gst_brcm_aud_filter.c
++++ b/audfilter/src/gst_brcm_aud_filter.c
+@@ -79,7 +79,7 @@ static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("brcm-audfi
+     GST_PAD_SINK,
+     GST_PAD_ALWAYS,
+     GST_STATIC_CAPS (
+-        "audio/mpeg;"
++        "audio/mpeg, parsed = (bool) true; "
+         "audio/mpeg, mpegversion = (int) 1; "
+         "audio/mpeg, mpegversion = (int) 3; "
+         "audio/mpeg, mpegversion = (int) 4; "
+-- 
+2.17.1
+
