@@ -1,0 +1,17 @@
+diff --git a/videodecode/src/gst_brcm_video_decoder.c b/videodecode/src/gst_brcm_video_decoder.c
+index 57b6075..2b807d6 100755
+--- a/videodecode/src/gst_brcm_video_decoder.c
++++ b/videodecode/src/gst_brcm_video_decoder.c
+@@ -2589,6 +2589,12 @@ static void gst_brcm_video_decoder_sink_unlink(GstPad *pad, GstObject *parent) {
+             break;
+         }
+ 
++        if (GST_STATE(decoder) != GST_STATE_PLAYING) {
++            GST_WARNING("Not playing so unlinking the decoder straight away");
++            break;
++        }
++
++
+         if (decoderStatus.numDecoded == numDecoded &&
+             decoderStatus.queueDepth == queueDepth &&
+             decoderStatus.fifoDepth == fifoDepth )
