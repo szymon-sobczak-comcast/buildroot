@@ -150,12 +150,6 @@ endif
 
 ifeq ($(BR2_PACKAGE_HAS_OPUS_DECODER),)
 GST1_BCM_PKGDIR = "$(TOP_DIR)/package/gstreamer1/gst1-bcm"
-
-define GST1_BCM_INSTALL_SVP_DEV
-    $(INSTALL) -D -m 0644 ${@D}/svpmeta/src/gst_brcm_svp_meta.h $(STAGING_DIR)/usr/include
-endef
-
-GST1_BCM_POST_INSTALL_STAGING_HOOKS += GST1_BCM_INSTALL_SVP_DEV
 endif
 
 ifeq ($(BR2_PACKAGE_VSS_SDK_MOVE_GSTREAMER),y)
