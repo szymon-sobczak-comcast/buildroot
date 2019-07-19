@@ -1,0 +1,102 @@
+diff --git a/src/bcm-nexus/renderer-backend.cpp b/src/bcm-nexus/renderer-backend.cpp
+index a79afdf..6de59c0 100644
+--- a/src/bcm-nexus/renderer-backend.cpp
++++ b/src/bcm-nexus/renderer-backend.cpp
+@@ -32,14 +32,14 @@
+ #include <EGL/egl.h>
+ #include <cstring>
+ #include <stdio.h>
+-#include <nexus_config.h>
+-#include <nexus_platform.h>
+-#include <nexus_display.h>
+-#include <nexus_core_utils.h>
+-#include <default_nexus.h>
++#include <refsw/nexus_config.h>
++#include <refsw/nexus_platform.h>
++#include <refsw/nexus_display.h>
++#include <refsw/nexus_core_utils.h>
++#include <refsw/default_nexus.h>
+ 
+ #ifdef BACKEND_BCM_NEXUS_NXCLIENT
+-#include <nxclient.h>
++#include <refsw/nxclient.h>
+ #endif
+ 
+ #include <chrono>
+@@ -113,11 +113,12 @@ struct Backend {
+     ~Backend();
+ 
+     NXPL_PlatformHandle nxplHandle;
++    NEXUS_DisplayHandle displayHandle;
+ };
+ 
+ Backend::Backend()
++    : displayHandle(nullptr)
+ {
+-    NEXUS_DisplayHandle displayHandle(nullptr);
+ 
+ #ifdef BACKEND_BCM_NEXUS_NXCLIENT
+     NxClient_JoinSettings joinSettings;
+@@ -138,6 +139,8 @@ Backend::Backend()
+ Backend::~Backend()
+ {
+     NXPL_UnregisterNexusDisplayPlatform(nxplHandle);
++    if (displayHandle != 0)
++        NEXUS_Display_Close(displayHandle);
+ #ifdef BACKEND_BCM_NEXUS_NXCLIENT
+     NxClient_Uninit();
+ #else
+@@ -173,9 +176,7 @@ EGLTarget::~EGLTarget()
+ {
+     ipcClient.deinitialize();
+ 
+-#ifdef BACKEND_BCM_NEXUS_NXCLIENT
+-    NEXUS_SurfaceClient_Release(reinterpret_cast<NEXUS_SurfaceClient*>(nativeWindow));
+-#endif
++    NXPL_DestroyNativeWindow(nativeWindow);
+ }
+ 
+ void EGLTarget::initialize(uint32_t width, uint32_t height)
+@@ -185,17 +186,32 @@ void EGLTarget::initialize(uint32_t width, uint32_t height)
+ 
+     uint32_t nexusClientId = Client::Instance()->Id(); // For now we only accept 0. See Mail David Montgomery
+ 
+-    NXPL_NativeWindowInfo windowInfo;
++// Following should be refsw version check i.e. NEXUS_PLATFORM_VERSION_MAJOR > 13
++#ifdef BACKEND_BCM_NEXUS_NXCLIENT
++    NXPL_NativeWindowInfoEXT windowInfo;
++    NXPL_GetDefaultNativeWindowInfoEXT(&windowInfo);
++
+     windowInfo.x = 0;
+     windowInfo.y = 0;
+     windowInfo.width = width;
+     windowInfo.height = height;
+     windowInfo.stretch = false;
+-#ifdef BACKEND_BCM_NEXUS_NXCLIENT
+     windowInfo.zOrder = 0;
+-#endif
+     windowInfo.clientID = nexusClientId;
++
++    nativeWindow = NXPL_CreateNativeWindowEXT(&windowInfo);
++#else
++    NXPL_NativeWindowInfo windowInfo;
++
++    windowInfo.x = 0;
++    windowInfo.y = 0;
++    windowInfo.width = width;
++    windowInfo.height = height;
++    windowInfo.stretch = false;
++    windowInfo.clientID = nexusClientId;
++
+     nativeWindow = NXPL_CreateNativeWindow(&windowInfo);
++#endif
+ 
+     this->width = width;
+     this->height = height;
+@@ -305,4 +321,4 @@ struct wpe_renderer_backend_egl_offscreen_target_interface bcm_nexus_renderer_ba
+     },
+ };
+ 
+-}
++}
+\ No newline at end of file
