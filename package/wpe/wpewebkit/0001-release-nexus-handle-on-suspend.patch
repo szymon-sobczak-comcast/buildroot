@@ -1,0 +1,362 @@
+diff --git a/Source/WebCore/platform/graphics/GLContext.cpp b/Source/WebCore/platform/graphics/GLContext.cpp
+index 46d2fd4a8e3..28bfa4cfcec 100644
+--- a/Source/WebCore/platform/graphics/GLContext.cpp
++++ b/Source/WebCore/platform/graphics/GLContext.cpp
+@@ -47,9 +47,15 @@ public:
+ 
+     void setContext(GLContext* context) { m_context = context; }
+     GLContext* context() { return m_context; }
++    void setWindowContext(std::unique_ptr<GLContext>&& context) { m_windowContext = WTFMove(context); }
++    GLContext* windowContext() { return m_windowContext.get(); }
++    void setWindowContextNativeSurface(uint64_t id) { m_windowContextNativeSurface = id; }
++    uint64_t windowContextNativeSurface() { return m_windowContextNativeSurface; }
+ 
+ private:
+     GLContext* m_context { nullptr };
++    std::unique_ptr<GLContext> m_windowContext { nullptr };
++    uint64_t m_windowContextNativeSurface { 0 };
+ };
+ 
+ ThreadSpecific<ThreadGlobalGLContext>* ThreadGlobalGLContext::staticGLContext;
+@@ -151,6 +157,26 @@ GLContext* GLContext::current()
+     return currentContext()->context();
+ }
+ 
++void GLContext::setWindowContext(std::unique_ptr<GLContext>&& context)
++{
++    currentContext()->setWindowContext(WTFMove(context));
++}
++
++GLContext* GLContext::windowContext()
++{
++    return currentContext()->windowContext();
++}
++
++void GLContext::setWindowContextNativeSurface(uint64_t id)
++{
++    currentContext()->setWindowContextNativeSurface(id);
++}
++
++uint64_t GLContext::windowContextNativeSurface()
++{
++    return currentContext()->windowContextNativeSurface();
++}
++
+ bool GLContext::isExtensionSupported(const char* extensionList, const char* extension)
+ {
+     if (!extensionList)
+diff --git a/Source/WebCore/platform/graphics/GLContext.h b/Source/WebCore/platform/graphics/GLContext.h
+index 1788c38f2ab..2f14c837167 100644
+--- a/Source/WebCore/platform/graphics/GLContext.h
++++ b/Source/WebCore/platform/graphics/GLContext.h
+@@ -45,6 +45,10 @@ public:
+     static std::unique_ptr<GLContext> createSharingContext(PlatformDisplay&);
+     static GLContext* current();
+     static bool isExtensionSupported(const char* extensionList, const char* extension);
++    static void setWindowContext(std::unique_ptr<GLContext>&&);
++    static GLContext* windowContext();
++    static void setWindowContextNativeSurface(uint64_t);
++    static uint64_t windowContextNativeSurface();
+ 
+     PlatformDisplay& display() const { return m_display; }
+     unsigned version();
+diff --git a/Source/WebCore/platform/graphics/PlatformDisplay.cpp b/Source/WebCore/platform/graphics/PlatformDisplay.cpp
+index 59898d6c9ce..6be0d594a80 100644
+--- a/Source/WebCore/platform/graphics/PlatformDisplay.cpp
++++ b/Source/WebCore/platform/graphics/PlatformDisplay.cpp
+@@ -167,6 +167,11 @@ GLContext* PlatformDisplay::sharingGLContext()
+         m_sharingGLContext = GLContext::createSharingContext(*this);
+     return m_sharingGLContext.get();
+ }
++
++void PlatformDisplay::destroySharingGLContext()
++{
++    m_sharingGLContext = nullptr;
++}
+ #endif
+ 
+ #if USE(EGL)
+diff --git a/Source/WebCore/platform/graphics/PlatformDisplay.h b/Source/WebCore/platform/graphics/PlatformDisplay.h
+index dd35646b38d..0e61907d352 100644
+--- a/Source/WebCore/platform/graphics/PlatformDisplay.h
++++ b/Source/WebCore/platform/graphics/PlatformDisplay.h
+@@ -63,6 +63,7 @@ public:
+ 
+ #if USE(EGL) || USE(GLX)
+     GLContext* sharingGLContext();
++    void destroySharingGLContext();
+ #endif
+ 
+ #if USE(EGL)
+diff --git a/Source/WebCore/platform/graphics/cairo/ImageBufferCairo.cpp b/Source/WebCore/platform/graphics/cairo/ImageBufferCairo.cpp
+index e4737480e94..6fc1486a5ee 100644
+--- a/Source/WebCore/platform/graphics/cairo/ImageBufferCairo.cpp
++++ b/Source/WebCore/platform/graphics/cairo/ImageBufferCairo.cpp
+@@ -164,11 +164,8 @@ void ImageBufferData::swapBuffersIfNeeded()
+     GLContext* previousActiveContext = GLContext::current();
+     cairo_surface_flush(m_surface.get());
+ 
+-    if (!m_compositorTexture) {
++    if (!m_compositorTexture)
+         createCompositorBuffer();
+-        LockHolder holder(m_platformLayerProxy->lock());
+-        m_platformLayerProxy->pushNextBuffer(std::make_unique<TextureMapperPlatformLayerBuffer>(m_compositorTexture, m_size, TextureMapperGL::ShouldBlend, GL_RGBA));
+-    }
+ 
+     // It would be great if we could just swap the buffers here as we do with webgl, but that breaks the cases
+     // where one frame uses the content already rendered in the previous frame. So we just copy the content
+@@ -179,6 +176,12 @@ void ImageBufferData::swapBuffersIfNeeded()
+     cairo_surface_flush(m_compositorSurface.get());
+     glFlush();
+ 
++    {
++        LockHolder holder(m_platformLayerProxy->lock());
++        if (m_platformLayerProxy->isEmpty())
++            m_platformLayerProxy->pushNextBuffer(std::make_unique<TextureMapperPlatformLayerBuffer>(m_compositorTexture, m_size, TextureMapperGL::ShouldBlend, GL_RGBA));
++    }
++
+     m_bufferChanged = false;
+     if (previousActiveContext)
+         previousActiveContext->makeContextCurrent();
+diff --git a/Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp b/Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp
+index 4ea79d57834..d086f97cbdf 100644
+--- a/Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp
++++ b/Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp
+@@ -1491,6 +1491,8 @@ void MediaPlayerPrivateGStreamerBase::platformSuspend()
+ void MediaPlayerPrivateGStreamerBase::platformResume()
+ {
+ #if USE(HOLE_PUNCH_GSTREAMER)
++    LockHolder locker(m_platformLayerProxy->lock());
++    m_platformLayerProxy->pushNextBuffer(std::make_unique<TextureMapperPlatformLayerBuffer>(0, m_size, TextureMapperGL::ShouldOverwriteRect, GL_DONT_CARE));
+     updateVideoRectangle();
+ #endif
+ }
+diff --git a/Source/WebCore/platform/graphics/texmap/TextureMapperGC3DPlatformLayer.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperGC3DPlatformLayer.cpp
+index c2973a285f3..1de46e9ad61 100644
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperGC3DPlatformLayer.cpp
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperGC3DPlatformLayer.cpp
+@@ -31,8 +31,6 @@
+ 
+ namespace WebCore {
+ 
+-static std::unique_ptr<GLContext> s_windowContext;
+-
+ TextureMapperGC3DPlatformLayer::TextureMapperGC3DPlatformLayer(GraphicsContext3D& context, GraphicsContext3D::RenderStyle renderStyle, HostWindow* hostWindow)
+     : m_context(context)
+     , m_renderStyle(renderStyle)
+@@ -42,8 +40,10 @@ TextureMapperGC3DPlatformLayer::TextureMapperGC3DPlatformLayer(GraphicsContext3D
+         m_glContext = GLContext::createOffscreenContext(&PlatformDisplay::sharedDisplayForCompositing());
+         break;
+     case GraphicsContext3D::RenderDirectlyToHostWindow:
+-        if (!s_windowContext)
+-            s_windowContext = GLContext::createContextForWindow(reinterpret_cast<GLNativeWindowType>(hostWindow->nativeWindowID()), &PlatformDisplay::sharedDisplayForCompositing());
++        if (!GLContext::windowContext() || !GLContext::windowContextNativeSurface() || GLContext::windowContextNativeSurface() != hostWindow->nativeWindowID()) {
++            GLContext::setWindowContext(GLContext::createContextForWindow(reinterpret_cast<GLNativeWindowType>(hostWindow->nativeWindowID()), &PlatformDisplay::sharedDisplayForCompositing()));
++            GLContext::setWindowContextNativeSurface(hostWindow->nativeWindowID());
++        }
+         break;
+     }
+ 
+@@ -62,8 +62,8 @@ TextureMapperGC3DPlatformLayer::~TextureMapperGC3DPlatformLayer()
+ 
+ GLContext* TextureMapperGC3DPlatformLayer::glContext()
+ {
+-    ASSERT((m_glContext && m_renderStyle == GraphicsContext3D::RenderOffscreen) || (s_windowContext && m_renderStyle == GraphicsContext3D::RenderDirectlyToHostWindow));
+-    return m_renderStyle == GraphicsContext3D::RenderOffscreen ? m_glContext.get() : s_windowContext.get();
++    ASSERT((m_glContext && m_renderStyle == GraphicsContext3D::RenderOffscreen) || (GLContext::windowContext() && m_renderStyle == GraphicsContext3D::RenderDirectlyToHostWindow));
++    return m_renderStyle == GraphicsContext3D::RenderOffscreen ? m_glContext.get() : GLContext::windowContext();
+ }
+ 
+ bool TextureMapperGC3DPlatformLayer::makeContextCurrent()
+diff --git a/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerProxy.h b/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerProxy.h
+index a73424aaffd..e6d404dcebb 100644
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerProxy.h
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerProxy.h
+@@ -73,6 +73,7 @@ public:
+     void dropCurrentBufferWhilePreservingTexture();
+ 
+     bool scheduleUpdateOnCompositorThread(WTF::Function<void()>&&);
++    bool isEmpty() { return !m_currentBuffer; }
+ 
+ private:
+     void appendToUnusedBuffers(std::unique_ptr<TextureMapperPlatformLayerBuffer>);
+diff --git a/Source/WebCore/platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp b/Source/WebCore/platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp
+index ae4275f48da..59412080aa3 100644
+--- a/Source/WebCore/platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp
++++ b/Source/WebCore/platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp
+@@ -174,24 +174,28 @@ bool CoordinatedGraphicsLayer::setChildren(const Vector<GraphicsLayer*>& childre
+ void CoordinatedGraphicsLayer::addChild(GraphicsLayer* layer)
+ {
+     GraphicsLayer::addChild(layer);
++    downcast<CoordinatedGraphicsLayer>(*layer).setCoordinatorIncludingSubLayersIfNeeded(m_coordinator);
+     didChangeChildren();
+ }
+ 
+ void CoordinatedGraphicsLayer::addChildAtIndex(GraphicsLayer* layer, int index)
+ {
+     GraphicsLayer::addChildAtIndex(layer, index);
++    downcast<CoordinatedGraphicsLayer>(*layer).setCoordinatorIncludingSubLayersIfNeeded(m_coordinator);
+     didChangeChildren();
+ }
+ 
+ void CoordinatedGraphicsLayer::addChildAbove(GraphicsLayer* layer, GraphicsLayer* sibling)
+ {
+     GraphicsLayer::addChildAbove(layer, sibling);
++    downcast<CoordinatedGraphicsLayer>(*layer).setCoordinatorIncludingSubLayersIfNeeded(m_coordinator);
+     didChangeChildren();
+ }
+ 
+ void CoordinatedGraphicsLayer::addChildBelow(GraphicsLayer* layer, GraphicsLayer* sibling)
+ {
+     GraphicsLayer::addChildBelow(layer, sibling);
++    downcast<CoordinatedGraphicsLayer>(*layer).setCoordinatorIncludingSubLayersIfNeeded(m_coordinator);
+     didChangeChildren();
+ }
+ 
+@@ -200,6 +204,7 @@ bool CoordinatedGraphicsLayer::replaceChild(GraphicsLayer* oldChild, GraphicsLay
+     bool ok = GraphicsLayer::replaceChild(oldChild, newChild);
+     if (!ok)
+         return false;
++    downcast<CoordinatedGraphicsLayer>(*newChild).setCoordinatorIncludingSubLayersIfNeeded(m_coordinator);
+     didChangeChildren();
+     return true;
+ }
+@@ -1063,6 +1068,33 @@ void CoordinatedGraphicsLayer::setCoordinator(CoordinatedGraphicsLayerClient* co
+     m_coordinator = coordinator;
+ }
+ 
++void CoordinatedGraphicsLayer::setCoordinatorIncludingSubLayersIfNeeded(CoordinatedGraphicsLayerClient* coordinator)
++{
++    if (!coordinator || m_coordinator == coordinator)
++        return;
++
++    // If the coordinators are different it means that we are attaching a layer that was created by a different
++    // CompositingCoordinator than the current one. This happens because the layer was taken out of the tree
++    // and then added back after AC was disabled and enabled again. We need to set the new coordinator to the
++    // layer and its children.
++    //
++    // During each layer flush, the state stores the values that have changed since the previous one, and these
++    // are updated once in the scene. When adding CoordinatedGraphicsLayers back to the tree, the fields that
++    // are not updated during the next flush won't be sent to the scene, so they won't be updated there and the
++    // rendering will fail.
++    //
++    // For example the drawsContent flag. This is set when the layer is created and is not updated anymore (unless
++    // the content changes). When the layer is added back to the tree, the state won't reflect any change in the
++    // flag value, so the scene won't update it and the layer won't be rendered.
++    //
++    // We need to update here the layer changeMask so the scene gets all the current values.
++    m_layerState.changeMask = UINT_MAX;
++
++    coordinator->attachLayer(this);
++    for (auto& child : children())
++        downcast<CoordinatedGraphicsLayer>(*child).setCoordinatorIncludingSubLayersIfNeeded(coordinator);
++}
++
+ void CoordinatedGraphicsLayer::setNeedsVisibleRectAdjustment()
+ {
+     if (shouldHaveBackingStore())
+diff --git a/Source/WebCore/platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.h b/Source/WebCore/platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.h
+index 84975da748a..18ee74b1cf1 100644
+--- a/Source/WebCore/platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.h
++++ b/Source/WebCore/platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.h
+@@ -53,6 +53,7 @@ public:
+     virtual FloatRect visibleContentsRect() const = 0;
+     virtual Ref<CoordinatedImageBacking> createImageBackingIfNeeded(Image&) = 0;
+     virtual void detachLayer(CoordinatedGraphicsLayer*) = 0;
++    virtual void attachLayer(CoordinatedGraphicsLayer*) = 0;
+     virtual Nicosia::PaintingEngine& paintingEngine() = 0;
+ 
+     virtual void syncLayerState(CoordinatedLayerID, CoordinatedGraphicsLayerState&) = 0;
+@@ -143,6 +144,7 @@ public:
+     void setPlatformLayerNeedsDisplay() override { setContentsNeedsDisplay(); }
+ 
+     void setCoordinator(CoordinatedGraphicsLayerClient*);
++    void setCoordinatorIncludingSubLayersIfNeeded(CoordinatedGraphicsLayerClient*);
+ 
+     void setNeedsVisibleRectAdjustment();
+     void purgeBackingStores();
+diff --git a/Source/WebKit/WebProcess/WebPage/AcceleratedDrawingArea.cpp b/Source/WebKit/WebProcess/WebPage/AcceleratedDrawingArea.cpp
+index 4fd8cdbedbc..a5b07249f6f 100644
+--- a/Source/WebKit/WebProcess/WebPage/AcceleratedDrawingArea.cpp
++++ b/Source/WebKit/WebProcess/WebPage/AcceleratedDrawingArea.cpp
+@@ -33,9 +33,11 @@
+ #include "WebPage.h"
+ #include "WebPageCreationParameters.h"
+ #include "WebPreferencesKeys.h"
++#include <WebCore/GLContext.h>
+ #include <WebCore/MainFrame.h>
+ #include <WebCore/Page.h>
+ #include <WebCore/PageOverlayController.h>
++#include <WebCore/PlatformDisplay.h>
+ #include <WebCore/Settings.h>
+ 
+ #if USE(GLIB_EVENT_LOOP)
+@@ -201,7 +203,8 @@ GraphicsLayerFactory* AcceleratedDrawingArea::graphicsLayerFactory()
+ 
+ void AcceleratedDrawingArea::setRootCompositingLayer(GraphicsLayer* graphicsLayer)
+ {
+-    ASSERT(m_layerTreeHost);
++    if (!m_layerTreeHost)
++        m_layerTreeHost = LayerTreeHost::create(m_webPage);
+ 
+     // FIXME: Instead of using nested if statements, we should keep a compositing state
+     // enum in the AcceleratedDrawingArea object and have a changeAcceleratedCompositingState function
+@@ -353,18 +356,19 @@ void AcceleratedDrawingArea::handleIsInWindowChanged()
+     // besides the empty content we have a transparent background.
+ 
+     if (!m_webPage.corePage()->isInWindow()) {
+-        if (m_layerTreeHost)
+-            m_layerTreeHost->forceBackgroundTransparency();
+-
+         m_webPage.corePage()->suspendActiveDOMObjectsAndAnimations();
+         m_webPage.corePage()->suspendScriptedAnimations();
++
++        GLContext::setWindowContext(nullptr);
++        GLContext::setWindowContextNativeSurface(0);
++        PlatformDisplay::sharedDisplayForCompositing().destroySharingGLContext();
++
++        m_layerTreeHost->invalidate();
++        m_layerTreeHost = nullptr;
++
+         return;
+     }
+ 
+-    if (m_layerTreeHost)
+-        m_layerTreeHost->restoreBackgroundTransparency();
+-
+-    setNeedsDisplay();
+     m_webPage.corePage()->resumeActiveDOMObjectsAndAnimations();
+     m_webPage.corePage()->resumeScriptedAnimations();
+ }
+diff --git a/Source/WebKit/WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.cpp b/Source/WebKit/WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.cpp
+index 05a9b029874..744c784a3f4 100644
+--- a/Source/WebKit/WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.cpp
++++ b/Source/WebKit/WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.cpp
+@@ -339,6 +339,15 @@ void CompositingCoordinator::commitScrollOffset(uint32_t layerID, const WebCore:
+         layer->commitScrollOffset(offset);
+ }
+ 
++void CompositingCoordinator::attachLayer(CoordinatedGraphicsLayer* layer)
++{
++    layer->setCoordinator(this);
++    m_registeredLayers.add(layer->id(), layer);
++    m_state.layersToCreate.append(layer->id());
++    layer->setNeedsVisibleRectAdjustment();
++    notifyFlushRequired(layer);
++}
++
+ void CompositingCoordinator::renderNextFrame()
+ {
+ }
+diff --git a/Source/WebKit/WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.h b/Source/WebKit/WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.h
+index fe71aa05d1c..55d5b03d530 100644
+--- a/Source/WebKit/WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.h
++++ b/Source/WebKit/WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.h
+@@ -108,6 +108,7 @@ private:
+     WebCore::FloatRect visibleContentsRect() const override;
+     Ref<WebCore::CoordinatedImageBacking> createImageBackingIfNeeded(WebCore::Image&) override;
+     void detachLayer(WebCore::CoordinatedGraphicsLayer*) override;
++    void attachLayer(WebCore::CoordinatedGraphicsLayer*) override;
+     Nicosia::PaintingEngine& paintingEngine() override;
+     void syncLayerState(WebCore::CoordinatedLayerID, WebCore::CoordinatedGraphicsLayerState&) override;
+ 
