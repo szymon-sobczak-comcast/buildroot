@@ -46,7 +46,7 @@ cp -r "${STAGING_DIR}/usr/share/X11" "${ROOTFS_DIR}/usr/share/X11"
 
 # Copy keymap for cubiware remote (through web)
 mkdir -p "${TARGET_DIR}/usr/share/WPEFramework/RemoteControl/"
-cp -pf "${BOARD_DIR}/homecast-ir-remote.json" "${TARGET_DIR}/usr/share/WPEFramework/RemoteControl/web-remote.json"
+cp -pf "${BOARD_DIR}/homecast-ir-remote.json" "${TARGET_DIR}/usr/share/WPEFramework/RemoteControl/homecast.json"
 
 # WPEFramework launcher
 cp -pf "${BOARD_DIR}/homecast/wpeframework.sh" "${ROOTFS_DIR}"
