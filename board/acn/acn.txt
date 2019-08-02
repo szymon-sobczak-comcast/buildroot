@@ -123,6 +123,7 @@ libWPEFrameworkVirtualInput.so
 libWPEFrameworkTimeSync.so
 libWPEFrameworkWebShell.so
 libWPEFrameworkOCDM.so
+libWPEFrameworkDefinitions.so
 libnxclient.so
 libwpe-0.2.so
 libWPEBackend-rdk.so
@@ -139,3 +140,16 @@ libbrcmvidfilter.so
 libgstmatroska.so
 libgstopus.so
 libopus.so
+libamazon*.so
+com.amazon.amazonite.platform.so
+libcom*
+CoreUnitTests
+HawaiiUnitTests
+VideoPlayerFrontendUnitTests
+VideoPlayerUnitTests
+CryptoUnitTests
+NetworkUnitTests
+VideoPlayerMediaPipelineBackendUnitTests
+XmlUnitTests
+com.amazon.amazonite.devicepropertiesprovider.tests
+com.amazon.amazonite.deviceproperties.tests

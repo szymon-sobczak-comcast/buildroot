@@ -50,15 +50,6 @@ metrological)
 	grep -q "/usr/lib ext4" /proc/mounts && echo "/usr/lib is already mounted" || mount -t ext4 --bind $DESTINATION/lib/ /usr/lib/
 	grep -q "/usr/bin ext4" /proc/mounts && echo "/usr/bin is already mounted" || mount -t ext4 --bind $DESTINATION/bin /usr/bin/
 
-	#launch rpcbind to create channel between framework and webkit
-	ext=`pidof rpcbind`
-	if [ ! $ext ]; then
-    		echo "Launching rpcbind ..."
-		rpcbind 
-	else
-    		echo "rpcbind is already launched..."
-	fi	
-	
 	#work around for playready
 	cd /usr/bin/netflix
 
