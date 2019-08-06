@@ -1,0 +1,13 @@
+diff --git a/netflix/3rdparty/JavaScriptCore/Source/WTF/wtf/MathExtras.h b/netflix/3rdparty/JavaScriptCore/Source/WTF/wtf/MathExtras.h
+index 81adbe23..ccedc680 100644
+--- a/netflix/3rdparty/JavaScriptCore/Source/WTF/wtf/MathExtras.h
++++ b/netflix/3rdparty/JavaScriptCore/Source/WTF/wtf/MathExtras.h
+@@ -283,8 +283,6 @@ inline bool isWithinIntRange(float x)
+ 
+ #if !COMPILER(MSVC) && !COMPILER(RVCT) && !OS(SOLARIS)
+ using std::isfinite;
+-using std::isinf;
+-using std::isnan;
+ using std::signbit;
+ #endif
+ 
