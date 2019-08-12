@@ -21,7 +21,7 @@ GST1_BCM_VERSION = 17.3-rdkv-20180327
 else ifeq ($(BR2_PACKAGE_BCM_REFSW_18_2),y)
 GST1_BCM_VERSION = 18.2-rdkv-20180727
 else ifeq ($(BR2_PACKAGE_BCM_REFSW_19_1),y)
-GST1_BCM_VERSION = 19.1-rdkv_20190409
+GST1_BCM_VERSION = 5eb74f10e9811f15942e55a661ca15db3c462111
 else ifneq ($(filter y,$(BR2_PACKAGE_ACN_SDK)),)
 GST1_BCM_VERSION = 17.1-5
 else ifneq ($(filter y,$(BR2_PACKAGE_HOMECAST_SDK)),)
@@ -36,7 +36,7 @@ else
 GST1_BCM_VERSION = 15.2
 endif
 
-GST1_BCM_SITE = git@github.com:Metrological/gstreamer-plugins-soc.git
+GST1_BCM_SITE = git@github.com:Metrological/bcm-gstreamer.git
 GST1_BCM_SITE_METHOD = git
 GST1_BCM_LICENSE = PROPRIETARY
 GST1_BCM_INSTALL_STAGING = YES
