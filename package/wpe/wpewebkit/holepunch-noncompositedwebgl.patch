@@ -1,0 +1,153 @@
+diff --git a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp
+index 531bff58c27..89ccaffa596 100644
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp
+@@ -653,4 +653,21 @@ bool TextureMapperLayer::syncAnimations(MonotonicTime time)
+     return applicationResults.hasRunningAnimations;
+ }
+ 
++void TextureMapperLayer::computeTransformsAndNotifyVideoPosition()
++{
++    computeTransformsRecursive();
++
++    notifyVideoPositionRecursive();
++}
++
++void TextureMapperLayer::notifyVideoPositionRecursive()
++{
++    if (m_contentsLayer) {
++        m_contentsLayer->notifyPositionToHolePunchClient(m_state.contentsRect, m_layerTransforms.combined);
++    }
++
++    for (auto* child : m_children)
++        child->notifyVideoPositionRecursive();
++}
++
+ }
+diff --git a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.h b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.h
+index d7851177f4c..3d6cb50b993 100644
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.h
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.h
+@@ -98,6 +98,9 @@ public:
+ 
+     void addChild(TextureMapperLayer*);
+ 
++    void computeTransformsAndNotifyVideoPosition();
++    void notifyVideoPositionRecursive();
++
+ private:
+     const TextureMapperLayer& rootLayer() const
+     {
+diff --git a/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayer.h b/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayer.h
+index 12f56ab813b..a5d8fff345e 100644
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayer.h
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayer.h
+@@ -44,6 +44,8 @@ public:
+         textureMapper.drawBorder(color, borderWidth, targetRect, transform);
+     }
+ 
++    virtual void notifyPositionToHolePunchClient(const FloatRect&, const TransformationMatrix&) { };
++
+     void setClient(TextureMapperPlatformLayer::Client* client) { m_client = client; }
+ 
+ protected:
+diff --git a/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerBuffer.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerBuffer.cpp
+index e5e68599637..46ea1db7142 100644
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerBuffer.cpp
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerBuffer.cpp
+@@ -91,6 +91,12 @@ void TextureMapperPlatformLayerBuffer::paintToTextureMapper(TextureMapper& textu
+     texmapGL.drawTexture(m_textureID, m_extraFlags, m_size, targetRect, modelViewMatrix, opacity);
+ }
+ 
++void TextureMapperPlatformLayerBuffer::notifyPositionToHolePunchClient(const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix)
++{
++    if (m_holePunchClient)
++        m_holePunchClient->setVideoRectangle(enclosingIntRect(modelViewMatrix.mapRect(targetRect)));
++}
++
+ } // namespace WebCore
+ 
+ #endif // USE(COORDINATED_GRAPHICS_THREADED)
+diff --git a/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerBuffer.h b/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerBuffer.h
+index 3d1604b24fa..7694edf6621 100644
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerBuffer.h
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperPlatformLayerBuffer.h
+@@ -71,6 +71,7 @@ public:
+     };
+ 
+     void setHolePunchClient(std::unique_ptr<HolePunchClient>&& client) { m_holePunchClient = WTFMove(client); }
++    void notifyPositionToHolePunchClient(const FloatRect&, const TransformationMatrix&) final;
+ 
+ private:
+ 
+diff --git a/Source/WebKit/Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp b/Source/WebKit/Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp
+index 8e3532e0537..1693fa42d66 100644
+--- a/Source/WebKit/Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp
++++ b/Source/WebKit/Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp
+@@ -500,6 +500,40 @@ void CoordinatedGraphicsScene::detach()
+     m_client = nullptr;
+ }
+ 
++void CoordinatedGraphicsScene::applyStateChangesAndNotifyVideoPosition(const Vector<WebCore::CoordinatedGraphicsState>& states)
++{
++    ensureRootLayer();
++
++    for (auto& state : states) {
++        m_nicosia = state.nicosia;
++
++        CommitScope commitScope;
++
++        createLayers(state.layersToCreate);
++        deleteLayers(state.layersToRemove);
++
++        if (state.rootCompositingLayer != m_rootLayerID)
++            setRootLayerID(state.rootCompositingLayer);
++
++        for (auto& layer : state.layersToUpdate)
++            setLayerState(layer.first, layer.second, commitScope);
++    }
++
++    TextureMapperLayer* currentRootLayer = rootLayer();
++    if (!currentRootLayer)
++        return;
++
++    for (auto& proxy : m_platformLayerProxies.values())
++        proxy->swapBuffer();
++
++    bool sceneHasRunningAnimations = currentRootLayer->applyAnimationsRecursively(MonotonicTime::now());
++
++    currentRootLayer->computeTransformsAndNotifyVideoPosition();
++
++    if (sceneHasRunningAnimations)
++        updateViewport();
++}
++
+ } // namespace WebKit
+ 
+ #endif // USE(COORDINATED_GRAPHICS)
+diff --git a/Source/WebKit/Shared/CoordinatedGraphics/CoordinatedGraphicsScene.h b/Source/WebKit/Shared/CoordinatedGraphics/CoordinatedGraphicsScene.h
+index 2f3b4f33975..485a0a2306e 100644
+--- a/Source/WebKit/Shared/CoordinatedGraphics/CoordinatedGraphicsScene.h
++++ b/Source/WebKit/Shared/CoordinatedGraphics/CoordinatedGraphicsScene.h
+@@ -86,6 +86,8 @@ public:
+     void setViewBackgroundColor(const WebCore::Color& color) { m_viewBackgroundColor = color; }
+     WebCore::Color viewBackgroundColor() const { return m_viewBackgroundColor; }
+ 
++    void applyStateChangesAndNotifyVideoPosition(const Vector<WebCore::CoordinatedGraphicsState>&);
++
+ private:
+     struct CommitScope {
+         CommitScope() = default;
+diff --git a/Source/WebKit/Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp b/Source/WebKit/Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp
+index a37c756733e..fff6d009664 100644
+--- a/Source/WebKit/Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp
++++ b/Source/WebKit/Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp
+@@ -202,6 +202,8 @@ void ThreadedCompositor::renderNonCompositedWebGL()
+         m_attributes.clientRendersNextFrame = true;
+     }
+ 
++    m_scene->applyStateChangesAndNotifyVideoPosition(states);
++
+     m_client.didRenderFrame();
+ }
+ 
