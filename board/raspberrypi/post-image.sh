@@ -49,13 +49,22 @@ __EOF__
 
 done
 
+# Enable /dev/dri to use Weston
+if ! grep -qE '^dtoverlay=vc4-kms-v3d' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+	cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Enable /dev/dri to use Weston
+dtoverlay=vc4-kms-v3d
+__EOF__
+fi
+
 rm -rf "${GENIMAGE_TMP}"
 
-genimage                           \
-	--rootpath "${TARGET_DIR}"     \
-	--tmppath "${GENIMAGE_TMP}"    \
-	--inputpath "${BINARIES_DIR}"  \
-	--outputpath "${BINARIES_DIR}" \
-	--config "${GENIMAGE_CFG}"
+#genimage                           \
+#	--rootpath "${TARGET_DIR}"     \
+#	--tmppath "${GENIMAGE_TMP}"    \
+#	--inputpath "${BINARIES_DIR}"  \
+#	--outputpath "${BINARIES_DIR}" \
+#	--config "${GENIMAGE_CFG}"
 
 exit $?
