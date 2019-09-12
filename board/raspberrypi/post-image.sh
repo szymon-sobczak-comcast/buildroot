@@ -58,6 +58,15 @@ dtoverlay=vc4-kms-v3d
 __EOF__
 fi
 
+# Fix ALSA
+if ! grep -qE '^dtparams=audio=on' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+	cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Fix ALSA
+dtparams=audio=on
+__EOF__
+fi
+
 rm -rf "${GENIMAGE_TMP}"
 
 #genimage                           \
