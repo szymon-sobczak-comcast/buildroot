@@ -30,13 +30,31 @@ config BR2_PACKAGE_WPEWEBKIT
 
 if BR2_PACKAGE_WPEWEBKIT
 
-menu "Extra options"
-
-config BR2_PACKAGE_WPEWEBKIT_BUILD_DEVELOPMENT_VERSION
-	bool "Build development version"
-	default n
+choice
+	prompt "Version"
+	default BR2_PACKAGE_WPEWEBKIT_BUILD_VERSION_2_22
 	help
-	  Build development version of WPEWebKit
+		Select the version you wish to use
+
+	config BR2_PACKAGE_WPEWEBKIT_BUILD_VERSION_CUSTOM
+        bool "Custom version"
+
+    config BR2_PACKAGE_WPEWEBKIT_BUILD_VERSION_2017
+        bool "2017"
+
+    config BR2_PACKAGE_WPEWEBKIT_BUILD_VERSION_2_22
+        bool "2.22"
+endchoice
+
+if BR2_PACKAGE_WPEWEBKIT_BUILD_VERSION_CUSTOM
+config BR2_PACKAGE_WPEWEBKIT_CUSTOM_REPO_VERSION
+	string "Custom version"
+	help
+	  Revision to use in the typical format used by Git/Mercurial/Subversion
+	  E.G. a sha id, a tag, branch, ..
+endif
+
+menu "Extra options"
 
 menu "Build type and debug options"
 
