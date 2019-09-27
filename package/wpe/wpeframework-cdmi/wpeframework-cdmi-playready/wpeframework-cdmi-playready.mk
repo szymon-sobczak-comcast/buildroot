@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WPEFRAMEWORK_CDMI_PLAYREADY_VERSION = e638a71fd7531d1dcb9450933cb5dbce9b23c4e1
+WPEFRAMEWORK_CDMI_PLAYREADY_VERSION = ddb02e1a1f8c881b768c25b885cc0ff2ff714bab
 WPEFRAMEWORK_CDMI_PLAYREADY_SITE_METHOD = git
 WPEFRAMEWORK_CDMI_PLAYREADY_SITE = git@github.com:WebPlatformForEmbedded/OCDM-Playready.git
 WPEFRAMEWORK_CDMI_PLAYREADY_INSTALL_STAGING = YES
