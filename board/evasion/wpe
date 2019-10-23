@@ -13,6 +13,11 @@ cleanup() {
 # Shutdown all our processes in non stub version
 cleanup restart
 
+# create writable playready folder
+rm -rf $PERSISTANTPATH/playready
+cp -r $SOURCE/etc/playready $PERSISTANTPATH
+mount --bind $PERSISTANTPATH/playready $SOURCE/etc/playready 
+
 # Symlink /etc
 ln -sfn $SOURCE/etc/playready /etc/playready
 ln -sfn $SOURCE/etc/ssl /etc/ssl
