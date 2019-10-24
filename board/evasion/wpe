@@ -14,6 +14,8 @@ cleanup() {
 cleanup restart
 
 # create writable playready folder
+
+umount $SOURCE/etc/playready &> /dev/null || /bin/true
 rm -rf $PERSISTANTPATH/playready
 cp -r $SOURCE/etc/playready $PERSISTANTPATH
 mount --bind $PERSISTANTPATH/playready $SOURCE/etc/playready 
