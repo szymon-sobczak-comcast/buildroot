@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LIBAMAZON_VERSION = ab22d1a5262223b562fc72d4c6f645712c8f87d2
+LIBAMAZON_VERSION = df95747c059a83b08b2c05e7572c05d5a939e113
 LIBAMAZON_SITE_METHOD = git
 LIBAMAZON_SITE = git@github.com:Metrological/libamazon.git
 LIBAMAZON_LICENSE = PROPRIETARY

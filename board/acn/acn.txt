@@ -141,6 +141,7 @@ libgstmatroska.so
 libgstopus.so
 libopus.so
 libamazon*.so
+libgstreamerclient.so
 com.amazon.amazonite.platform.so
 libcom*
 CoreUnitTests

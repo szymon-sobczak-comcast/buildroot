@@ -103,6 +103,13 @@ config BR2_PACKAGE_WPEFRAMEWORK_VIRTUALINPUT
 	  If the dynamic uinput system can not be used for security reasons, this
 	  allows for relaying keys to plugins
 
+config BR2_PACKAGE_WPEFRAMEWORK_GSTREAMERCLIENT
+        bool "GstreamerClient"
+        default n
+        help
+          Gstreamer client provides custom APIs to manipulate underneath stream sinks which links with existent pipeline.
+          This implementation will vary based on custom platforms and sink backends.
+
 config BR2_PACKAGE_WPEFRAMEWORK_CDM
 	bool "CDM"
 	help
