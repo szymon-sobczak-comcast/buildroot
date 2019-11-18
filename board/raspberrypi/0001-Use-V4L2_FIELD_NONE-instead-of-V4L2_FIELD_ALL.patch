@@ -1,0 +1,30 @@
+From 16f430b5e55f1807b00247cd9271ef2e64abafed Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Enrique=20Oca=C3=B1a=20Gonz=C3=A1lez?= <eocanha@igalia.com>
+Date: Tue, 19 Nov 2019 13:51:50 +0100
+Subject: [PATCH] Use V4L2_FIELD_NONE instead of V4L2_FIELD_ALL
+
+---
+ .../vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c       | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c b/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c
+index eb5c07bc7..d046829e8 100644
+--- a/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c
++++ b/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c
+@@ -765,6 +765,13 @@ static void op_buffer_cb(struct vchiq_mmal_instance *instance,
+ 	buf = container_of(mmal_buf, struct m2m_mmal_buffer, mmal);
+ 	vb2 = &buf->m2m.vb;
+ 
++	if (vb2->field == V4L2_FIELD_ANY)
++		vb2->field = V4L2_FIELD_NONE;
++	if (vb2->field != V4L2_FIELD_NONE) {
++		v4l2_err(&ctx->dev->v4l2_dev, "%s field isn't supported\n",
++			__func__);
++	}
++
+ 	if (status) {
+ 		/* error in transfer */
+ 		if (vb2) {
+-- 
+2.17.1
+
