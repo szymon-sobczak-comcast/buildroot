@@ -4,9 +4,10 @@
 #
 ################################################################################
 
-WPEWEBKIT_VERSION = 2.22.5
-WPEWEBKIT_SITE = http://www.wpewebkit.org/releases
-WPEWEBKIT_SOURCE = wpewebkit-$(WPEWEBKIT_VERSION).tar.xz
+# https://github.com/WebPlatformForEmbedded/WPEWebKit/commits/eocanha/wpe-2.22-v4l2
+WPEWEBKIT_VERSION = 2da70fbc1328f27aaca4036c24988f7db8b0ac30
+WPEWEBKIT_SITE = $(call github,WebPlatformForEmbedded,WPEWebKit,$(WPEWEBKIT_VERSION))
+BR_NO_CHECK_HASH_FOR += $(WPEWEBKIT_SOURCE)
 WPEWEBKIT_INSTALL_STAGING = YES
 WPEWEBKIT_LICENSE = LGPL-2.1+, BSD-2-Clause
 WPEWEBKIT_LICENSE_FILES = \
@@ -56,6 +57,10 @@ WPEWEBKIT_CONF_OPTS += -DUSE_WOFF2=ON
 WPEWEBKIT_DEPENDENCIES += woff2
 else
 WPEWEBKIT_CONF_OPTS += -DUSE_WOFF2=OFF
+endif
+
+ifeq ($(BR2_PACKAGE_RPI_FIRMWARE),y)
+WPEWEBKIT_CONF_OPTS += -DUSE_WPEWEBKIT_PLATFORM_RPI=ON
 endif
 
 $(eval $(cmake-package))
