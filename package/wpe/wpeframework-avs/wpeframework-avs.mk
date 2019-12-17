@@ -5,7 +5,7 @@
 ################################################################################
 
 # TODO set version, for now use the OVERRIDE
-WPEFRAMEWORK_AVS_VERSION = abcde
+WPEFRAMEWORK_AVS_VERSION = 63d14dd228712553382d7fd44c83c1d730d99949
 WPEFRAMEWORK_AVS_SITE_METHOD = git
 WPEFRAMEWORK_AVS_SITE = git@github.com:WebPlatformForEmbedded/WPEPluginAVS.git
 WPEFRAMEWORK_AVS_INSTALL_STAGING = YES
