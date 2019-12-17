@@ -1,0 +1,6 @@
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_AVS
+    bool "AVS"
+    select BR2_PACKAGE_AVS_DEVICE_SDK
+    select BR2_PACKAGE_AVS_DEVICE_SDK_BUILD_GST_MEDIA_PLAYER
+    help
+        Thunder Alexa Voice Service Plugin
