@@ -194,6 +194,17 @@ ifneq ($(BR2_PACKAGE_WPEFRAMEWORK_INSTALL_HEADERS),y)
 WPEFRAMEWORK_POST_INSTALL_TARGET_HOOKS += WPEFRAMEWORK_POST_TARGET_REMOVE_HEADERS
 endif
 
+define WPEFRAMEWORK_INSTALL_NIG_FRONTEND
+	cp $(WPEFRAMEWORK_PKGDIR)/frontend/libnig.so $(TARGET_DIR)/usr/lib
+	cp $(WPEFRAMEWORK_PKGDIR)/frontend/libnig.so $(STAGING_DIR)/usr/lib
+	mkdir -p $(TARGET_DIR)/usr/include/nig
+	cp -R $(WPEFRAMEWORK_PKGDIR)/frontend/nig/* $(TARGET_DIR)/usr/include/nig
+	mkdir -p $(STAGING_DIR)/usr/include/nig
+	cp -R $(WPEFRAMEWORK_PKGDIR)/frontend/nig/* $(STAGING_DIR)/usr/include/nig
+endef
+
+WPEFRAMEWORK_PRE_CONFIGURE_HOOKS += WPEFRAMEWORK_INSTALL_NIG_FRONTEND
+
 # Temporary fix for vss platforms
 ifeq ($(BR2_PACKAGE_VSS_SDK_MOVE_GSTREAMER),y)
 WPEFRAMEWORK_PKGDIR = "$(TOP_DIR)/package/wpe/wpeframework"
