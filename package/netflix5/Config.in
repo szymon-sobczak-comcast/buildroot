@@ -105,7 +105,7 @@ endif
 
 choice
 	bool "DRM"
-	default BR2_PACKAGE_NETFLIX5_DRM_PLAYREADY
+	default BR2_PACKAGE_NETFLIX5_DRM_OCDM
 	help
 	  Choose DRM Type
 
@@ -122,6 +122,16 @@ config BR2_PACKAGE_NETFLIX5_DRM_OCDM
 	  DRM Ocdm
 
 endchoice
+
+config BR2_PACKAGE_NETFLIX5_DISABLE_TOOLS
+	bool "Disable tools"
+	help
+	  Do not build tools for netflix
+
+config BR2_PACKAGE_NETFLIX5_CREATE_BINARY_ML_DELIVERY
+	bool "Create delivery package"
+	help
+	  Create tarball containing the build to be deployed else where. 
 
 endmenu
 endif
