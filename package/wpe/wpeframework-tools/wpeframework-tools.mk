@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WPEFRAMEWORK_TOOLS_VERSION = 6cf39ada500c61f373acc40643aa33d6cfd7a6df
+WPEFRAMEWORK_TOOLS_VERSION = 2b687ad87d4c1036a26ad1ecfae95c5c4b230128
 
 HOST_WPEFRAMEWORK_TOOLS_SITE = $(call github,WebPlatformForEmbedded,WPEFramework,$(WPEFRAMEWORK_TOOLS_VERSION))
 HOST_WPEFRAMEWORK_TOOLS_INSTALL_STAGING = YES

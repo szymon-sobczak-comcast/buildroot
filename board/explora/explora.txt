@@ -117,6 +117,7 @@ libWPEFrameworkWebKitBrowser.so
 libWPEFrameworkMonitor.so
 libWPEFrameworkTraceControl.so
 libWPEFrameworkWebServer.so
+libWPEFrameworkDIALServer.so
 libWPEFrameworkInterfaces.so  
 libWPEFrameworkProxyStubs.so
 libWPEFrameworkMarshallings.so
