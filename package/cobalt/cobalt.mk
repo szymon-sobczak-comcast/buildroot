@@ -40,7 +40,7 @@ endif
 
 define COBALT_BUILD_CMDS
     $(@D)/src/cobalt/build/gyp_cobalt -C $(COBALT_BUILD_TYPE) $(COBALT_PLATFORM)
-    $(HOST_DIR)/usr/bin/ninja -C $(@D)/src/out/$(COBALT_PLATFORM)_$(COBALT_BUILD_TYPE) cobalt_deploy
+    $(BUILDROOT_HOME)/bin/ninja -C $(@D)/src/out/$(COBALT_PLATFORM)_$(COBALT_BUILD_TYPE) cobalt_deploy
 endef
 
 define COBALT_INSTALL_TARGET_CMDS
