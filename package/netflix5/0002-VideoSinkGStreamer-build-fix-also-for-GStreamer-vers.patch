@@ -1,0 +1,26 @@
+From 6e3b0be417f0c4bc6374f6df8e78989ed57da723 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Enrique=20Oca=C3=B1a=20Gonz=C3=A1lez?= <eocanha@igalia.com>
+Date: Thu, 13 Feb 2020 12:39:38 +0000
+Subject: [PATCH] VideoSinkGStreamer build fix also for GStreamer versions
+ >1.14
+
+---
+ partner/dpi/gstreamer/CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/partner/dpi/gstreamer/CMakeLists.txt b/partner/dpi/gstreamer/CMakeLists.txt
+index 89e41e54..05449176 100644
+--- a/partner/dpi/gstreamer/CMakeLists.txt
++++ b/partner/dpi/gstreamer/CMakeLists.txt
+@@ -39,7 +39,7 @@ elseif (GST_VIDEO_RENDERING STREQUAL "horizon-fusion")
+ elseif (GST_VIDEO_RENDERING STREQUAL "gl")
+   add_definitions(-DGST_GL)
+   find_package(GStreamer REQUIRED)
+-  if (GSTREAMER_VERSION STREQUAL "1.14.4")
++  if ((GSTREAMER_VERSION VERSION_EQUAL "1.14.4") OR (GSTREAMER_VERSION VERSION_GREATER "1.14.4"))
+     add_definitions("-DGSTREAMER_VERSION_1_14")
+   endif()
+   if(NRDP_REFERENCE)
+-- 
+2.17.1
+
