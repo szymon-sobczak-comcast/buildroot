@@ -38,7 +38,9 @@ NETFLIX5_CONF_OPTS = \
 	-DDPI_REFERENCE_DRM_NULL=TRUE \
 	-DNRDP_HAS_SOFTWAREPLAYER=OFF \
 	-DGIBBON_SOFTWARECAPTURE=OFF \
-	-DGIBBON_GRAPHICS_GL_API="gles2"
+	-DGIBBON_GRAPHICS_GL_API="gles2" \
+	-DDPI_DRM="ocdm" \
+	-DNRDP_HAS_AUDIOMIXER=OFF
 
 # Removed the following from the above because for NF 5.2.2 it requires update of openssl to ver >= 1.1.0
 # which does not work  out of the box and provisioning tools does not seem to be required for us.
@@ -95,7 +97,9 @@ NETFLIX5_DEPENDENCIES += wpeframework
 endif
 
 ifeq ($(BR2_PACKAGE_NETFLIX5_GST_GL),y)
-  NETFLIX5_CONF_OPTS += -DGST_VIDEO_RENDERING=gl
+# Ignoring for NF 5.2.2. It no longer works there after switching default gfx from GLES to OPENGL.
+# The default gl sink work without issues it seems, though.
+#  NETFLIX5_CONF_OPTS += -DGST_VIDEO_RENDERING=gl
 else ifeq ($(BR2_PACKAGE_NETFLIX5_MARVEL),y)
   NETFLIX5_CONF_OPTS += -DGST_VIDEO_RENDERING=synaptics
   NETFLIX5_DEPENDENCIES += westeros westeros-sink
