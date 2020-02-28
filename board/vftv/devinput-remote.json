@@ -1,0 +1,22 @@
+[
+    { "code": "0x0160", "key": 28,  "char": "[OK]" },
+    { "code": "0x0067", "key": 103, "char": "[UP]" },
+    { "code": "0x006C", "key": 108, "char": "[DOWN]" },
+    { "code": "0x0069", "key": 105, "char": "[LEFT]" },
+    { "code": "0x006A", "key": 106, "char": "[RIGHT]" },
+    { "code": "0x009E", "key": 14,  "char": "[BACKSPACE]" },
+    { "code": "0x008B", "key": 1,   "char": "[HOME]" },
+    { "code": "0x00AE", "key": 14,  "char": "[EXIT]" },
+    { "code": "0x0192", "key": 115, "char": "[ChannelUp]" },
+    { "code": "0x0193", "key": 114, "char": "[ChannelDown]" },
+    { "code": "0x0002", "key": 2,   "char":"[1]" },
+    { "code": "0x0003", "key": 3,   "char":"[2]" },
+    { "code": "0x0004", "key": 4,   "char":"[3]" },
+    { "code": "0x0005", "key": 5,   "char":"[4]" },
+    { "code": "0x0006", "key": 6,   "char":"[5]" },
+    { "code": "0x0007", "key": 7,   "char":"[6]" },
+    { "code": "0x0008", "key": 8,   "char":"[7]" },
+    { "code": "0x0009", "key": 9,   "char":"[8]" },
+    { "code": "0x000A", "key": 10,  "char":"[9]" },
+    { "code": "0x000B", "key": 11,  "char":"[0]" }
+]
