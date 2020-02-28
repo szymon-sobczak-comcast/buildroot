@@ -1,51 +1,44 @@
 #!/bin/sh
 
 export SOURCE=/media/ml
-#export LD_LIBRARY_PATH=$SOURCE/usr/lib:/lib:/usr/lib:$SOURCE/lib
-export LD_LIBRARY_PATH=$SOURCE/usr/lib:/lib:/usr/lib:$SOURCE/lib:$SOURCE/usr/lib/wpeframework/plugins:$SOURCE/usr/lib/wpeframework/proxystubs
+export DESTINATION=/media/vftv
+
+export LD_LIBRARY_PATH=$SOURCE/lib:/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SOURCE/usr/lib:/usr/lib
 export PATH=$SOURCE/usr/bin:$PATH
+
 export GST_PLUGIN_SCANNER=$SOURCE/usr/libexec/gstreamer-1.0/gst-plugin-scanner
 export GST_PLUGIN_SYSTEM_PATH=$SOURCE/usr/lib/gstreamer-1.0
-
 export XKB_CONFIG_ROOT=$SOURCE/usr/share/X11/xkb
-
+export XDG_DATA_HOME=/usr/local/metrological/usr/share/
+export GIO_MODULE_DIR=/media/ml/usr/lib/gio/modules
 # By default nxserver starts with 1080p, launch webkit with same resolution
 export WPE_NEXUS_FORMAT="1080p60Hz"
 
-export DESTINATION=/media/vftv
-	
-# Currently the root system is read-only. Since we cannot add anything there we bind 
-# existing directories with a copy of the actual system. All the stuff we want to 
+# Currently the root system is read-only. Since we cannot add anything there we bind
+# existing directories with a copy of the actual system. All the stuff we want to
 # add is symbolicly linked in from our sources..
 if [ ! -d $DESTINATION ]; then
+    echo "Creating directories..."
+    mkdir -p $DESTINATION/etc
 
-	mkdir -p $DESTINATION/share
-	mkdir -p $DESTINATION/etc
-	mkdir -p $DESTINATION/lib
-	mkdir -p $DESTINATION/usr/bin
-	cp -rfap /usr/share/* $DESTINATION/share
-	cp -rfap /etc/* $DESTINATION/etc
-	cp -rfap /usr/lib/* $DESTINATION/lib
-	cp -rfap /usr/bin/* $DESTINATION/usr/bin
+    echo "Copying system..."
+    cp -rfap /etc/* $DESTINATION/etc/
 
-	ln -s $SOURCE/usr/share/mime $DESTINATION/share/mime
-	ln -s $SOURCE/usr/share/X11 $DESTINATION/share/X11
-	ln -s $SOURCE/usr/share/WPEFramework $DESTINATION/share/WPEFramework
-	ln -s $SOURCE/usr/share/fonts $DESTINATION/share/fonts
-	ln -s $SOURCE/etc/ssl/certs/ca-certificates.crt $DESTINATION/etc/ssl/certs/ca-certificates.crt
-	ln -s $SOURCE/etc/ssl $DESTINATION/lib/ssl
-	ln -s $SOURCE/etc/fonts $DESTINATION/etc/fonts
-	ln -s $SOURCE/etc/WPEFramework $DESTINATION/etc/WPEFramework
-	ln -s $SOURCE/usr/lib/gio $DESTINATION/lib/gio
-	ln -s $SOURCE/usr/bin/WPENetworkProcess $DESTINATION/usr/bin/WPENetworkProcess
-	ln -s $SOURCE/usr/bin/WPEWebProcess $DESTINATION/usr/bin/WPEWebProcess
-	ln -s $SOURCE/usr/bin/WPEStorageProcess $DESTINATION/usr/bin/WPEStorageProcess
+    echo "Creating symlinks for directories..."
+    rm -rf $DESTINATION/etc/ssl
+    ln -fs $SOURCE/etc/ssl $DESTINATION/etc/
+    ln -s $SOURCE/etc/ssl/certs/ca-certificates.crt $DESTINATION/etc/ssl/certs/ca-certificates.crt
+    rm -rf $DESTINATION/etc/fonts
+    ln -fs $SOURCE/etc/fonts $DESTINATION/etc/
 fi
 
-grep -q "/usr/share ext4" /proc/mounts && echo "/usr/share is already mounted" || mount -t ext4 --bind $DESTINATION/share /usr/share
-grep -q "/etc ext4" /proc/mounts && echo "/etc is already mounted" || mount -t ext4 --bind $DESTINATION/etc /etc
-grep -q "/usr/lib ext4" /proc/mounts && echo "/usr/lib is already mounted" || mount -t ext4 --bind $DESTINATION/lib /usr/lib
-grep -q "/usr/bin ext4" /proc/mounts && echo "/usr/bin is already mounted" || mount -t ext4 --bind $DESTINATION/usr/bin/ /usr/bin
+echo "Mount binding..."
+grep -q "/usr/local/metrological/lib" /proc/mounts && echo "/usr/local/metrological/lib is already mounted" || mount -t ext4 --bind $SOURCE/lib/ /usr/local/metrological/lib
+grep -q "/usr/local/metrological/usr" /proc/mounts && echo "/usr/local/metrological/usr is already mounted" || mount -t ext4 --bind $SOURCE/usr/ /usr/local/metrological/usr
+grep -q "/etc" /proc/mounts && echo "/etc is already mounted" || mount -t ext4 --bind $DESTINATION/etc /etc
 
-#LD_PRELOAD=$SOURCE/usr/lib/libstdc\+\+.so.6.0.21 WPEFramework
-WPEFramework
+echo "Launching $(which WPEFramework)..."
+WPEFramework -c $SOURCE/etc/WPEFramework/config.json
+
+echo "Done!"
