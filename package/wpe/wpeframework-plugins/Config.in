@@ -559,6 +559,12 @@ endif
 
 endif
 
+config BR2_PACKAGE_WPEFRAMEWORK_RESOURCEMONITOR
+    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    bool "ResourceMonitor"
+    help
+      Resource Monitor Plugin
+
 config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_RTSPCLIENT
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
     default n
