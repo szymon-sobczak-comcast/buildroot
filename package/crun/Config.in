@@ -1,0 +1,6 @@
+config BR2_PACKAGE_CRUN
+        bool "crun"
+	select BR2_PACKAGE_YAJL
+        help
+          This package installs the 'crun' utility, which is a faster 
+	  runc reimplementation
