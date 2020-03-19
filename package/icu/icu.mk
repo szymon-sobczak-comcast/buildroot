@@ -10,6 +10,8 @@ else ifeq ($(BR2_PACKAGE_NETFLIX5),y)
 ICU_VERSION = 60.2
 else ifeq ($(BR2_PACKAGE_NETFLIX52),y)
 ICU_VERSION = 58.2
+else ifeq ($(BR2_PACKAGE_ACN_5202_SDK),y)
+ICU_VERSION = 58.2
 else
 ICU_VERSION = 57.1
 endif

@@ -38,6 +38,8 @@ else ifneq ($(filter y,$(BR2_PACKAGE_EVASION_SDK)),)
 GST1_BCM_VERSION = 18.2-rdkv-20180727
 else ifneq ($(filter y,$(BR2_PACKAGE_VFTV_SDK)),)
 GST1_BCM_VERSION = 18.2-rdkv-20180727
+else ifneq ($(filter y,$(BR2_PACKAGE_ACN_5202_SDK)),)
+GST1_BCM_VERSION = 18.2-rdkv-20180727
 else
 GST1_BCM_VERSION = 15.2
 endif
