@@ -104,7 +104,6 @@ libuuid.so.1
 libintl.so.8
 libiconv.so.2
 ca-certificates.crt
-libWPEFrameworkVideoPlaybackChecker.so
 libWPEFrameworkVolumeControl.so
 libWPEFrameworkDeviceInfo.so
 libWPEFrameworkLocationSync.so
@@ -155,15 +154,6 @@ libnxclient.so
 libWPEFrameworkCobalt.so
 libWPEFrameworkDefinitions.so
 libv3ddriver.so
-libbcrypt.so
-libcmndrm.so
-libcmndrm_tl.so
-libcmndrmprdy.so
-libplayreadypk_host.so
-liboemcrypto_tl.so
-libwvcdm.so
-libprotobuf-lite.so.9
-libprotobuf-lite.so
 content
 libopenjp2.so
 liblcms2.so
@@ -175,7 +165,3 @@ libvorbisidec.so
 libogg.so
 libWPEFrameworkInputSwitch.so
 playready
-libplayback_dif.so
-libplayback_dif_single.so
-libdif.so
-drmplayer
