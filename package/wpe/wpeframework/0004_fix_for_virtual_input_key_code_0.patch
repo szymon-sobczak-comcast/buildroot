@@ -1,0 +1,21 @@
+diff --git a/Source/plugins/VirtualInput.cpp b/Source/plugins/VirtualInput.cpp
+index 3c46e3c..96f80fe 100644
+--- a/Source/plugins/VirtualInput.cpp
++++ b/Source/plugins/VirtualInput.cpp
+@@ -371,7 +371,6 @@ namespace PluginHost
+                 if (conversionTable->PassThrough() == false) {
+                     result = Core::ERROR_UNKNOWN_KEY;
+                 } else {
+-                    result = Core::ERROR_UNKNOWN_KEY;
+                     sendCode = code;
+                     sendModifiers = 0;
+                 }
+@@ -383,7 +382,7 @@ namespace PluginHost
+             if ((!pressed) && (_pressedCode != code))
+                 result = Core::ERROR_ALREADY_RELEASED;
+ 
+-            if ((result == Core::ERROR_NONE) || (result == Core::ERROR_UNKNOWN_KEY)) {
++            if (result == Core::ERROR_NONE) {
+                 if (pressed) {
+                     if (_pressedCode)
+                         KeyEvent(false, _pressedCode, _keyTable);
