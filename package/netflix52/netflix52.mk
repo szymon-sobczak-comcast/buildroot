@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-NETFLIX52_VERSION = 09d3f7f142e8c047ab8154c0bb19afdac01f0972
+NETFLIX52_VERSION = 94bc1fc684bdd09db3bc1f1f760f6d780a9a768a
 NETFLIX52_SITE = git@github.com:Metrological/netflix.git
 NETFLIX52_SITE_METHOD = git
 NETFLIX52_LICENSE = PROPRIETARY
@@ -174,9 +174,13 @@ define NETFLIX52_INSTALL_TO_TARGET
 	cp -r $(@D)/netflix/src/platform/gibbon/resources $(1)/root/Netflix
 	cp -r $(@D)/netflix/resources/configuration/* $(1)/root/Netflix/etc/conf
 
-        $(NETFLIX52_INSTALL_WPEFRAMEWORK_XML)
+	$(NETFLIX52_INSTALL_WPEFRAMEWORK_XML)
 	cp $(@D)/netflix/src/platform/gibbon/resources/js/*.js $(1)/root/Netflix/resources/js
 	cp $(@D)/netflix/src/platform/gibbon/resources/default/PartnerBridge.js $(1)/root/Netflix/resources/js
+
+	mkdir -p $(1)/root/Netflix/artifacts
+	cp -r $(@D)/artifacts/MeteringCertificate.bin $(1)/root/Netflix/artifacts
+
 endef
 
 else
