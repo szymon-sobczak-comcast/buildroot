@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export SOURCE=/Systemapps/wpe/metrological/
+export SOURCE=/UserApps/metrological
 export LD_LIBRARY_PATH=$SOURCE/usr/lib:/lib:/usr/lib:$SOURCE/lib:$SOURCE/usr/lib/wpeframework/plugins:$SOURCE/usr/lib/wpeframework/proxystubs:$SOURCE/usr/lib/gio
 export PATH=$SOURCE/usr/bin:$PATH:/usr/bin
 export GST_PLUGIN_SCANNER=$SOURCE/usr/libexec/gstreamer-1.0/gst-plugin-scanner
@@ -8,6 +8,8 @@ export GST_PLUGIN_SYSTEM_PATH=$SOURCE/usr/lib/gstreamer-1.0
 
 export XKB_CONFIG_ROOT=$SOURCE/usr/share/X11/xkb
 export V3D_DRM_DISABLE=1
+
+export WEBKIT_EXEC_PATH=$SOURCE/usr/bin
 
 case "$1" in
 *)
@@ -46,8 +48,6 @@ case "$1" in
 		ln -s $SOURCE/root/OCDM $DESTINATION/root/OCDM
                 ln -s /usr/bin/sage/sage_ta_widevine.bin $SOURCE/sage_ta_widevine.bin
 	fi
-
-	cp -fa $SOURCE/usr/bin/. /usr/bin
 
 	export DRMSTORE=/tmp/drmstore
 	if [ ! -f $DRMSTORE ]; then
