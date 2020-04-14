@@ -162,3 +162,4 @@ libvorbisidec.so
 libogg.so
 libWPEFrameworkInputSwitch.so
 playready
+MeteringCertificate.bin
