@@ -49,6 +49,6 @@ grep -q "/usr/lib ext4" /proc/mounts && echo "/usr/lib is already mounted" || mo
 grep -q "/usr/bin ext4" /proc/mounts && echo "/usr/bin is already mounted" || mount -t ext4 --bind $DESTINATION/usr/bin/ /usr/bin
 
 #LD_PRELOAD=$SOURCE/usr/lib/libstdc\+\+.so.6.0.21 WPEFramework
-WPEFramework
+LD_PRELOAD=/usr/local/lib/libnexus.so WPEFramework
 
 echo "Done!"
