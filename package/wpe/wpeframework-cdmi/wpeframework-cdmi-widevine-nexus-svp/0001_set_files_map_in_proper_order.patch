@@ -1,0 +1,42 @@
+diff --git a/MediaSystem.cpp b/MediaSystem.cpp
+index 2665ecc..a205030 100644
+--- a/MediaSystem.cpp
++++ b/MediaSystem.cpp
+@@ -126,13 +126,6 @@ public:
+ 
+         // widevine::Cdm::DeviceCertificateRequest cert_request;
+ 
+-        if (widevine::Cdm::kSuccess == widevine::Cdm::initialize(
+-                widevine::Cdm::kOpaqueHandle, client_info, &_host, &_host, &_host, static_cast<widevine::Cdm::LogLevel>(0))) {
+-	    // Setting the last parameter to true, requres serviceCertificates so the requests can be encrypted. Currently badly supported
+-            // in the EME tests, so turn of for now :-)
+-            _cdm = widevine::Cdm::create(this, &_host, false);
+-        }
+-        
+         Config config;
+         config.FromString(configline);
+ 
+@@ -148,6 +141,15 @@ public:
+                 ::memcpy(kDeviceCert, dataBuffer.Buffer(), dataBuffer.Size());
+             }
+         }
++
++        _host.Reset();
++
++        if (widevine::Cdm::kSuccess == widevine::Cdm::initialize(
++                widevine::Cdm::kOpaqueHandle, client_info, &_host, &_host, &_host, static_cast<widevine::Cdm::LogLevel>(4))) {
++	    // Setting the last parameter to true, requres serviceCertificates so the requests can be encrypted. Currently badly supported
++            // in the EME tests, so turn of for now :-)
++            _cdm = widevine::Cdm::create(this, &_host, false);
++        }     
+     }
+ 
+     virtual CDMi_RESULT CreateMediaKeySession(
+@@ -233,6 +235,7 @@ public:
+ 
+         _adminLock.Unlock();
+     }
++#define USE_CENC14
+ #ifdef USE_CENC14
+     virtual void onKeyStatusesChange(const std::string& session_id,  bool has_new_usable_key) 
+ #else

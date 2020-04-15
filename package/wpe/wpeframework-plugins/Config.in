@@ -44,7 +44,13 @@ config BR2_PACKAGE_WPEFRAMEWORK_METERING_CERTIFICATE
     string "metering"
     default ""
     help
-        set metering certificate path
+        set playready metering certificate path
+        
+config BR2_PACKAGE_WPEFRAMEWORK_KEYBOX_CERTIFICATE
+    string "keybox"
+    default ""
+    help
+        set keybox widevine certificate path
         
 config BR2_PACKAGE_WPEFRAMEWORK_CDMI_USER
     string "user"
