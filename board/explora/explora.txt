@@ -1,6 +1,3 @@
-WidevineProvisionApplication
-huppel.sh
-cert.bin
 WPENetworkProcess
 WPEWebProcess
 WPEDatabaseProcess
