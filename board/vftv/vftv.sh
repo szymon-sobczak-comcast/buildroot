@@ -44,6 +44,7 @@ ln -s "/usr/lib/libv3ddriver.so" "${ROOTFS_DIR}/usr/lib/libGLESv2.so"
 
 # WPEFramework launcher
 cp -pf "${BOARD_DIR}/wpeframework.sh" "${ROOTFS_DIR}"
+cp -pf "${BOARD_DIR}/wpeframework_dev.sh" "${ROOTFS_DIR}"
 
 # WebServer path
 mkdir -p "${ROOTFS_DIR}/www"

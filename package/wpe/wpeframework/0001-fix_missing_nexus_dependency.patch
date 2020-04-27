@@ -1,0 +1,12 @@
+diff --git a/Source/ocdm/CMakeLists.txt b/Source/ocdm/CMakeLists.txt
+index d38fa1a6..227f0bf6 100644
+--- a/Source/ocdm/CMakeLists.txt
++++ b/Source/ocdm/CMakeLists.txt
+@@ -72,6 +72,7 @@ if (${CDMI_ADAPTER_IMPLEMENTATION} STREQUAL "broadcom-svp")
+     target_link_libraries(${TARGET}
+             PRIVATE
+             -lb_secbuf
++            -lnexus
+             -lbrcmsvpmeta
+             )
+ 
