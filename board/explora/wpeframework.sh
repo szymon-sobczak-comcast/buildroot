@@ -9,8 +9,6 @@ export GST_PLUGIN_SYSTEM_PATH=$SOURCE/usr/lib/gstreamer-1.0
 export XKB_CONFIG_ROOT=$SOURCE/usr/share/X11/xkb
 export V3D_DRM_DISABLE=1
 
-export WEBKIT_EXEC_PATH=$SOURCE/usr/bin
-
 case "$1" in
 *)
 	export DESTINATION=/UserApps/explora
