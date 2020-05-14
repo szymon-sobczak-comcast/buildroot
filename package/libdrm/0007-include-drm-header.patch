@@ -1,0 +1,22 @@
+--- a/xf86drm.h
++++ b/xf86drm.h
+@@ -37,7 +37,7 @@
+ #include <stdarg.h>
+ #include <sys/types.h>
+ #include <stdint.h>
+-#include <drm.h>
++#include <drm/drm.h>
+ 
+ #if defined(__cplusplus)
+ extern "C" {
+--- a/xf86drmMode.h
++++ b/xf86drmMode.h
+@@ -40,7 +40,7 @@
+ extern "C" {
+ #endif
+ 
+-#include <drm.h>
++#include <drm/drm.h>
+ 
+ /*
+  * This is the interface for modesetting for drm.
