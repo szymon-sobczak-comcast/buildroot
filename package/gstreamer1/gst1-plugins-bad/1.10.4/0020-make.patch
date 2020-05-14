@@ -1,0 +1,100 @@
+--- a/gst-libs/gst/interfaces/Makefile.in
++++ b/gst-libs/gst/interfaces/Makefile.in
+@@ -17,6 +17,9 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_gen_prefix=gst_color_balance
+@@ -823,7 +826,7 @@
+ 	$(built_headers)
+ 
+ CLEANFILES = $(BUILT_SOURCES)
+-enum_headers = $(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers = $(foreach h,$(glib_enum_headers),\n$(H)include \"$(h)\")
+ all: $(BUILT_SOURCES)
+ 	$(MAKE) $(AM_MAKEFLAGS) all-am
+ 
+--- a/gst-libs/gst/mpegts/Makefile.in
++++ b/gst-libs/gst/mpegts/Makefile.in
+@@ -17,6 +17,9 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_gen_prefix=gst_color_balance
+@@ -855,7 +858,7 @@
+ @HAVE_INTROSPECTION_TRUE@gir_DATA = $(BUILT_GIRSOURCES)
+ @HAVE_INTROSPECTION_TRUE@typelibsdir = $(libdir)/girepository-1.0/
+ @HAVE_INTROSPECTION_TRUE@typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
+-enum_headers = $(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers = $(foreach h,$(glib_enum_headers),\n$(H)include \"$(h)\")
+ all: $(BUILT_SOURCES)
+ 	$(MAKE) $(AM_MAKEFLAGS) all-am
+ 
+--- a/common/glib-gen.mak
++++ b/common/glib-gen.mak
+@@ -1,11 +1,14 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_enum_prefix=gst_color_balance
+ 
+-enum_headers=$(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers=$(foreach h,$(glib_enum_headers),\n$(H)include \"$(h)\")
+ 
+ # these are all the rules generating the relevant files
+ %-marshal.h: %-marshal.list
+--- a/ext/srtp/Makefile.in
++++ b/ext/srtp/Makefile.in
+@@ -17,6 +17,9 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_gen_prefix=gst_color_balance
+@@ -794,7 +797,7 @@
+ BUILT_SOURCES = gstsrtp-enumtypes.c gstsrtp-enumtypes.h
+ nodist_libgstsrtp_la_SOURCES = $(BUILT_SOURCES)
+ CLEANFILES = $(BUILT_SOURCES)
+-enum_headers = $(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers = $(foreach h,$(glib_enum_headers),\n$(H)include \"$(h)\")
+ all: $(BUILT_SOURCES)
+ 	$(MAKE) $(AM_MAKEFLAGS) all-am
+ 
+--- a/common/gst-glib-gen.mak
++++ b/common/gst-glib-gen.mak
+@@ -1,12 +1,15 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_gen_prefix=gst_color_balance
+ #glib_gen_basename=colorbalance
+ 
+-enum_headers=$(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers=$(foreach h,$(glib_enum_headers),\n$(H)include \"$(h)\")
+ 
+ # these are all the rules generating the relevant files
+ $(glib_gen_basename)-marshal.h: $(glib_gen_basename)-marshal.list

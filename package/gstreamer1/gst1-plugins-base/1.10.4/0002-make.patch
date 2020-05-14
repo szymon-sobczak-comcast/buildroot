@@ -1,0 +1,121 @@
+--- a/gst-libs/gst/audio/Makefile.in
++++ b/gst-libs/gst/audio/Makefile.in
+@@ -39,6 +39,9 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_gen_prefix=gst_color_balance
+@@ -791,7 +794,7 @@
+ @HAVE_X86_TRUE@        $(GST_LIB_LDFLAGS) \
+ @HAVE_X86_TRUE@        $(GST_ALL_LDFLAGS)
+ 
+-enum_headers = $(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers = $(foreach h,$(glib_enum_headers),\n$(H)include \"$(h)\")
+ 
+ # Introspection
+ @HAVE_INTROSPECTION_TRUE@BUILT_GIRSOURCES = GstAudio-@GST_API_VERSION@.gir
+--- a/gst-libs/gst/app/Makefile.in
++++ b/gst-libs/gst/app/Makefile.in
+@@ -17,6 +17,9 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_gen_prefix=gst_color_balance
+@@ -541,7 +544,7 @@
+ glib_enum_define = GST_APP
+ glib_gen_prefix = __gst_app
+ glib_gen_basename = gstapp
+-enum_headers = $(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers = $(foreach h,$(glib_enum_headers),\n$(H)include \"$(h)\")
+ libgstapp_@GST_API_VERSION@_la_SOURCES = gstappsrc.c gstappsink.c 
+ libgstapp_@GST_API_VERSION@_la_CFLAGS = $(GST_PLUGINS_BASE_CFLAGS) \
+ 	$(GST_BASE_CFLAGS) $(GST_CFLAGS)
+--- a/gst-libs/gst/rtp/Makefile.in
++++ b/gst-libs/gst/rtp/Makefile.in
+@@ -17,6 +17,9 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_gen_prefix=gst_color_balance
+@@ -601,7 +604,7 @@
+ glib_enum_define = gst_rtp
+ glib_enum_headers = $(libgstrtpinclude_HEADERS)
+ glib_gen_basename = gstrtp
+-enum_headers = $(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers = $(foreach h,$(glib_enum_headers),\n${H}include \"$(h)\")
+ @HAVE_INTROSPECTION_TRUE@BUILT_GIRSOURCES = GstRtp-@GST_API_VERSION@.gir
+ @HAVE_INTROSPECTION_TRUE@gir_headers = $(patsubst %,$(srcdir)/%, \
+ @HAVE_INTROSPECTION_TRUE@	$(libgstrtpinclude_HEADERS)) \
+--- a/common/gst-glib-gen.mak
++++ b/common/gst-glib-gen.mak
+@@ -1,12 +1,15 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_gen_prefix=gst_color_balance
+ #glib_gen_basename=colorbalance
+ 
+-enum_headers=$(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers=$(foreach h,$(glib_enum_headers),\n$(H)include \"$(h)\")
+ 
+ # these are all the rules generating the relevant files
+ $(glib_gen_basename)-marshal.h: $(glib_gen_basename)-marshal.list
+--- a/common/glib-gen.mak
++++ b/common/glib-gen.mak
+@@ -1,11 +1,14 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_enum_prefix=gst_color_balance
+ 
+-enum_headers=$(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers=$(foreach h,$(glib_enum_headers),\n$(H)include \"$(h)\")
+ 
+ # these are all the rules generating the relevant files
+ %-marshal.h: %-marshal.list
+--- a/gst-libs/gst/video/Makefile.in
++++ b/gst-libs/gst/video/Makefile.in
+@@ -39,6 +39,9 @@
+ # these are the variables your Makefile.am should set
+ # the example is based on the colorbalance interface
+ 
++# http://git.savannah.gnu.org/cgit/make.git/tree/NEWS#n18
++H := \#
++
+ #glib_enum_headers=$(colorbalance_headers)
+ #glib_enum_define=GST_COLOR_BALANCE
+ #glib_gen_prefix=gst_color_balance
+@@ -720,7 +723,7 @@
+ 
+ libgstvideo_@GST_API_VERSION@_la_LIBADD = $(GST_BASE_LIBS) $(GST_LIBS) $(ORC_LIBS) $(LIBM)
+ libgstvideo_@GST_API_VERSION@_la_LDFLAGS = $(GST_LIB_LDFLAGS) $(GST_ALL_LDFLAGS) $(GST_LT_LDFLAGS)
+-enum_headers = $(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
++enum_headers = $(foreach h,$(glib_enum_headers),\n$(H)include \"$(h)\")
+ @HAVE_INTROSPECTION_TRUE@BUILT_GIRSOURCES = GstVideo-@GST_API_VERSION@.gir
+ @HAVE_INTROSPECTION_TRUE@gir_headers = $(patsubst %,$(srcdir)/%, \
+ @HAVE_INTROSPECTION_TRUE@	$(libgstvideo_@GST_API_VERSION@include_HEADERS)) \
