@@ -32,7 +32,7 @@ define RPI_FIRMWARE_INSTALL_TARGET_CMDS
 endef
 endif # INSTALL_VCDBG
 
-ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14),y)
+ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14)$(BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3),yn)
 define RPI_FIRMWARE_MOUNT_BOOT
 	mkdir -p $(TARGET_DIR)/boot
 	grep -q '^/dev/mmcblk1p1' $(TARGET_DIR)/etc/fstab || \
@@ -53,7 +53,7 @@ endef
 endif
 
 ifeq ($(BR2_TARGET_ROOTFS_CPIO),y)
-ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14),y)
+ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14)$(BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3),yn)
 define RPI_FIRMWARE_MOUNT_ROOT
 	mkdir -p $(TARGET_DIR)/root
 	grep -q '^/dev/mmcblk1p2' $(TARGET_DIR)/etc/fstab || \
