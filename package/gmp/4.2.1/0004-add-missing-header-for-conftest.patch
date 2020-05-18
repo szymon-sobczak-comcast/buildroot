@@ -1,0 +1,10 @@
+--- a/configure
++++ b/configure
+@@ -4172,6 +4172,7 @@
+    values being spilled into floating point registers.  The problem doesn't
+    show up all the time, but has occurred enough in GMP for us to reject
+    this compiler+flags.  */
++#include <string.h>
+ struct try_t
+ {
+  char dst[2];
