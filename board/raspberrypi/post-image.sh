@@ -95,6 +95,17 @@ __EOF__
 		echo "Adding 'silent=1' to config.txt."
 		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
 
+__EOF__
+	fi
+	;;
+	--enable-vc4-256)
+	if ! grep -qE '^dtoverlay=vc4-fkms-v3d' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+		echo "Adding 'dtoverlay=vc4-fkms-v3d,cma-256' to config.txt."
+		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Enable DRM VC4 V3D driver
+dtoverlay=vc4-fkms-v3d,cma-256
+
 # Silent
 disable_splash=1
 boot_delay=0
