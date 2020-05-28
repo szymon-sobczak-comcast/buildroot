@@ -5,7 +5,7 @@
 ################################################################################
 
 # If enabled, choose the development version hash.
-WPEWEBKIT_VERSION_VALUE = 5f899bc2e0e3736908d46ddf473dc4fe5c7f5c95
+WPEWEBKIT_VERSION_VALUE = fbadca04421a17cbafe8ad93d60214e8da6fffb9
 
 WPEWEBKIT_VERSION = $(WPEWEBKIT_VERSION_VALUE)
 WPEWEBKIT_SITE = $(call github,WebPlatformForEmbedded,WPEWebKit,$(WPEWEBKIT_VERSION))
