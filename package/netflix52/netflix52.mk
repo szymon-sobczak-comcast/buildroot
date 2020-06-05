@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-NETFLIX52_VERSION = e21286453b0d2d3c41005a98a19843ca34a57ce6
+NETFLIX52_VERSION = 819344d713e0b2b1f3cc6e56376c08308ae59db1
 NETFLIX52_SITE = git@github.com:Metrological/netflix.git
 NETFLIX52_SITE_METHOD = git
 NETFLIX52_LICENSE = PROPRIETARY
@@ -180,7 +180,6 @@ define NETFLIX52_INSTALL_TO_TARGET
 
 	mkdir -p $(1)/root/Netflix/artifacts
 	cp -r $(@D)/artifacts/MeteringCertificate.bin $(1)/root/Netflix/artifacts
-
 endef
 
 else
