@@ -9,6 +9,12 @@ if BR2_PACKAGE_GST1_BCM
 
 comment "Broadcom Nexus specific plugins"
 
+config BR2_PACKAGE_GST1_BCM_UNIFIED_VERSION
+	bool "unified version"
+	default y
+	help 
+	  Enable the unified version of the plugins
+
 config BR2_PACKAGE_GST1_BCM_VP9_SUPPORT
 	bool "VP9 support"
 	depends on BR2_PACKAGE_HAS_VP9_DECODER
@@ -59,4 +65,15 @@ config BR2_PACKAGE_GST1_BCM_ENABLE_SVP
 	help 
 	  Enable SVP support
 
+config BR2_PACKAGE_GST1_BCM_ENABLE_SVP_SECBUF
+	bool "enable svp secbuf"
+	default n
+	depends on BR2_PACKAGE_GST1_BCM_ENABLE_SVP
+	help 
+          Enable SVP Secbuf support
+
+config BR2_PACKAGE_GST1_BCM_CREATE_BINARY_ML_DELIVERY
+       bool "Create delivery package"
+       help
+         Create tarball containing the build to be deployed else where.
 endif

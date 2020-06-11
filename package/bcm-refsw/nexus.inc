@@ -31,13 +31,31 @@ define BCM_REFSW_INSTALL_NEXUS_DEV
 	$(INSTALL) -m 644 $(BCM_REFSW_BIN)/include/platform_app.inc $(STAGING_DIR)/usr/include/
 endef
 
+BCM_NEXUS_CRYPTOGRAPHY_DIR = /BSEAV/lib/security
+ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY),y)
+ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY_IMPLEMENTATION_NEXUS),y)
+define BCM_REFSW_INSTALL_CRYPTOGRAPHY_DEV
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/drm_types.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/drm_common.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/drm_common_swcrypto_types.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/tl/drm_types_tl.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/tl/drm_common_tl.h $(1)/usr/include/refsw/	
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/drm_metadata.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/tl/drm_metadata_tl.h $(1)/usr/include/refsw/	
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/sage/platforms/include/drm_common_module_ids.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_crypto/include/common_crypto.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_crypto/include/common_crypto_secv1.h $(1)/usr/include/refsw/
+endef
+endif
+endif
+
 ifeq ($(BR2_PACKAGE_BCM_REFSW_PMLIB),y)
 define BCM_REFSW_BUILD_PMLIB
     $(TARGET_CONFIGURE_OPTS) \
     $(TARGET_MAKE_ENV) \
     $(BCM_REFSW_CONF_OPTS) \
     $(BCM_REFSW_MAKE_ENV) \
-        $(MAKE) -C $(@D)/BSEAV/lib/pmlib \
+    CFLAGS="${CFLAGS} -fPIC" $(MAKE) -C $(@D)/BSEAV/lib/pmlib \
             LIBDIR=${BCM_REFSW_BIN}
 endef
 
