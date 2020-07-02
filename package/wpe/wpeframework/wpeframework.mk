@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WPEFRAMEWORK_VERSION = bc116648ebacfb600ea9e69d0b5a775426d0d85c
+WPEFRAMEWORK_VERSION = 95ab086811ff02804945b4b67c77c7514bfcecc6
 WPEFRAMEWORK_SITE = $(call github,rdkcentral,Thunder,$(WPEFRAMEWORK_VERSION))
 WPEFRAMEWORK_INSTALL_STAGING = YES
 WPEFRAMEWORK_DEPENDENCIES = zlib $(call qstrip,$(BR2_PACKAGE_SDK_INSTALL)) host-wpeframework-tools
@@ -84,6 +84,10 @@ $(error Missing a compositor implemtation, please provide one or disable PLUGIN_
 endif
 endif
 
+ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_DISPLAYINFO),y)
+WPEFRAMEWORK_CONF_OPTS += -DDISPLAYINFO=ON
+endif
+
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_BROADCAST),y)
 WPEFRAMEWORK_CONF_OPTS += -DBROADCAST=ON
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_BROADCAST_SI_PARSING),y)
@@ -121,13 +125,15 @@ endif
 
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_CDM),y)
 WPEFRAMEWORK_CONF_OPTS += -DCDMI=ON
-ifeq ($(BR2_PACKAGE_HAS_NEXUS_SAGE),y)
-WPEFRAMEWORK_CONF_OPTS += -DCDMI_BCM_NEXUS_SVP=ON
-WPEFRAMEWORK_CONF_OPTS += -DCDMI_ADAPTER_IMPLEMENTATION="broadcom-svp"
-WPEFRAMEWORK_DEPENDENCIES += gst1-bcm
-else
+# Seems like bcm-refsw 19.1.1 API is different, for now disable broadcom-svp implementation
+# TODO: fix this before merging into master
+#ifeq ($(BR2_PACKAGE_HAS_NEXUS_SAGE),y)
+#WPEFRAMEWORK_CONF_OPTS += -DCDMI_BCM_NEXUS_SVP=ON
+#WPEFRAMEWORK_CONF_OPTS += -DCDMI_ADAPTER_IMPLEMENTATION="broadcom-svp"
+#WPEFRAMEWORK_DEPENDENCIES += gst1-bcm
+#else
 WPEFRAMEWORK_CONF_OPTS += -DCDMI_ADAPTER_IMPLEMENTATION="gstreamer"
-endif
+#endif
 endif
 
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_GSTREAMERCLIENT),y)

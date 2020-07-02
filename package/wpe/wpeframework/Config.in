@@ -130,6 +130,12 @@ config BR2_PACKAGE_WPEFRAMEWORK_COMPOSITORCLIENT
           interaction (Graphics/input). The implementation hides all the compositor specific details.
       allows for relaying keys to plugins
 
+config BR2_PACKAGE_WPEFRAMEWORK_DISPLAYINFO
+    bool "DisplayInfo"
+        default y
+    help
+        A helpful C-interface to easily get information from the DisplayInfo plugin.
+
 config BR2_PACKAGE_WPEFRAMEWORK_GSTREAMERCLIENT
         bool "GstreamerClient"
         default n
