@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WPEFRAMEWORK_PLUGINS_VERSION = d1ff6c13a66569817e1a2a916224176f1b74555c 
+WPEFRAMEWORK_PLUGINS_VERSION = 5fc029462cb8651c0f9ea22022311b8b11ed9bcf 
 WPEFRAMEWORK_PLUGINS_SITE = $(call github,rdkcentral,ThunderNanoServices,$(WPEFRAMEWORK_PLUGINS_VERSION))
 WPEFRAMEWORK_PLUGINS_INSTALL_STAGING = YES
 WPEFRAMEWORK_PLUGINS_DEPENDENCIES = wpeframework libpng
