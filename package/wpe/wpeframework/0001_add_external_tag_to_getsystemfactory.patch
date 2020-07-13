@@ -1,0 +1,22 @@
+diff --git a/Source/interfaces/IDRM.h b/Source/interfaces/IDRM.h
+index 4e145578..89f479ff 100644
+--- a/Source/interfaces/IDRM.h
++++ b/Source/interfaces/IDRM.h
+@@ -26,6 +26,8 @@
+ #include <typeinfo>
+ #include <vector>
+ 
++#include <core/core.h>
++
+ #ifdef __GNUC__
+ #define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+ #else
+@@ -528,7 +530,7 @@ private:
+ extern "C" {
+ #endif
+ 
+-CDMi::ISystemFactory* GetSystemFactory();
++EXTERNAL CDMi::ISystemFactory* GetSystemFactory();
+ 
+ #ifdef __cplusplus
+ }
