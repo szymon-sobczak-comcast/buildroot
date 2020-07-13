@@ -31,10 +31,7 @@ choice BR2_PACKAGE_BCM_REFSW_SAGE_PLAYREADY_VERSION
 
 config BR2_PACKAGE_BCM_REFSW_SAGE_PLAYREADY_30
         bool "3.0"
-        default n
-        help
-          Playready 3.0 SVP
-
+        
 endchoice
 
 config BR2_PACKAGE_WPEFRAMEWORK_CDMI_PLAYREADY_SECURE_STOP_METERING_CERTIFICATE
