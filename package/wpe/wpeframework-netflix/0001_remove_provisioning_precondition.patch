@@ -1,0 +1,16 @@
+diff --git a/Netflix.config b/Netflix.config
+index f23076b..78801f0 100644
+--- a/Netflix.config
++++ b/Netflix.config
+@@ -1,5 +1,10 @@
+ set (autostart ${PLUGIN_NETFLIX_AUTOSTART})
+-set (preconditions Internet Provisioning Graphics)
++
++if(PLUGIN_NETFLIX_PRECONDITION_PROVISIONING)
++set(preconditions Provisioning)
++endif()
++
++set (preconditions Internet Graphics Decryption)
+ 
+ map()
+   kv(model ${PLUGIN_NETFLIX_MODEL})
