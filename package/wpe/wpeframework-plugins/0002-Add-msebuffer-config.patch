@@ -1,0 +1,26 @@
+diff --git a/WebKitBrowser/UX.config b/WebKitBrowser/UX.config
+index ca4b429..f25ae21 100644
+--- a/WebKitBrowser/UX.config
++++ b/WebKitBrowser/UX.config
+@@ -23,7 +23,7 @@ map()
+     kv(fps true)
+     kv(cursor false)
+     kv(touch false)
+-    kv(msebuffers "audio:2m,video:15m,text:1m")
++    kv(msebuffers ${PLUGIN_WEBKITBROWSER_MSEBUFFERS})
+     kv(memoryprofile ${PLUGIN_WEBKITBROWSER_MEMORYPROFILE})
+     kv(memorypressure ${PLUGIN_WEBKITBROWSER_MEMORYPRESSURE})
+     kv(mediadiskcache ${PLUGIN_WEBKITBROWSER_MEDIADISKCACHE})
+diff --git a/WebKitBrowser/YouTube.config b/WebKitBrowser/YouTube.config
+index fb994b0..feabbb4 100644
+--- a/WebKitBrowser/YouTube.config
++++ b/WebKitBrowser/YouTube.config
+@@ -23,7 +23,7 @@ map()
+     kv(fps true)
+     kv(cursor false)
+     kv(touch false)
+-    kv(msebuffers "audio:2m,video:15m,text:1m")
++    kv(msebuffers ${PLUGIN_WEBKITBROWSER_MSEBUFFERS})
+     kv(memoryprofile ${PLUGIN_WEBKITBROWSER_MEMORYPROFILE})
+     kv(memorypressure ${PLUGIN_WEBKITBROWSER_MEMORYPRESSURE})
+     kv(mediadiskcache ${PLUGIN_WEBKITBROWSER_MEDIADISKCACHE})
