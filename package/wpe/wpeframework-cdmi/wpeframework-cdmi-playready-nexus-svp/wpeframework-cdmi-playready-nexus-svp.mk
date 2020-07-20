@@ -3,8 +3,7 @@
 # wpeframework-cdmi-playready-nexus-svp
 #
 ################################################################################
-
-WPEFRAMEWORK_CDMI_PLAYREADY_NEXUS_SVP_VERSION = R1
+WPEFRAMEWORK_CDMI_PLAYREADY_NEXUS_SVP_VERSION = 410fa1ddd500ef239349e1e290239bf4563add85
 WPEFRAMEWORK_CDMI_PLAYREADY_NEXUS_SVP_SITE_METHOD = git
 WPEFRAMEWORK_CDMI_PLAYREADY_NEXUS_SVP_SITE = git@github.com:rdkcentral/OCDM-Playready-Nexus-SVP.git
 WPEFRAMEWORK_CDMI_PLAYREADY_NEXUS_SVP_INSTALL_STAGING = YES
