@@ -11,6 +11,9 @@ endif
 ifeq ($(BR2_PACKAGE_NETFLIX5),y)
 LIBCURL_VERSION = 7.53.0
 endif
+ifeq ($(BR2_PACKAGE_NETFLIX52),y)
+LIBCURL_VERSION = 7.53.0
+endif
 LIBCURL_SOURCE = curl-$(LIBCURL_VERSION).tar.bz2
 LIBCURL_SITE = https://curl.haxx.se/download
 LIBCURL_DEPENDENCIES = host-pkgconf \
@@ -74,6 +77,11 @@ LIBCURL_DEPENDENCIES += libssh2
 LIBCURL_CONF_OPTS += --with-libssh2
 else
 LIBCURL_CONF_OPTS += --without-libssh2
+endif
+
+ifeq ($(BR2_PACKAGE_LIBCURL_ENABLE_HTTP2),y)
+LIBCURL_CONF_OPTS += --with-nghttp2
+LIBCURL_DEPENDENCIES += nghttp2
 endif
 
 define LIBCURL_FIX_DOT_PC

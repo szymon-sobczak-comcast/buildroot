@@ -13,14 +13,14 @@ define BCM_REFSW_INSTALL_NEXUS
 	$(INSTALL) -D -m 755 package/bcm-refsw/S11nexus $(1)/etc/init.d/S11nexus
 	$(INSTALL) -D $(BCM_REFSW_BIN)/libnexus.so $(1)/usr/lib/libnexus.so
 	if [ -f $(BCM_REFSW_BIN)/wakeup_drv.ko ]; then \
-        $(INSTALL) -D -m 755 package/bcm-refsw/S11wakeup $(1)/etc/init.d/S11wakeup ; \
-        $(INSTALL) -m 644 -D $(BCM_REFSW_BIN)/wakeup_drv.ko $(1)/lib/modules/wakeup_drv.ko ; \
-    fi
-    # VC5 Graphics Execution Manger (GEM) interface
-    if [ -f $(BCM_REFSW_BIN)/brcmv3d.ko ]; then \
-        $(INSTALL) -D -m 755 package/bcm-refsw/S11brcmv3d $(1)/etc/init.d/S11brcmv3d ; \
-        $(INSTALL) -m 644 -D $(BCM_REFSW_BIN)/brcmv3d.ko $(1)/lib/modules/brcmv3d.ko ; \
-    fi
+   	     $(INSTALL) -D -m 755 package/bcm-refsw/S11wakeup $(1)/etc/init.d/S11wakeup ; \
+  	      $(INSTALL) -m 644 -D $(BCM_REFSW_BIN)/wakeup_drv.ko $(1)/lib/modules/wakeup_drv.ko ; \
+	fi
+	# VC5 Graphics Execution Manger (GEM) interface
+	if [ -f $(BCM_REFSW_BIN)/brcmv3d.ko ]; then \
+		$(INSTALL) -D -m 755 package/bcm-refsw/S11brcmv3d $(1)/etc/init.d/S11brcmv3d ; \
+		$(INSTALL) -m 644 -D $(BCM_REFSW_BIN)/brcmv3d.ko $(1)/lib/modules/brcmv3d.ko ; \
+	fi
 endef
 
 define BCM_REFSW_INSTALL_NEXUS_DEV
@@ -31,13 +31,32 @@ define BCM_REFSW_INSTALL_NEXUS_DEV
 	$(INSTALL) -m 644 $(BCM_REFSW_BIN)/include/platform_app.inc $(STAGING_DIR)/usr/include/
 endef
 
+BCM_NEXUS_CRYPTOGRAPHY_DIR = /BSEAV/lib/security
+ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY),y)
+ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY_IMPLEMENTATION_NEXUS),y)
+define BCM_REFSW_INSTALL_CRYPTOGRAPHY_DEV
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/drm_types.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/drm_common.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/drm_common_swcrypto_types.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/tl/drm_types_tl.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/tl/drm_common_tl.h $(1)/usr/include/refsw/	
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/drm_metadata.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_drm/include/tl/drm_metadata_tl.h $(1)/usr/include/refsw/	
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/sage/platforms/include/drm_common_module_ids.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_crypto/include/common_crypto.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_crypto/include/common_crypto_secv1.h $(1)/usr/include/refsw/
+	$(INSTALL) -D $(@D)/$(BCM_NEXUS_CRYPTOGRAPHY_DIR)/common_crypto/include/common_crypto_secv2.h $(1)/usr/include/refsw/
+endef
+endif
+endif
+
 ifeq ($(BR2_PACKAGE_BCM_REFSW_PMLIB),y)
 define BCM_REFSW_BUILD_PMLIB
     $(TARGET_CONFIGURE_OPTS) \
     $(TARGET_MAKE_ENV) \
     $(BCM_REFSW_CONF_OPTS) \
     $(BCM_REFSW_MAKE_ENV) \
-        $(MAKE) -C $(@D)/BSEAV/lib/pmlib \
+    CFLAGS="${CFLAGS} -fPIC" $(MAKE) -C $(@D)/BSEAV/lib/pmlib \
             LIBDIR=${BCM_REFSW_BIN}
 endef
 
@@ -156,7 +175,9 @@ ifeq ($(BR2_PACKAGE_BCM_REFSW_SAGE_PLAYREADY_30),y)
 
 BCM_NEXUS_PLAYREADY30_DIR = /BSEAV/thirdparty/playready/3.0
 
-ifeq ($(shell expr $(BCM_REFSW_VERSION) \>= 18.1),1)
+ifeq ($(shell expr $(BCM_REFSW_VERSION) \>= 19.2),1)
+    BCM_NEXUS_PLAYREADY30_LIBDIR = $(BCM_NEXUS_PLAYREADY30_DIR)/bin/$(ARCH)-linux/secv2/lib
+else ifeq ($(shell expr $(BCM_REFSW_VERSION) \>= 18.1),1)
 ifeq ($(BCM_REFSW_PLATFORM_SECURITY_ZEUS_VERSION),5)
     BCM_NEXUS_PLAYREADY30_LIBDIR = $(BCM_NEXUS_PLAYREADY30_DIR)/bin/$(ARCH)-linux/Zeus5x/lib
 else
@@ -227,6 +248,28 @@ define BCM_REFSW_BUILD_SAGE_PRDY30_SVP
 endef
 endif
 endif
+
+endif
+
+ifeq ($(BR2_PACKAGE_BCM_REFSW_SAGE_WIDEVINE_VERSION_15),y)
+
+BCM_NEXUS_WIDEVINE_DIR = /BSEAV/lib/security/third_party/widevine/CENC_v15
+
+define BCM_REFSW_BUILD_SAGE_WIDEVINE
+    $(TARGET_CONFIGURE_OPTS) \
+    $(TARGET_MAKE_ENV) \
+    $(BCM_REFSW_CONF_OPTS) \
+    $(BCM_REFSW_MAKE_ENV) \
+        $(MAKE) -C $(@D)/$(BCM_NEXUS_WIDEVINE_DIR) build_wv_bundle \
+            LIBDIR=${BCM_REFSW_BIN}
+endef
+
+
+define BCM_REFSW_INSTALL_WIDEVINE_DEV
+endef
+
+define BCM_REFSW_INSTALL_WIDEVINE
+endef
 
 endif
 

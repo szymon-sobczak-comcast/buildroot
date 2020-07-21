@@ -101,11 +101,26 @@ source "package/wpe/wpeframework-devtools/Config.in"
 endmenu
 
 menu "Extensions"
-config BR2_PACKAGE_WPEFRAMEWORK_VIRTUALINPUT
-    bool "VirtualInput"
+
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_BROADCAST
+    bool "Broadcast"
+        default n
     help
-      If the dynamic uinput system can not be used for security reasons, this
-      allows for relaying keys to plugins
+      Abstraction on QAM tuner and PSI/SI parser functionality.
+
+if BR2_PACKAGE_WPEFRAMEWORK_BROADCAST
+config BR2_PACKAGE_WPEFRAMEWORK_BROADCAST_SI_PARSING
+    bool "SI Parsing"
+        default n
+    help
+      Enable functionality to automatically parse SI information on the
+          tuned streams.
+endif
+
+config BR2_PACKAGE_WPEFRAMEWORK_CDM
+    bool "CDM"
+    help
+      CDM client support compatible with OpenCDM
 
 config BR2_PACKAGE_WPEFRAMEWORK_COMPOSITORCLIENT
     bool "CompositorClient"
@@ -122,10 +137,76 @@ config BR2_PACKAGE_WPEFRAMEWORK_GSTREAMERCLIENT
           Gstreamer client provides custom APIs to manipulate underneath stream sinks which will be linked with created pipeline.
           This implementation will vary based on custom platforms and sink backends.
 
-config BR2_PACKAGE_WPEFRAMEWORK_CDM
-    bool "CDM"
+config BR2_PACKAGE_WPEFRAMEWORK_DISPLAYINFO
+    bool "DisplayInfo"
+        default y
     help
-      CDM client support compatible with OpenCDM
+        A helpful C-interface to easily get information from the DisplayInfo plugin.
+
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY
+    bool "Cryptography"
+        default n
+    help
+      Abstraction on generic cryptography functionality.
+
+if BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY
+choice BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY_IMPLEMENTATION
+	prompt "Implementation"
+	default BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY_IMPLEMENTATION_OPENSSL
+	help
+	  Choose implementation
+
+config BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY_IMPLEMENTATION_THUNDER
+	bool "Thunder"
+	help
+	  Use Thunder as cryptography backend.
+
+config BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY_IMPLEMENTATION_OPENSSL
+	bool "OpenSSL"
+	depends on BR2_PACKAGE_OPENSSL
+	help
+	  Use OpenSSL as cryptography backend.
+
+config BR2_PACKAGE_WPEFRAMEWORK_CRYPTOGRAPHY_IMPLEMENTATION_NEXUS
+	bool "Nexus"
+	depends on BR2_PACKAGE_HAS_NEXUS
+	help
+	  Use Nexus as cryptography backend.
+endchoice
+endif
+
+config BR2_PACKAGE_WPEFRAMEWORK_PROCESSCONTAINERS
+    bool "Process Containers"
+        default n
+    help
+      Enable ability to start a containerized nanoservices
+
+if BR2_PACKAGE_WPEFRAMEWORK_PROCESSCONTAINERS
+
+choice BR2_PACKAGE_WPEFRAMEWORK_PROCESSCONTAINERS_BE
+    prompt "Containers backend"
+    default BR2_PACKAGE_WPEFRAMEWORK_PROCESSCONTAINERS_BE_LXC
+    help
+        Select which container framework to use as a backend
+
+config BR2_PACKAGE_WPEFRAMEWORK_PROCESSCONTAINERS_BE_LXC
+    bool "LXC"
+    select BR2_PACKAGE_LXC
+    select BR2_PACKAGE_CGROUPFS_MOUNT
+
+config BR2_PACKAGE_WPEFRAMEWORK_PROCESSCONTAINERS_BE_RUNC
+    bool "RunC"
+    select BR2_PACKAGE_RUNC
+    select BR2_PACKAGE_CGROUPFS_MOUNT
+
+config BR2_PACKAGE_WPEFRAMEWORK_PROCESSCONTAINERS_BE_CRUN
+    bool "CRun"
+    select BR2_PACKAGE_CRUN
+    select BR2_PACKAGE_CGROUPFS_MOUNT
+
+endchoice
+
+endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_PROVISIONPROXY
     bool "ProvisionProxy"
@@ -133,33 +214,31 @@ config BR2_PACKAGE_WPEFRAMEWORK_PROVISIONPROXY
     help
       Allows provisioning of modules from the cloud.
 
+config BR2_PACKAGE_WPEFRAMEWORK_SECURE_SOCKET
+    bool "SecureSocket"
+    select BR2_PACKAGE_OPENSSL
+    help
+      Adds a Secure Socket implementation (dependency OpenSSL)
+
+
 config BR2_PACKAGE_WPEFRAMEWORK_SECURITYAGENT_ACCESSOR
     bool "SecurityAgent"
     help
       Allows external access to the Security Agent, through a C interface.
 
-
-menuconfig BR2_PACKAGE_WPEFRAMEWORK_BROADCAST
-    bool "Broadcast"
-        default n
+config BR2_PACKAGE_WPEFRAMEWORK_VIRTUALINPUT
+    bool "VirtualInput"
     help
-      Abstraction on QAM tuner and PSI/SI parser functionality.
+      If the dynamic uinput system can not be used for security reasons, this
+      allows for relaying keys to plugins
 
-if BR2_PACKAGE_WPEFRAMEWORK_BROADCAST
-config BR2_PACKAGE_WPEFRAMEWORK_BROADCAST_SI_PARSING
-    bool "SI Parsing"
-        default n
-    help
-      Enable functionality to automatically parse SI information on the
-          tuned streams.
-endif
 endmenu
 
 menu "Plugins"
 source "package/wpe/wpeframework-plugins/Config.in"
 source "package/wpe/wpeframework-amazon/Config.in"
+source "package/wpe/wpeframework-avs/Config.in"
 source "package/wpe/wpeframework-avnclient/Config.in"
-source "package/wpe/wpeframework-dsgccclient/Config.in"
 source "package/wpe/wpeframework-launcher/Config.in"
 source "package/wpe/wpeframework-netflix/Config.in"
 source "package/wpe/wpeframework-playgiga/Config.in"

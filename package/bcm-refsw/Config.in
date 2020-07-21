@@ -68,6 +68,9 @@ choice
 
     config BR2_PACKAGE_BCM_REFSW_19_1
         bool "bcm-refsw 19.1"
+
+    config BR2_PACKAGE_BCM_REFSW_19_2
+        bool "bcm-refsw 19.2"
 endchoice
 
 if BR2_PACKAGE_BCM_REFSW_CUSTOM_VERSION
@@ -110,6 +113,10 @@ choice
 
 	config BR2_PACKAGE_BCM_REFSW_PLATFORM_7250
 		bool "BCM 7250"
+		depends on BR2_arm
+
+	config BR2_PACKAGE_BCM_REFSW_PLATFORM_7268_B0
+		bool "BCM 7268(B0) / BCM 7267(B0)"
 		depends on BR2_arm
 
 	config BR2_PACKAGE_BCM_REFSW_PLATFORM_72604
@@ -170,6 +177,7 @@ config BR2_PACKAGE_BCM_REFSW_SAGE
 	depends on BR2_PACKAGE_BCM_REFSW
 	depends on !BR2_PACKAGE_BCM_REFSW_13_1 && !BR2_PACKAGE_BCM_REFSW_13_4 && !BR2_PACKAGE_BCM_REFSW_15_2 && !BR2_PACKAGE_BCM_REFSW_16_1
         select BR2_PACKAGE_SAGE_FIRMWARE
+        select BR2_PACKAGE_HAS_NEXUS_SAGE
 	help
 	  Add SAGE support in Nexus.
 
@@ -183,16 +191,30 @@ config BR2_PACKAGE_BCM_REFSW_SAGE_PATH
 config BR2_PACKAGE_BCM_REFSW_PAK_PATH
         string "PAK Path"
         default "/usr/bin/"
-        depends on BR2_PACKAGE_BCM_REFSW_18_2
+        depends on BR2_PACKAGE_BCM_REFSW_18_2 || BR2_PACKAGE_BCM_REFSW_19_1 || BR2_PACKAGE_BCM_REFSW_19_2
 	help
 	  PAK binaries path
 
 config BR2_PACKAGE_BCM_REFSW_DRM_PATH
         string "DRM Path"
         default "/usr/bin/"
-        depends on BR2_PACKAGE_BCM_REFSW_18_2
+        depends on BR2_PACKAGE_BCM_REFSW_18_2 || BR2_PACKAGE_BCM_REFSW_19_1 || BR2_PACKAGE_BCM_REFSW_19_2
 	help
 	  DRM binaries path
+
+config BR2_PACKAGE_BCM_REFSW_HDCP1XBIN_PATH
+        string "HDCP 1.x bin"
+        default ""
+        depends on BR2_PACKAGE_BCM_REFSW_18_2 || BR2_PACKAGE_BCM_REFSW_19_1 || BR2_PACKAGE_BCM_REFSW_19_2
+	help
+	  A file locator for the HDCP1.X key
+
+config BR2_PACKAGE_BCM_REFSW_HDCP2XBIN_PATH
+        string "HDCP 2.x bin"
+        default ""
+        depends on BR2_PACKAGE_BCM_REFSW_18_2 || BR2_PACKAGE_BCM_REFSW_19_1 || BR2_PACKAGE_BCM_REFSW_19_2
+	help
+	  A file locator for the HDCP2.X key
 
 config BR2_PACKAGE_BCM_REFSW_SAGE_MANUFACTURING
         bool "SAGE Manufacturing"
@@ -214,20 +236,6 @@ config BR2_PACKAGE_BCM_REFSW_SAGE_BSECBUF
         depends on BR2_PACKAGE_BCM_REFSW_SAGE
         help
           Sage/SVP secure library for multiprocess environment
-
-config BR2_PACKAGE_BCM_REFSW_SAGE_PLAYREADY_30
-        bool "Playready 3.0 SVP"
-        default n
-        depends on BR2_PACKAGE_BCM_REFSW_SAGE
-        help
-          Playready 3.0 SVP
-
-config BR2_PACKAGE_BCM_REFSW_SAGE_PLAYREADY_30_EXAMPLE
-        bool "Playready 3.0 SVP example"
-        default n
-        depends on BR2_PACKAGE_BCM_REFSW_SAGE
-        help
-          Playready 3.0 SVP example
 
 config BR2_PACKAGE_PROVIDES_NEXUS
 	default "bcm-refsw"

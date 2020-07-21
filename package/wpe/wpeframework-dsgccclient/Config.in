@@ -1,4 +1,0 @@
-config BR2_PACKAGE_WPEFRAMEWORK_DSGCC_CLIENT
-    bool "DsgccClient"
-    help
-       WPE Platform Dsgcc Client plugin

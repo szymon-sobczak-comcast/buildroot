@@ -39,7 +39,7 @@ menuconfig BR2_PACKAGE_WPEFRAMEWORK_CDMI
      A CDM server plugin to interact with CDMi plugins.
 
 if BR2_PACKAGE_WPEFRAMEWORK_CDMI
-config BR2_PACKAGE_WPEFRAMEWORK_CDMI_USER
+    config BR2_PACKAGE_WPEFRAMEWORK_CDMI_USER
     string "user"
     default ""
     help
@@ -60,6 +60,7 @@ menuconfig BR2_PACKAGE_WPEFRAMEWORK_COBALT
     bool "Cobalt"
     select BR2_PACKAGE_COBALT
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_WPEFRAMEWORK_HAS_YOUTUBE
     help
         WPE Platform Cobalt plugin
 
@@ -285,6 +286,46 @@ if BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER
 config BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_NAME
     string "DIALServer name"
 
+if BR2_PACKAGE_WPEFRAMEWORK_HAS_YOUTUBE
+choice BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_YOUTUBE_MODE
+    prompt "YouTube mode"
+    default BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_YOUTUBE_MODE_PASSIVE
+    help
+      The DIALServer mode for the YouTube plugin
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_YOUTUBE_MODE_PASSIVE
+        bool "passive"
+    config BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_YOUTUBE_MODE_ACTIVE
+        bool "active"
+endchoice
+
+if BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_YOUTUBE_MODE_ACTIVE
+config BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_YOUTUBE_CALLSIGN
+    string "YouTube callsign"
+    default "Cobalt"
+endif
+endif
+
+if BR2_PACKAGE_WPEFRAMEWORK_NETFLIX
+choice BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_NETFLIX_MODE
+    prompt "Netflix mode"
+    default BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_NETFLIX_MODE_PASSIVE
+    help
+      The DIALServer mode for the Netflix plugin
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_NETFLIX_MODE_PASSIVE
+        bool "passive"
+    config BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_NETFLIX_MODE_ACTIVE
+        bool "active"
+endchoice
+
+if BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_NETFLIX_MODE_ACTIVE
+config BR2_PACKAGE_WPEFRAMEWORK_DIALSERVER_NETFLIX_CALLSIGN
+    string "Netflix callsign"
+    default "Netflix"
+endif
+endif
+
 endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_DICTIONARY
@@ -332,7 +373,100 @@ config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PAIRING_CALLSIGN
         help
           What is the name of the key producer tha you want to pair
 endif
+
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_REPORTING_IO
+    bool "reporting button"
+        default n
+        help
+          an input pin that can report pressed in defined intervals
+
+if BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_REPORTING_IO
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_REPORTING_PIN
+    string "pin"
+        default "7"
+        help
+          To which pin needs the handler to be associated.
 endif
+
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN1_IO
+    bool "pin1 to control"
+        default y
+        help
+          I/O pin details to be configured
+
+if BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN1_IO
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN1_ID
+    string "pin"
+        default "17"
+        help
+          Id of the pin
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN1_MODE
+    string "mode"
+        default "Output"
+        help
+           Mode of the pin
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN1_STATE
+    string "activelow"
+        default "false"
+        help
+            logic state of the pin
+endif
+
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN2_IO
+    bool "pin2 to control"
+        default y
+        help
+          I/O pin details to be configured
+
+if BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN2_IO
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN2_ID
+    string "pin"
+        default "169"
+        help
+          Id of the pin
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN2_MODE
+    string "mode"
+        default "Output"
+        help
+           Mode of the pin
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN2_STATE
+    string "activelow"
+        default "true"
+        help
+            logic state of the pin
+endif
+
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN3_IO
+    bool "pin3 to control"
+        default y
+        help
+          I/O pin details to be configured
+
+if BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN3_IO
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN3_ID
+    string "pin"
+        default "172"
+        help
+          Id of the pin
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN3_MODE
+    string "mode"
+        default "Output"
+        help
+           Mode of the pin
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN3_STATE
+    string "activelow"
+        default "true"
+        help
+            logic state of the pin
+endif
+endif
+
+config BR2_PACKAGE_WPEFRAMEWORK_INPUTSWITCH
+    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    bool "InputSwitch"
+    default n
+    help
+      InputSwitch Plugin.
 
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_LOCATIONSYNC
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
@@ -374,6 +508,11 @@ config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_YOUTUBE
     string "youtube-limit"
     default "614400"
 
+config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_COBALT
+    depends on BR2_PACKAGE_WPEFRAMEWORK_COBALT
+    string "cobalt-limit"
+    default "614400"
+
 config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_AMAZON
     depends on BR2_PACKAGE_WPEFRAMEWORK_AMAZON
     string "amazon-limit"
@@ -396,12 +535,22 @@ config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_NETFLIX
 
 endif
 
-config BR2_PACKAGE_WPEFRAMEWORK_NETWORKCONTROL
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_NETWORKCONTROL
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
     bool "NetworkControl"
     help
       Control the IP adressing of the interfaces in the system from
       WPEFramework (static IPv4/IPv6 or dhcp IPv4)
+
+if BR2_PACKAGE_WPEFRAMEWORK_NETWORKCONTROL
+
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_NETWORKCONTROL_INTERFACES
+    string "Network Interfaces Details"
+    default "eth0:Dynamic:::;wlan0:Dynamic:::;"
+    help
+      Set details of network interfaces in the format "Name:Mode:Address:Netmask:Gateway".
+      Example "wlan0:Manual:192.168.55.1:24:192.168.55.1;eth0:Manual:192.168.1.158:24:192.168.1.1;eth1:Dynamic:::;"
+endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_PACKAGER
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
@@ -440,6 +589,16 @@ config BR2_PACKAGE_WPEFRAMEWORK_POWER_GPIOTYPE
     string "gpiotype"
     default ""
 
+endif
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGINPROCESSCONTAINERS
+    bool "ProcessContainers"
+    default n
+
+if BR2_PACKAGE_WPEFRAMEWORK_PLUGINPROCESSCONTAINERS
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGINPROCESSCONTAINERS_AUTOSTART
+    bool "autostart"
+    default y
 endif
 
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_PROCESSMONITOR
@@ -563,6 +722,13 @@ config BR2_PACKAGE_WPEFRAMEWORK_STREAMER_AAMP_USE_WESTEROS_SINK
       Denotes if Westeros sink shall be used.
 
 endif # BR2_PACKAGE_WPEFRAMEWORK_STREAMER_AAMP
+
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_STREAMER_CENC
+    select BR2_PACKAGE_GST1_CENCDECRYPT
+    bool "CENC"
+    default n
+    help
+      Gstreamer based player for playback of clear/encrypted content.
 
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_STREAMER_BROADCAST
     bool "Broadcast"
@@ -691,12 +857,19 @@ config BR2_PACKAGE_WPEFRAMEWORK_SYSTEMCOMMANDS
     bool "SystemCommands"
     help
       SystemCommands Plugin
-      
+
 config BR2_PACKAGE_WPEFRAMEWORK_FILETRANSFER
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
     bool "FileTransfer"
     help
       FileTransfer Plugin
+
+config BR2_PACKAGE_WPEFRAMEWORK_FIRMWARECONTROL
+    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_MFR_LIBRARY
+    bool "FirmwareControl"
+    help
+      FirmwareControl Plugin
 
 config BR2_PACKAGE_WPEFRAMEWORK_SECURITYAGENT
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
@@ -780,14 +953,6 @@ menuconfig BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_INJECTEDBUNDLE_INTERFACES
     bool "injectedbundle"
     default y
 
-if BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_INJECTEDBUNDLE_INTERFACES
-
-config BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_AMAZON_HAWAII
-    bool "amazon hawaii interface"
-    default n
-
-endif
-
 config BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_AUTOSTART
     bool "autostart"
     default y
@@ -808,6 +973,10 @@ config BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_MEMORYPRESSURE
     string "memory-pressure"
     default "databaseprocess:50m,networkprocess:100m,webprocess:300m,rpcprocess:50m"
 
+config BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_MSEBUFFERS
+    string "mse-buffers"
+    default "audio:2m,video:15m,text:1m"
+    
 config BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_MEDIADISKCACHE
     bool "media-disk-cache"
     default n
@@ -872,6 +1041,7 @@ endchoice
 
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_YOUTUBE
     depends on BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER
+    select BR2_PACKAGE_WPEFRAMEWORK_HAS_YOUTUBE
     bool "youtube"
     help
       A wrapper around the youtube app to start it as a
@@ -888,6 +1058,7 @@ endif
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_AMAZON_TAB
     depends on BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER
     bool "amazon"
+    select BR2_PACKAGE_LIBAMAZON
     help
       A wrapper around the amazon app to start it as a
       wpeframework plugin.
@@ -901,6 +1072,46 @@ config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_USERAGENT
 config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_STARTURL
     string "start-url"
     default "about:blank"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_CA_DIRECTORY_PATH
+    string "CA certificates Directory path"
+    default "/etc/ssl/certs/"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_CA_BUNDLE_FILENAME
+    string "CA certificates bundle filename"
+    default "ca-certificates.crt"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_MANUFACTURER
+    string "Manufacturer"
+    default "Broadcom"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_MODELNAME
+    string "Modelname"
+    default "2952"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_DEVICELANGUAGE
+    string "Device language"
+    default "en-US"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_DEVICETYPEID
+    string "DTID"
+    default "A71I8788P1ZV8"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_FIRMWARE_VERSION
+    string "Firmware version"
+    default "1.0"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_CHIPSET_NAME
+    string "Chipset name"
+    default "BCM2837"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_ETHERNET_DEVICE
+    string "Ethernet device to use for device id"
+    default "eth0"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_FRAGMENT_CACHE_SIZE
+    string "Fragment Cache size (MB)"
+    default "100"
 
 config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_TRANSPARENT
     bool "transparent"
@@ -920,6 +1131,13 @@ config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_GROUP
         run Amazon as this group, leave empty to use the same as 
         WPEframework
 
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_MEMORYPROFILE
+    string "memory-profile"
+    default "128m"
+
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_MEMORYPRESSURE
+    string "memory-pressure"
+    default "databaseprocess:50m,networkprocess:100m,webprocess:300m,rpcprocess:50m"
 
 endif
 
@@ -1099,5 +1317,8 @@ config BR2_PACKAGE_WPEFRAMEWORK_WIFICONTROL
     bool "WifiControl"
     help
       WifiControl Plugin for Wifi access, linked to Network Control
+
+config BR2_PACKAGE_WPEFRAMEWORK_HAS_YOUTUBE
+    bool
 
 comment "External plugins below"
