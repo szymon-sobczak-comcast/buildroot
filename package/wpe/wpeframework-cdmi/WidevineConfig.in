@@ -42,10 +42,3 @@ config BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_KEYBOX
     help
         Widevine keybox used for signing license acquistion requests, \
         during software based decryption. 
-
-config BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_NEW_CENC_INTERFACE
-    bool "New CENC interface"
-    depends on BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_MODULE
-    default n
-    help
-        Use the new CENC interfaces.
