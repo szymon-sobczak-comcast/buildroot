@@ -8,6 +8,8 @@ EXPLORA_SDK_SITE = git@github.com:Metrological/SDK_Explora.git
 EXPLORA_SDK_SITE_METHOD = git
 EXPLORA_SDK_INSTALL_STAGING = YES
 
+EXPLORA_SDK_DEPENDENCIES += openssl
+
 define EXPLORA_SDK_INSTALL_STAGING_CMDS
 	$(INSTALL) -d $(STAGING_DIR)/usr/lib
 	$(INSTALL) -D -m 0644 $(@D)/libs/* $(STAGING_DIR)/usr/lib/
@@ -37,10 +39,10 @@ define EXPLORA_SDK_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0644 $(STAGING_DIR)/usr/lib/libv3ddriver.so $(TARGET_DIR)/usr/lib/
 	$(INSTALL) -D -m 0644 $(STAGING_DIR)/usr/lib/libnxclient_local.so $(TARGET_DIR)/usr/lib/
 	$(INSTALL) -D -m 0644 $(STAGING_DIR)/usr/lib/libnxclient.so $(TARGET_DIR)/usr/lib/
-	rm $(TARGET_DIR)/usr/lib/libEGL.so
-	rm $(TARGET_DIR)/usr/lib/libGLESv2.so 
+	rm -f $(TARGET_DIR)/usr/lib/libEGL.so
+	rm -f $(TARGET_DIR)/usr/lib/libGLESv2.so
 	ln -s /usr/lib/libv3ddriver.so $(TARGET_DIR)/usr/lib/libEGL.so
-	ln -s /usr/lib/libv3ddriver.so $(TARGET_DIR)/usr/lib/libGLESv2.so 
+	ln -s /usr/lib/libv3ddriver.so $(TARGET_DIR)/usr/lib/libGLESv2.so
 endef
 
 $(eval $(generic-package))
