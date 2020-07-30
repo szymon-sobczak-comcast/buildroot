@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-NETFLIX52_VERSION = 0d8f2aeb97e8bf49508e2a9430431322de77a2ec
+NETFLIX52_VERSION = 7397e1c80a1cbd9c61192b6e4e20d8d6808270c5
 NETFLIX52_SITE = git@github.com:Metrological/netflix.git
 NETFLIX52_SITE_METHOD = git
 NETFLIX52_LICENSE = PROPRIETARY
@@ -33,7 +33,8 @@ NETFLIX52_CONF_OPTS = \
 	-DBUILD_COMPILE_RESOURCES=OFF \
 	-DBUILD_SHARED_LIBS=OFF \
 	-DNRDP_HAS_IPV6=ON \
-	-DGIBBON_GRAPHICS_GL_WSYS=egl
+	-DGIBBON_GRAPHICS_GL_WSYS=egl \
+	-DGIBBON_FONTS="-all"
 
 NETFLIX52_CONF_ENV += \
 	NODE="$(HOST_DIR)/usr/bin/node" \
