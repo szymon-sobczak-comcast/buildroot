@@ -130,6 +130,7 @@ libWPEFrameworkWebShell.so
 libWPEFrameworkOCDM.so
 libWPEFrameworkDefinitions.so
 libWPEFrameworkCompositor.so
+libWPEFrameworkNetworkControl.so
 libWPEFrameworkJSONRPCPlugin.so
 libwpe-0.2.so
 libWPEBackend-rdk.so
