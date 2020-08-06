@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WPEWEBKIT_VERSION = 9e93eb928b44e1a6c2b06414525fa6f4de03c1b9
+WPEWEBKIT_VERSION = 0780f420c595dbe8941fcf41b760bcf4127a9aeb
 WPEWEBKIT_SITE = $(call github,WebPlatformForEmbedded,WPEWebKit,$(WPEWEBKIT_VERSION))
 WPEWEBKIT_INSTALL_STAGING = YES
 WPEWEBKIT_LICENSE = LGPL-2.1+, BSD-2-Clause
