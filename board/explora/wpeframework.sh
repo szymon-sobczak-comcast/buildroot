@@ -9,6 +9,10 @@ export GST_PLUGIN_SYSTEM_PATH=$SOURCE/usr/lib/gstreamer-1.0
 export XKB_CONFIG_ROOT=$SOURCE/usr/share/X11/xkb
 export V3D_DRM_DISABLE=1
 
+export NF_GST_AUDIO_PCM_TRANSPORT_UNIT_OVERRIDE=5
+export NF_GST_AUDIO_PCM_LATENCY_OVERRIDE=170
+export GST_DEBUG=1
+
 #FIXME: Temporary solution for TCP receive buffer size
 sysctl net.core.rmem_max=262144 
 
