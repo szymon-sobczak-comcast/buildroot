@@ -1,0 +1,88 @@
+config BR2_PACKAGE_BENCHFLIX
+    bool benchflix
+    default n
+    help
+        Environment for playback related stress tests.
+
+if BR2_PACKAGE_BENCHFLIX
+
+menu "Extra options"
+
+config BR2_PACKAGE_BENCHFLIX_PREBUILT_OPENH264
+    bool "Use pre-built libopenh264"
+    default y
+
+config BR2_PACKAGE_BENCHFLIX_PREBUILT_FDK_AAC
+    bool "Use pre-built fdk-aac"
+    default y
+
+config BR2_PACKAGE_BENCHFLIX_SCENER
+    bool "Scener"
+    default n
+
+config BR2_PACKAGE_BENCHFLIX_CONFLIX
+    bool "Conflix"
+    default n
+
+choice
+	bool "Log level"
+	default BR2_PACKAGE_BENCHFLIX_LOG_LEVEL_1
+	help
+	  Choose benchflix log level
+	  
+config BR2_PACKAGE_BENCHFLIX_LOG_LEVEL_1
+	bool "1 - Error"
+
+config BR2_PACKAGE_BENCHFLIX_LOG_LEVEL_2
+	bool "2 - Error & Info"
+
+config BR2_PACKAGE_BENCHFLIX_LOG_LEVEL_3
+	bool "3 - Error, Info & Debug"
+
+config BR2_PACKAGE_BENCHFLIX_LOG_LEVEL_4
+	bool "4 - Error, Info, Debug & Warn"
+
+endchoice
+
+config BR2_PACKAGE_BENCHFLIX_GL_DEBUG
+    bool "GL Debug"
+    default n
+
+choice
+	bool "DPI"
+	default BR2_PACKAGE_BENCHFLIX_DPI_GSTREAMER
+	help
+	  Choose benchflix log level
+	  
+config BR2_PACKAGE_BENCHFLIX_DPI_DESKTOP
+	bool "Desktop"
+
+config BR2_PACKAGE_BENCHFLIX_DPI_SAMPLE1
+	bool "Sample1"
+
+config BR2_PACKAGE_BENCHFLIX_DPI_SAMPLE2
+	bool "Sample2"
+
+config BR2_PACKAGE_BENCHFLIX_DPI_GSTREAMER
+	bool "Gstreamer"
+
+endchoice
+
+if BR2_PACKAGE_BENCHFLIX_DPI_GSTREAMER
+
+choice
+    bool "Gstreamer platform"
+    default BR2_PACKAGE_BENCHFLIX_DPI_GSTREAMER_PLATFORM_GENERIC
+
+    config BR2_PACKAGE_BENCHFLIX_DPI_GSTREAMER_PLATFORM_GENERIC
+        bool "generic"
+
+    config BR2_PACKAGE_BENCHFLIX_DPI_GSTREAMER_PLATFORM_BCM
+        bool "broadcom"
+
+endchoice
+endif
+
+endmenu
+
+endif

@@ -1,3 +1,4 @@
+benchflix
 WPENetworkProcess
 WPEWebProcess
 WPEDatabaseProcess
@@ -58,6 +59,7 @@ libgsttag-1.0.so
 libgstriff-1.0.so
 libgstrtsp-1.0.so
 libgstrtp-1.0.so
+libgstsdp-1.0.so
 libgsturidownloader-1.0.so
 libgstvideo-1.0.so
 libharfbuzz-icu.so
@@ -68,6 +70,7 @@ libicui18n.so
 libicuuc.so
 libinput.so
 libjpeg.so
+liblzham.so
 libmpg123.so
 libmng.so
 libmtdev.so
