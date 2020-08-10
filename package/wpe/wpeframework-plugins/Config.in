@@ -596,6 +596,13 @@ config BR2_PACKAGE_WPEFRAMEWORK_PLAYERINFO
     help
       PlayerInfo Plugin provide the information about the platform codec supports
 
+if BR2_PACKAGE_WPEFRAMEWORK_PLAYERINFO
+config BR2_PACKAGE_WPEFRAMEWORK_PLAYERINFO_DOLBY_SUPPORT
+    bool "Dolby support"
+    help
+        The platform support Dolby
+
+endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_POWER
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
