@@ -1,0 +1,40 @@
+From c3a0f073e97fed1589c8914705cdc32edce7f871 Mon Sep 17 00:00:00 2001
+From: Artur Gebicz <a.gebicz@metrological.com>
+Date: Tue, 25 Aug 2020 15:00:15 +0200
+Subject: [PATCH] Fix missing semicolons after upgrading icu version
+
+---
+ Source/WebCore/dom/Document.cpp | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/Source/WebCore/dom/Document.cpp b/Source/WebCore/dom/Document.cpp
+index 28451496a578..d44475297428 100644
+--- a/Source/WebCore/dom/Document.cpp
++++ b/Source/WebCore/dom/Document.cpp
+@@ -4584,12 +4584,12 @@ static bool isValidNameNonASCII(const UChar* characters, unsigned length)
+     unsigned i = 0;
+ 
+     UChar32 c;
+-    U16_NEXT(characters, i, length, c)
++    U16_NEXT(characters, i, length, c);
+     if (!isValidNameStart(c))
+         return false;
+ 
+     while (i < length) {
+-        U16_NEXT(characters, i, length, c)
++        U16_NEXT(characters, i, length, c);
+         if (!isValidNamePart(c))
+             return false;
+     }
+@@ -4649,7 +4649,7 @@ ExceptionOr<std::pair<AtomicString, AtomicString>> Document::parseQualifiedName(
+ 
+     for (unsigned i = 0; i < length; ) {
+         UChar32 c;
+-        U16_NEXT(qualifiedName, i, length, c)
++        U16_NEXT(qualifiedName, i, length, c);
+         if (c == ':') {
+             if (sawColon)
+                 return Exception { InvalidCharacterError };
+-- 
+2.17.1
+
