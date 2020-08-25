@@ -4,11 +4,11 @@
 #
 ################################################################################
 
-NETFLIX52_VERSION = 68a40bfe0baf07971fd2beefb3a59442437eab0b
+NETFLIX52_VERSION = 02882553543c9ed716da4acaa6e38c2ea1956e5f
 NETFLIX52_SITE = git@github.com:Metrological/netflix.git
 NETFLIX52_SITE_METHOD = git
 NETFLIX52_LICENSE = PROPRIETARY
-NETFLIX52_DEPENDENCIES = freetype icu openjpeg lcms2 jpeg libpng libmng webp harfbuzz expat openssl c-ares nghttp2 libcurl graphite2 tremor
+NETFLIX52_DEPENDENCIES = freetype icu openjpeg lcms2 jpeg libpng libmng webp harfbuzz expat openssl c-ares nghttp2 libcurl graphite2 tremor libopenh264 fdk-aac
 NETFLIX52_INSTALL_TARGET = YES
 NETFLIX52_SUBDIR = netflix
 NETFLIX52_RESOURCE_LOC = $(call qstrip,${BR2_PACKAGE_NETFLIX52_RESOURCE_LOCATION})
@@ -24,7 +24,7 @@ NETFLIX52_CONF_OPTS = \
 	-DCMAKE_INSTALL_PREFIX=$(@D)/release \
 	-DNRDP_SYSTEM_PROCESSOR=$(BR2_ARCH) \
 	-DDPI_REFERENCE_DRM_NULL=TRUE \
-	-DNRDP_HAS_SOFTWAREPLAYER=OFF \
+	-DNRDP_HAS_SOFTWAREPLAYER=ON \
 	-DGIBBON_SOFTWARECAPTURE=OFF \
 	-DGIBBON_GRAPHICS_GL_API="gles2" \
 	-DBUILD_DPI_DIRECTORY=$(@D)/partner/dpi \
@@ -33,7 +33,8 @@ NETFLIX52_CONF_OPTS = \
 	-DBUILD_COMPILE_RESOURCES=OFF \
 	-DBUILD_SHARED_LIBS=OFF \
 	-DNRDP_HAS_IPV6=ON \
-	-DGIBBON_GRAPHICS_GL_WSYS=egl
+	-DGIBBON_GRAPHICS_GL_WSYS=egl \
+	-DGIBBON_FONTS="-all"
 
 NETFLIX52_CONF_ENV += \
 	NODE="$(HOST_DIR)/usr/bin/node" \
