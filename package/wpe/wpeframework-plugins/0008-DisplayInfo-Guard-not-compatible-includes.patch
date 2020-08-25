@@ -1,0 +1,27 @@
+From 12414e129999ce5f84f66815d7dbfcfb350120af Mon Sep 17 00:00:00 2001
+From: Artur Gebicz <a.gebicz@metrological.com>
+Date: Tue, 25 Aug 2020 15:52:12 +0200
+Subject: [PATCH] [DisplayInfo] Guard not compatible includes
+
+---
+ DisplayInfo/Nexus/PlatformImplementation.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/DisplayInfo/Nexus/PlatformImplementation.cpp b/DisplayInfo/Nexus/PlatformImplementation.cpp
+index 6f4b825..e56886e 100644
+--- a/DisplayInfo/Nexus/PlatformImplementation.cpp
++++ b/DisplayInfo/Nexus/PlatformImplementation.cpp
+@@ -25,7 +25,10 @@
+ #include <nexus_platform.h>
+ #include <nxclient.h>
+ #include <nexus_core_utils.h>
++
++#if ((NEXUS_PLATFORM_VERSION_MAJOR >= 19) && (NEXUS_PLATFORM_VERSION_MINOR >= 2))
+ #include "nexus_hdmi_output_dba.h"
++#endif
+ 
+ #if ( (NEXUS_PLATFORM_VERSION_MAJOR > 18) ||  \
+       ( (NEXUS_PLATFORM_VERSION_MAJOR == 18) && (NEXUS_PLATFORM_VERSION_MINOR >= 2) ) \
+-- 
+2.17.1
+
