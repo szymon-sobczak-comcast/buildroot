@@ -132,6 +132,7 @@ libWPEFrameworkDefinitions.so
 libWPEFrameworkCompositor.so
 libWPEFrameworkNetworkControl.so
 libWPEFrameworkJSONRPCPlugin.so
+libWPEFrameworkPlayerInfo.so
 libwpe-0.2.so
 libWPEBackend-rdk.so
 libWPEBackend-default.so
