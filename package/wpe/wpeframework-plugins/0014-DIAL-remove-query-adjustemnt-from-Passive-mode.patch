@@ -1,15 +1,15 @@
-From 41783a6a443f757669194f07aa3c3d30107d2c42 Mon Sep 17 00:00:00 2001
+From 256ad90a433103052c97218f9182fbbf1eb01306 Mon Sep 17 00:00:00 2001
 From: Damian Danylko <d.danylko@metrological.com>
 Date: Mon, 7 Sep 2020 19:02:25 +0200
 Subject: [PATCH] Remove query adjustemnt from Passive mode, keep it only for
  Active mode
 
 ---
- DIALServer/Netflix.cpp | 19 ++++++++++---------
- 1 file changed, 10 insertions(+), 9 deletions(-)
+ DIALServer/Netflix.cpp | 21 +++++++++++----------
+ 1 file changed, 11 insertions(+), 10 deletions(-)
 
 diff --git a/DIALServer/Netflix.cpp b/DIALServer/Netflix.cpp
-index 5e7ea3b7..fbf5a63c 100644
+index 5e7ea3b7..bd7d7453 100644
 --- a/DIALServer/Netflix.cpp
 +++ b/DIALServer/Netflix.cpp
 @@ -30,15 +30,7 @@ namespace DIALHandlers {
@@ -29,9 +29,12 @@ index 5e7ea3b7..fbf5a63c 100644
              if (payload.empty() == false) {
                  // Netflix expects the payload as urlencoded option "dial"
                  const uint16_t maxEncodeSize = static_cast<uint16_t>(payload.length() * 3 * sizeof(TCHAR));
-@@ -103,6 +95,15 @@ namespace DIALHandlers {
+@@ -101,8 +93,17 @@ namespace DIALHandlers {
+         public:
+             uint32_t Start(const string& params, const string& payload) override
              {
-                 const string query = Query(params, payload);
+-                const string query = Query(params, payload);
++                string query = Query(params, payload);
  
 +#ifdef NETFLIX_VERSION_5_1
 +                // Set proper launch type, i.e. launched by DIAL
@@ -44,3 +47,4 @@ index 5e7ea3b7..fbf5a63c 100644
 +#endif
                  // Set custom query paramters
                  Core::SystemInfo::SetEnvironment(_T("ONE_TIME_QUERY_STRING_OVERRIDE"), query.c_str());
+
