@@ -6,7 +6,7 @@
 
 ifneq ($(filter y,$(BR2_PACKAGE_GST1_BCM_UNIFIED_VERSION)),)
 GST1_BCM_SITE = git@github.com:Metrological/bcm-gstreamer.git
-GST1_BCM_VERSION = 93ff678d2cd6ca07bac943bcf2d8b7ac7ac33825
+GST1_BCM_VERSION = afc72faf7c4c9aa4628939b9a69b14964d1c2acb
 else
 GST1_BCM_SITE = git@github.com:Metrological/gstreamer-plugins-soc.git
 
