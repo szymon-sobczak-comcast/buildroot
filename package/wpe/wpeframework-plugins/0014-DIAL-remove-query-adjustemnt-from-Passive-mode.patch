@@ -1,0 +1,46 @@
+From 41783a6a443f757669194f07aa3c3d30107d2c42 Mon Sep 17 00:00:00 2001
+From: Damian Danylko <d.danylko@metrological.com>
+Date: Mon, 7 Sep 2020 19:02:25 +0200
+Subject: [PATCH] Remove query adjustemnt from Passive mode, keep it only for
+ Active mode
+
+---
+ DIALServer/Netflix.cpp | 19 ++++++++++---------
+ 1 file changed, 10 insertions(+), 9 deletions(-)
+
+diff --git a/DIALServer/Netflix.cpp b/DIALServer/Netflix.cpp
+index 5e7ea3b7..fbf5a63c 100644
+--- a/DIALServer/Netflix.cpp
++++ b/DIALServer/Netflix.cpp
+@@ -30,15 +30,7 @@ namespace DIALHandlers {
+         static string Query(const string& params, const string& payload)
+         {
+             string query = params;
+-#ifdef NETFLIX_VERSION_5_1
+-            // Set proper launch type, i.e. launched by DIAL
+-            query += _T("&source_type=12");
+-#endif
+-#ifdef NETFLIX_VERSION_5_2
+-            // Set proper launch type, i.e. launched by DIAL
+-            // FIXME: Use project specific iid for now
+-            query += _T("&iid=7637f789");
+-#endif
++
+             if (payload.empty() == false) {
+                 // Netflix expects the payload as urlencoded option "dial"
+                 const uint16_t maxEncodeSize = static_cast<uint16_t>(payload.length() * 3 * sizeof(TCHAR));
+@@ -103,6 +95,15 @@ namespace DIALHandlers {
+             {
+                 const string query = Query(params, payload);
+ 
++#ifdef NETFLIX_VERSION_5_1
++                // Set proper launch type, i.e. launched by DIAL
++                query += _T("&source_type=12");
++#endif
++#ifdef NETFLIX_VERSION_5_2
++                // Set proper launch type, i.e. launched by DIAL
++                // FIXME: Use project specific iid for now
++                query += _T("&iid=7637f789");
++#endif
+                 // Set custom query paramters
+                 Core::SystemInfo::SetEnvironment(_T("ONE_TIME_QUERY_STRING_OVERRIDE"), query.c_str());
