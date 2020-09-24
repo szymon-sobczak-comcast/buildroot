@@ -105,6 +105,14 @@ config BR2_PACKAGE_WPEFRAMEWORK_COBALT_OPERATOR_NAME
 config BR2_PACKAGE_WPEFRAMEWORK_COBALT_FRIENDLY_NAME
     string "friendlyname"
     default ""
+    
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_SCOPE
+    string "scope"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_SECRET
+    string "secret"
+    default ""
 
 endif
 
