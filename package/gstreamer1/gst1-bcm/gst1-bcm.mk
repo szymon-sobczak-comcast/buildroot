@@ -29,7 +29,7 @@ GST1_BCM_VERSION = 18.2-rdkv-20180727
 else ifeq ($(BR2_PACKAGE_BCM_REFSW_19_1),y)
 GST1_BCM_VERSION = 19.1-rdkv_20190409
 else ifneq ($(filter y,$(BR2_PACKAGE_ACN_SDK)),)
-GST1_BCM_VERSION = 18.2-rdkv-20180727
+GST1_BCM_VERSION = 17.1-5
 else ifneq ($(filter y,$(BR2_PACKAGE_HOMECAST_SDK)),)
 GST1_BCM_VERSION = 961a36dcd30c91330b8a9503e12ec3ddb30b70b6
 else ifneq ($(filter y,$(BR2_PACKAGE_VSS_SDK)),)
@@ -49,7 +49,7 @@ endif
 GST1_BCM_SITE_METHOD = git
 GST1_BCM_LICENSE = PROPRIETARY
 GST1_BCM_INSTALL_STAGING = YES
-GST1_BCM_DEPENDENCIES = gstreamer1 gst1-plugins-base libcurl
+GST1_BCM_DEPENDENCIES = gstreamer1 gst1-plugins-base
 
 ifeq ($(BR2_PACKAGE_BCM_REFSW),y)
 GST1_BCM_DEPENDENCIES += bcm-refsw
@@ -75,7 +75,7 @@ GST1_BCM_AUTORECONF = YES
 GST1_BCM_CONF_ENV += \
 	$(BCM_REFSW_MAKE_ENV) \
 	GSTREAMER_REFSW_SERVER_NXCLIENT_SUPPORT=y \
-	PKG_CONFIG_SYSROOT_DIR=$(STAGING_DIR) 
+	PKG_CONFIG_SYSROOT_DIR=$(STAGING_DIR)
 
 ifeq ($(BR2_PACKAGE_GST1_BCM_ENABLE_SVP),y)
 GST1_BCM_CONF_ENV += GST_SVP_SUPPORT=y
@@ -120,8 +120,7 @@ GST1_BCM_CONF_OPTS = \
 	--disable-tsdemux \
 	--disable-tsparse \
 	--disable-playersinkbin \
-	--disable-gfxsink \
-	--disable-streamextractor
+	--disable-gfxsink
 
 ifeq ($(BR2_PACKAGE_GST1_BCM_AUDFILTER),y)
 GST1_BCM_CONF_OPTS += --enable-audfilter
@@ -171,9 +170,13 @@ GST1_BCM_PKGDIR = "$(TOP_DIR)/package/gstreamer1/gst1-bcm"
 
 define GST1_BCM_INSTALL_SVP_DEV
     if [ -d "${@D}/reference" ] ; then \
-    	$(INSTALL) -D -m 0644 ${@D}/reference/svpmeta/src/gst_brcm_svp_meta.h $(STAGING_DIR)/usr/include ; \
+       if [ -f "${@D}/reference/svpmeta/src/gst_brcm_svp_meta.h" ] ; then \
+    	   $(INSTALL) -D -m 0644 ${@D}/reference/svpmeta/src/gst_brcm_svp_meta.h $(STAGING_DIR)/usr/include ; \
+   	 fi \
     else \
-    	$(INSTALL) -D -m 0644 ${@D}/svpmeta/src/gst_brcm_svp_meta.h $(STAGING_DIR)/usr/include ; \
+       if [ -f "${@D}/svpmeta/src/gst_brcm_svp_meta.h" ] ; then \
+    	   $(INSTALL) -D -m 0644 ${@D}/svpmeta/src/gst_brcm_svp_meta.h $(STAGING_DIR)/usr/include ; \
+   	 fi \
     fi 
 endef
 
