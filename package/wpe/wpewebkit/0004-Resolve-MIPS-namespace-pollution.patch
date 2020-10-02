@@ -1,0 +1,25 @@
+From e65dc7a35235167c19c610c178399be828b37e0f Mon Sep 17 00:00:00 2001
+From: Sander van der Maar <sandervandermaar@gmail.com>
+Date: Fri, 2 Oct 2020 09:02:20 +0200
+Subject: [PATCH] Resolve MIPS namespace pollution
+
+---
+ Source/WebCore/platform/audio/HRTFPanner.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Source/WebCore/platform/audio/HRTFPanner.cpp b/Source/WebCore/platform/audio/HRTFPanner.cpp
+index cd304c6783c1..3ab37ed31230 100644
+--- a/Source/WebCore/platform/audio/HRTFPanner.cpp
++++ b/Source/WebCore/platform/audio/HRTFPanner.cpp
+@@ -199,7 +199,7 @@ void HRTFPanner::pan(double desiredAzimuth, double elevation, const AudioBus* in
+     }
+ 
+     // This algorithm currently requires that we process in power-of-two size chunks at least RenderingQuantum.
+-    ASSERT(1UL << static_cast<int>(log2(framesToProcess)) == framesToProcess);
++    ASSERT(1UL << static_cast<int>(std::log2(static_cast<double>(framesToProcess))) == framesToProcess);
+     ASSERT(framesToProcess >= RenderingQuantum);
+ 
+     const unsigned framesPerSegment = RenderingQuantum;
+-- 
+2.17.1
+

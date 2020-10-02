@@ -1,0 +1,413 @@
+From f975e98c6532aecaa19f15cab66bd5d5f7a627b7 Mon Sep 17 00:00:00 2001
+From: Sander van der Maar <sandervandermaar@gmail.com>
+Date: Fri, 2 Oct 2020 09:27:20 +0200
+Subject: [PATCH] Fixes compilation with older Nexus version: - Guards
+ unsupported code with ifdefs - Initializes all pointers in SystemInfo.h -
+ Restores old version of gstreamerclient
+
+---
+ Source/CMakeLists.txt                         |   6 +
+ Source/WPEFramework/SystemInfo.h              |  14 +-
+ .../compositorclient/Nexus/Implementation.cpp |  12 +-
+ Source/gstreamerclient.old/CMakeLists.txt     |  14 ++
+ Source/gstreamerclient.old/Module.h           |  14 ++
+ .../gstreamerclient.old/Nexus/CMakeLists.txt  |  49 ++++++
+ .../Nexus/Implementation.cpp                  | 162 ++++++++++++++++++
+ Source/gstreamerclient.old/gstreamerclient.h  |  19 ++
+ 8 files changed, 282 insertions(+), 8 deletions(-)
+ create mode 100644 Source/gstreamerclient.old/CMakeLists.txt
+ create mode 100644 Source/gstreamerclient.old/Module.h
+ create mode 100644 Source/gstreamerclient.old/Nexus/CMakeLists.txt
+ create mode 100644 Source/gstreamerclient.old/Nexus/Implementation.cpp
+ create mode 100644 Source/gstreamerclient.old/gstreamerclient.h
+
+diff --git a/Source/CMakeLists.txt b/Source/CMakeLists.txt
+index 9d30d5d7..55e1923e 100644
+--- a/Source/CMakeLists.txt
++++ b/Source/CMakeLists.txt
+@@ -60,6 +60,8 @@ option(COMPOSITORCLIENT
+         "Include a graphics backend abstraction for external applications." OFF)
+ option(GSTREAMERCLIENT
+         "Include a gstreamer sink abstraction for external applications." OFF)
++option(GSTREAMERCLIENT_OLD
++        "Include old gstreamer client." OFF)
+ option(PROCESSCONTAINERS
+         "Include containerization in the build." OFF)
+ option(TEST_APPS
+@@ -183,6 +185,10 @@ if(GSTREAMERCLIENT)
+     add_subdirectory(gstreamerclient)
+ endif()
+ 
++if(GSTREAMERCLIENT_OLD)
++    add_subdirectory(gstreamerclient.old)
++endif()
++
+ if(PROCESS)
+     add_subdirectory(WPEProcess)
+ endif()
+diff --git a/Source/WPEFramework/SystemInfo.h b/Source/WPEFramework/SystemInfo.h
+index c6a93b6e..b09766eb 100644
+--- a/Source/WPEFramework/SystemInfo.h
++++ b/Source/WPEFramework/SystemInfo.h
+@@ -77,7 +77,7 @@ namespace PluginHost {
+             }
+ 
+         private:
+-            uint8_t* _identifier;
++            uint8_t* _identifier = nullptr;
+         };
+ 
+ 
+@@ -667,13 +667,13 @@ namespace PluginHost {
+     private:
+         mutable Core::CriticalSection _adminLock;
+         std::list<PluginHost::ISubSystem::INotification*> _notificationClients;
+-        Core::IDispatch* _callback;
++        Core::IDispatch* _callback = nullptr;
+         Id* _identifier;
+-        Location* _location;
+-        Internet* _internet;
+-        Security* _security;
+-        Time* _time;
+-        IProvisioning* _provisioning;
++        Location* _location = nullptr;
++        Internet* _internet = nullptr;
++        Security* _security = nullptr;
++        Time* _time = nullptr;
++        IProvisioning* _provisioning = nullptr;
+         uint32_t _flags;
+     };
+ }
+diff --git a/Source/compositorclient/Nexus/Implementation.cpp b/Source/compositorclient/Nexus/Implementation.cpp
+index 64f115b1..6b462d52 100644
+--- a/Source/compositorclient/Nexus/Implementation.cpp
++++ b/Source/compositorclient/Nexus/Implementation.cpp
+@@ -90,8 +90,13 @@ namespace Nexus {
+                 , _keyboard(nullptr)
+             {
+ 
++#if NEXUS_PLATFORM_VERSION_MAJOR <= 14
++                NXPL_NativeWindowInfo windowInfo;
++                memset(&windowInfo, 0, sizeof(windowInfo));
++#else
+                 NXPL_NativeWindowInfoEXT windowInfo;
+                 NXPL_GetDefaultNativeWindowInfoEXT(&windowInfo);
++#endif
+                 windowInfo.x = 0;
+                 windowInfo.y = 0;
+                 windowInfo.width = _width;
+@@ -118,8 +123,11 @@ namespace Nexus {
+                 windowInfo.zOrder = 100;
+ #endif
+                 windowInfo.clientID = display.NexusClientId();
++#if NEXUS_PLATFORM_VERSION_MAJOR <= 14
++                _nativeWindow = NXPL_CreateNativeWindow(&windowInfo);
++#else
+                 _nativeWindow = NXPL_CreateNativeWindowEXT(&windowInfo);
+-
++#endif
+                _parent.Register(this);
+             }
+ 
+@@ -209,7 +217,9 @@ namespace Nexus {
+            NEXUS_Error rc = NxClient_Join(&joinSettings);
+            BDBG_ASSERT(!rc);
+ 
++#if NEXUS_PLATFORM_VERSION_MAJOR > 14
+            NxClient_UnregisterAcknowledgeStandby(NxClient_RegisterAcknowledgeStandby());
++#endif
+ #else
+            NEXUS_Error rc = NEXUS_Platform_Join();
+            BDBG_ASSERT(!rc);
+diff --git a/Source/gstreamerclient.old/CMakeLists.txt b/Source/gstreamerclient.old/CMakeLists.txt
+new file mode 100644
+index 00000000..2670aadd
+--- /dev/null
++++ b/Source/gstreamerclient.old/CMakeLists.txt
+@@ -0,0 +1,14 @@
++set(TARGET gstreamerclient)
++
++option(GSTREAMER_CLIENT_IMPLEMENTATION "Defines which implementation is used." "None")
++
++message("Setup ${TARGET} v${VERSION}...")
++
++if (NOT "${GSTREAMER_CLIENT_IMPLEMENTATION}" STREQUAL "None")
++	add_subdirectory (${GSTREAMER_CLIENT_IMPLEMENTATION})
++endif()
++
++install(
++	FILES gstreamerclient.h
++        DESTINATION include/${NAMESPACE}/gstreamerclient/
++)
+diff --git a/Source/gstreamerclient.old/Module.h b/Source/gstreamerclient.old/Module.h
+new file mode 100644
+index 00000000..0ebd49d5
+--- /dev/null
++++ b/Source/gstreamerclient.old/Module.h
+@@ -0,0 +1,14 @@
++#ifndef __MODULE_GSTREAMER_CLIENT_H
++#define __MODULE_GSTREAMER_CLIENT_H
++
++#ifndef MODULE_NAME
++#define MODULE_NAME Gstreamer_Client
++#endif
++
++#include <core/core.h>
++#include <tracing/tracing.h>
++
++#undef EXTERNAL
++#define EXTERNAL
++
++#endif // __MODULE_GSTREAMER_CLIENT_H
+diff --git a/Source/gstreamerclient.old/Nexus/CMakeLists.txt b/Source/gstreamerclient.old/Nexus/CMakeLists.txt
+new file mode 100644
+index 00000000..e088d13b
+--- /dev/null
++++ b/Source/gstreamerclient.old/Nexus/CMakeLists.txt
+@@ -0,0 +1,49 @@
++set(TARGET gstreamerclient)
++
++message("Setup ${TARGET} v${VERSION}...")
++
++find_package(NEXUS REQUIRED)
++find_package(NXCLIENT REQUIRED)
++find_package(GSTREAMER REQUIRED)
++find_package(GSTREAMER_BASE REQUIRED)
++
++add_library(${TARGET} SHARED Implementation.cpp)
++
++target_link_libraries(${TARGET}
++    PRIVATE
++        ${NAMESPACE}Core::${NAMESPACE}Core
++        NEXUS::NEXUS
++        NXCLIENT::NXCLIENT
++        ${GSTREAMER_LIBRARIES}
++        ${GSTREAMER_BASE_LIBRARIES}
++        )
++
++target_include_directories(${TARGET}
++    PUBLIC
++        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
++        $<INSTALL_INTERFACE:include/${NAMESPACE}>
++        ${GSTREAMER_INCLUDES}
++        ${GSTREAMER_BASE_INCLUDES}
++        )
++
++set_target_properties(${TARGET} PROPERTIES
++        CXX_STANDARD 11
++        CXX_STANDARD_REQUIRED YES
++        FRAMEWORK FALSE
++        PUBLIC_HEADER "${PUBLIC_HEADERS}"
++        VERSION ${VERSION}
++        SOVERSION ${VERSION_MAJOR}
++        )
++
++install(
++        TARGETS ${TARGET}  EXPORT ${TARGET}Targets  # for downstream dependencies
++        ARCHIVE DESTINATION lib COMPONENT libs      # static lib
++        LIBRARY DESTINATION lib COMPONENT libs      # shared lib
++        FRAMEWORK DESTINATION bin COMPONENT libs    # for mac
++)
++
++InstallPackageConfig(
++        TARGETS ${TARGET}
++        DESCRIPTION "A platform gstreamer sink implementation.")
++
++InstallCMakeConfig(TARGETS ${TARGET})
+diff --git a/Source/gstreamerclient.old/Nexus/Implementation.cpp b/Source/gstreamerclient.old/Nexus/Implementation.cpp
+new file mode 100644
+index 00000000..f5c2fc3e
+--- /dev/null
++++ b/Source/gstreamerclient.old/Nexus/Implementation.cpp
+@@ -0,0 +1,162 @@
++#include "Module.h"
++
++#include "../gstreamerclient.h"
++
++#include <gst/gst.h>
++
++struct GstPlayerSink {
++private:
++    GstPlayerSink(const GstPlayerSink&) = delete;
++    GstPlayerSink& operator= (const GstPlayerSink&) = delete;
++
++    GstPlayerSink()
++            : _audioDecodeBin(nullptr)
++            , _videoDecodeBin(nullptr)
++            , _audioSink(nullptr)
++            , _videoSink(nullptr) {
++    }
++
++public:
++    static GstPlayerSink* Instance() {
++        static GstPlayerSink *instance = new GstPlayerSink();
++
++        return (instance);
++    }
++
++    bool ConfigureAudioSink(GstElement *pipeline, GstElement *appSrc) {
++
++        TRACE_L1("Configure audio sink");
++        // Setup audio decodebin
++        _audioDecodeBin = gst_element_factory_make ("decodebin", "audio_decode");
++        if (!_audioDecodeBin)
++            return false;
++
++        g_signal_connect(_audioDecodeBin, "pad-added", G_CALLBACK(OnAudioPad), this);
++        g_object_set(_audioDecodeBin, "caps", gst_caps_from_string("audio/x-raw; audio/x-brcm-native"), nullptr);
++
++        // Create an audio sink
++        _audioSink = gst_element_factory_make ("brcmaudiosink", "audio-sink");
++
++        if (!_audioSink)
++            return false;
++
++        gst_bin_add_many (GST_BIN (pipeline), _audioDecodeBin, _audioSink, nullptr);
++        gst_element_link(appSrc, _audioDecodeBin);
++
++        return true;
++    }
++
++    bool ConfigureVideoSink(GstElement *pipeline, GstElement *appSrc) {
++
++        TRACE_L1("Configure video sink");
++        // Setup video decodebin
++        _videoDecodeBin = gst_element_factory_make ("decodebin", "video_decode");
++        if(!_videoDecodeBin)
++            return false;
++
++        g_signal_connect(_videoDecodeBin, "pad-added", G_CALLBACK(OnVideoPad), this);
++        g_object_set(_videoDecodeBin, "caps", gst_caps_from_string("video/x-raw; video/x-brcm-native"), nullptr);
++
++        // Create video sink
++        _videoSink       = gst_element_factory_make ("brcmvideosink", "video-sink");
++        if (!_videoSink)
++            return false;
++
++        gst_bin_add_many (GST_BIN (pipeline), _videoDecodeBin, _videoSink, nullptr);
++        gst_element_link(appSrc, _videoDecodeBin);
++
++        return true;
++    }
++private:
++    static void OnVideoPad (GstElement *decodebin2, GstPad *pad, gpointer user_data) {
++
++        GstPlayerSink *self = (GstPlayerSink*)(user_data);
++
++        GstCaps *caps;
++        GstStructure *structure;
++        const gchar *name;
++
++        caps = gst_pad_query_caps(pad,nullptr);
++        structure = gst_caps_get_structure(caps,0);
++        name = gst_structure_get_name(structure);
++
++        if (g_strrstr(name, "video/x-"))
++        {
++
++            GValue window_set = {0, };
++            static char str[40];
++            std::snprintf(str, 40, "%d,%d,%d,%d", 0,0, 1280, 720);
++
++            g_value_init(&window_set, G_TYPE_STRING);
++            g_value_set_static_string(&window_set, str);
++            g_object_set(self->_videoSink, "window_set", str, nullptr);
++            g_object_set(self->_videoSink, "zorder", 0, nullptr);
++            g_object_set(self->_videoSink, "zoom-mode", 1, nullptr); // By default box mode
++
++            if (gst_element_link(self->_videoDecodeBin, self->_videoSink) == FALSE) {
++                TRACE_L1("Could not make link video sink to bin");
++            }
++        }
++        gst_caps_unref(caps);
++    }
++
++    static void OnAudioPad (GstElement *decodebin2, GstPad *pad, gpointer user_data) {
++        GstPlayerSink *self = (GstPlayerSink*)(user_data);
++
++        GstCaps *caps;
++        GstStructure *structure;
++        const gchar *name;
++
++        caps = gst_pad_query_caps(pad,nullptr);
++        structure = gst_caps_get_structure(caps,0);
++        name = gst_structure_get_name(structure);
++
++        if (g_strrstr(name, "audio/x-"))
++        {
++            if (gst_element_link(self->_audioDecodeBin, self->_audioSink) == FALSE) {
++                TRACE_L1("Could not make link video sink to bin");
++            }
++        }
++        gst_caps_unref(caps);
++    }
++
++private:
++    GstElement *_audioDecodeBin;
++    GstElement *_videoDecodeBin;
++    GstElement *_audioSink;
++    GstElement *_videoSink;
++};
++
++extern "C" {
++
++int gtsreamer_client_link_sink (SinkType type, GstElement *pipeline, GstElement *appSrc)
++{
++    struct GstPlayerSink* instance = GstPlayerSink::Instance();
++    int result = 0;
++
++    switch (type) {
++        case THUNDER_GSTREAMER_CLIENT_AUDIO:
++            if (!instance->ConfigureAudioSink(pipeline, appSrc)) {
++                result = -1;
++            }
++            break;
++        case THUNDER_GSTREAMER_CLIENT_VIDEO:
++            if (!instance->ConfigureVideoSink(pipeline, appSrc)) {
++                result = -1;
++            }
++            break;
++        case THUNDER_GSTREAMER_CLIENT_TEXT:
++        default:
++            result = -1;
++            break;
++    }
++    return result;
++}
++
++int gtsreamer_client_unlink_sink (SinkType type, GstElement *pipeline)
++{
++    // pipeline destruction will free allocated elements
++    return 0;
++}
++
++};
+diff --git a/Source/gstreamerclient.old/gstreamerclient.h b/Source/gstreamerclient.old/gstreamerclient.h
+new file mode 100644
+index 00000000..fe803560
+--- /dev/null
++++ b/Source/gstreamerclient.old/gstreamerclient.h
+@@ -0,0 +1,19 @@
++#pragma once
++
++extern "C" {
++
++typedef struct _GstElement GstElement;
++
++typedef enum SinkType_t {
++    THUNDER_GSTREAMER_CLIENT_AUDIO,
++    THUNDER_GSTREAMER_CLIENT_VIDEO,
++    THUNDER_GSTREAMER_CLIENT_TEXT
++} SinkType;
++
++/**/
++int gtsreamer_client_link_sink (SinkType type, GstElement *pipeline, GstElement *appSrc);
++
++/**/
++int gtsreamer_client_unlink_sink (SinkType type, GstElement *pipeline);
++
++};
+\ No newline at end of file
+-- 
+2.17.1
+

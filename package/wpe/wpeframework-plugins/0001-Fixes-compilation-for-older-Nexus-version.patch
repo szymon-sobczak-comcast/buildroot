@@ -1,0 +1,62 @@
+From 3b8ebcb8c24b0b1cbdd2a136f39d4a1865737654 Mon Sep 17 00:00:00 2001
+From: Sander van der Maar <sandervandermaar@gmail.com>
+Date: Fri, 2 Oct 2020 09:34:41 +0200
+Subject: [PATCH] Fixes compilation for older Nexus version
+
+---
+ DeviceIdentification/Implementation/Nexus/Nexus.cpp | 2 ++
+ DisplayInfo/Nexus/PlatformImplementation.cpp        | 6 ++++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/DeviceIdentification/Implementation/Nexus/Nexus.cpp b/DeviceIdentification/Implementation/Nexus/Nexus.cpp
+index a49d045..76417df 100644
+--- a/DeviceIdentification/Implementation/Nexus/Nexus.cpp
++++ b/DeviceIdentification/Implementation/Nexus/Nexus.cpp
+@@ -46,7 +46,9 @@ public:
+     {
+         NEXUS_Error rc = NxClient_Join(NULL);
+         ASSERT(!rc);
++#if NEXUS_PLATFORM_VERSION_MAJOR > 14
+         NxClient_UnregisterAcknowledgeStandby(NxClient_RegisterAcknowledgeStandby());
++#endif
+ 
+         if (rc == NEXUS_SUCCESS) {
+             NEXUS_Platform_GetConfiguration(&_platformConfig);
+diff --git a/DisplayInfo/Nexus/PlatformImplementation.cpp b/DisplayInfo/Nexus/PlatformImplementation.cpp
+index 1f8a09f..874b502 100644
+--- a/DisplayInfo/Nexus/PlatformImplementation.cpp
++++ b/DisplayInfo/Nexus/PlatformImplementation.cpp
+@@ -43,7 +43,9 @@ public:
+ 
+         NEXUS_Error rc = NxClient_Join(NULL);
+         ASSERT(!rc);
++#if NEXUS_PLATFORM_VERSION_MAJOR > 14
+         NxClient_UnregisterAcknowledgeStandby(NxClient_RegisterAcknowledgeStandby());
++#endif
+         NEXUS_Platform_GetConfiguration(&_platformConfig);
+ 
+         UpdateTotalGpuRam(_totalGpuRam);
+@@ -251,16 +253,20 @@ private:
+                 break;
+             }
+ #else
++#if NEXUS_PLATFORM_VERSION_MAJOR > 14
+             switch  (displaySettings.hdmiPreferences.drmInfoFrame.eotf) {
+             case NEXUS_VideoEotf_eHdr10: {
+                 type = HDR_10;
+                 break;
+             }
+ #endif
++#endif
++#if NEXUS_PLATFORM_VERSION_MAJOR > 14
+             default:
+                 break;
+             }
+ 
++#endif
+ 
+             // Check HDCP version
+             NEXUS_HdmiOutputHdcpStatus hdcpStatus;
+-- 
+2.17.1
+

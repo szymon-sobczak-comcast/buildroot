@@ -122,6 +122,12 @@ config BR2_PACKAGE_WPEFRAMEWORK_GSTREAMERCLIENT
           Gstreamer client provides custom APIs to manipulate underneath stream sinks which will be linked with created pipeline.
           This implementation will vary based on custom platforms and sink backends.
 
+config BR2_PACKAGE_WPEFRAMEWORK_GSTREAMERCLIENT_OLD
+        bool "GstreamerClient (old)"
+        default n
+        help
+          Selects old gstreamer client
+
 config BR2_PACKAGE_WPEFRAMEWORK_CDM
     bool "CDM"
     help
