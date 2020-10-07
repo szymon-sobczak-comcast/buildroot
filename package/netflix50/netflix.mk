@@ -25,7 +25,6 @@ NETFLIX50_DEPENDENCIES = \
 	openssl \
 	webp \
 	zlib \
-	# TODO: maybe a flag when DPI==gstreamer \
 	gstreamer1 \
 	gst1-plugins-base \
 	gst1-plugins-bad \
