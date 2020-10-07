@@ -1,5 +1,5 @@
 config BR2_PACKAGE_NETFLIX50
-	bool "Netflix"
+	bool "Netflix 5.0"
     select BR2_PACKAGE_C_ARES
 	select BR2_PACKAGE_EXPAT
 	select BR2_PACKAGE_FREETYPE
