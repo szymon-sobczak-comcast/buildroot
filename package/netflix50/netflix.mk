@@ -24,8 +24,15 @@ NETFLIX50_DEPENDENCIES = \
 	nghttp2 \
 	openssl \
 	webp \
-	zlib
-
+	zlib \
+	# TODO: maybe a flag when DPI==gstreamer \
+	gstreamer1 \
+	gst1-plugins-base \
+	gst1-plugins-bad \
+	gst1-libav \
+	libgles \
+	libegl \
+	# TODO: seems like they are not needed
 	# fdk-aac \
 	# graphite2 \
 	# lcms2 \
@@ -57,7 +64,8 @@ NETFLIX50_CONF_OPTS += \
 	-DGIBBON_GRAPHICS_GL_WSYS=egl \
 	-DGIBBON_FONTS="-all" \
 	-DBUILD_GIBBON_DIRECTORY=$(@D)/partner/ \
-	-DDPI_REFERENCE_DRM="null"
+	-DDPI_REFERENCE_DRM="null" \
+	-DDPI_IMPLEMENTATION=gstreamer
 
 NETFLIX50_CONF_ENV += \
 	NODE="$(HOST_DIR)/usr/bin/node" \
@@ -138,13 +146,6 @@ else
 NETFLIX50_CONF_OPTS += -DNRDP_TOOLS="provisioning"
 endif
 
-NETFLIX50_CONF_OPTS += -DDPI_IMPLEMENTATION=gstreamer
-
-NETFLIX50_DEPENDENCIES += \
-	gstreamer1 \
-	gst1-plugins-base \
-	gst1-plugins-bad \
-	gst1-libav \
 
 ifeq ($(BR2_PACKAGE_NETFLIX50_DRM_OCDM), y)
 NETFLIX50_CONF_OPTS += -DDPI_DRM=ocdm
@@ -193,8 +194,6 @@ NETFLIX50_DEPENDENCIES += \
 	westeros \
 	westeros-sink
 endif
-
-NETFLIX50_DEPENDENCIES += libgles libegl
 
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_PROVISIONPROXY), y)
 NETFLIX50_CONF_OPTS += -DNETFLIX50_USE_PROVISION=ON
