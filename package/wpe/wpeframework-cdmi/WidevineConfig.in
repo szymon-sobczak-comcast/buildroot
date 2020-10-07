@@ -34,6 +34,34 @@ config BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_DEVICE_CERTIFICATE
     default ""
     help
         Widevine device certificate used during the provisioning process.
+           
+config BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_PRODUCT_NAME
+    string "Product name"
+    depends on BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_MODULE
+    default ""
+    help
+        Widevine product name used during the provisioning process.
+        
+config BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_COMPANY_NAME
+    string "Company name"
+    depends on BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_MODULE
+    default ""
+    help
+        Widevine company name used during the provisioning process.
+        
+config BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_MODEL_NAME
+    string "Model name"
+    depends on BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_MODULE
+    default ""
+    help
+        Widevine model name used during the provisioning process.
+        
+config BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_DEVICE_NAME
+    string "Device name"
+    depends on BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_MODULE
+    default ""
+    help
+        Widevine device name used during the provisioning process.        
 
 config BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE_KEYBOX
     string "Keybox"
