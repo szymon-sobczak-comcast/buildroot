@@ -11,25 +11,26 @@ NETFLIX50_INSTALL_TARGET = YES
 NETFLIX50_SUPPORTS_IN_SOURCE_BUILD = NO
 NETFLIX50_SUBDIR = netflix
 NETFLIX50_DEPENDENCIES = \
-	freetype \
-	icu \
-	openjpeg \
-	lcms2 \
-	jpeg \
-	libpng \
-	libmng \
-	webp \
-	harfbuzz \
-	expat \
-	openssl \
 	c-ares \
-	nghttp2 \
+	expat \
+	freetype \
+	harfbuzz \
+	icu \
+	jpeg \
 	libcurl \
-	graphite2 \
-	tremor \
-	libopenh264 \
-	fdk-aac \
+	libmng \
 	libnl \
+	libpng \
+	nghttp2 \
+	openssl \
+	webp \
+	zlib
+
+	# fdk-aac \
+	# graphite2 \
+	# lcms2 \
+	# libopenh264 \
+	# openjpeg \
 
 NETFLIX50_RESOURCE_LOC = $(call qstrip,${BR2_PACKAGE_NETFLIX50_RESOURCE_LOCATION})
 NETFLIX50_CONF_ENV += \
