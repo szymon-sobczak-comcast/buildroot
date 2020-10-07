@@ -21,7 +21,6 @@ config BR2_PACKAGE_NETFLIX50
 	# TODO: seems like they are not needed
 	# select BR2_PACKAGE_OPENJPEG
 	# select BR2_PACKAGE_LCMS2
-	# select BR2_PACKAGE_C_ARES
 	# select BR2_PACKAGE_GRAPHITE2
 	# select BR2_PACKAGE_LIBOPENH264
 	# select BR2_PACKAGE_FDK_AAC
