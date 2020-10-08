@@ -1,0 +1,417 @@
+From 52ad6852f34d3204f0798a61ca9e2fc457fae21f Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Wed, 7 Oct 2020 22:38:58 +0200
+Subject: [PATCH 4/5] Revert DIAL: removing show since its not part of the DIAL
+
+---
+ DIALServer/AmazonPrime.cpp       | 49 ++++++++++++++++++++++++--------
+ DIALServer/DIALServer.cpp        |  8 +++---
+ DIALServer/DIALServer.h          | 34 ++++++++++++++++------
+ DIALServer/DIALServerJsonRpc.cpp |  9 ++++++
+ DIALServer/Netflix.cpp           | 30 +++++++++++--------
+ DIALServer/YouTube.cpp           | 19 ++++++-------
+ 6 files changed, 103 insertions(+), 46 deletions(-)
+
+diff --git a/DIALServer/AmazonPrime.cpp b/DIALServer/AmazonPrime.cpp
+index d64696c..2c19ee5 100644
+--- a/DIALServer/AmazonPrime.cpp
++++ b/DIALServer/AmazonPrime.cpp
+@@ -34,7 +34,9 @@ namespace DIALHandlers {
+             : Default(service, config, parent)
+             , _prime(nullptr)
+             , _service(nullptr)
++            , _hidden(false)
+             , _notification(*this)
++            , _lock()
+             , _callsign(config.Callsign.Value())
+         {
+             ASSERT(service != nullptr);
+@@ -49,15 +51,6 @@ namespace DIALHandlers {
+         }
+ 
+     public:
+-        uint32_t Start(const string& params, const string& payload) override
+-        {
+-            if ((_stateControl != nullptr)) {
+-                _stateControl->Request(PluginHost::IStateControl::RESUME); 
+-            }
+-
+-            return (Default::Start(params, payload));
+-        }    
+-
+         bool Connect() override
+         {
+             Attach();
+@@ -71,19 +64,30 @@ namespace DIALHandlers {
+         {
+             Detach();
+         }
+-        bool HasHide() const override
++        bool HasHideAndShow() const override
+         {
+             return true;
+         }
++        uint32_t Show() override
++        {
++            _lock.Lock();
++            if (_stateControl != nullptr){
++                _stateControl->Request(PluginHost::IStateControl::RESUME);
++            }
++            _lock.Unlock();
++            return Core::ERROR_NONE;
++        }
+         void Hide() override
+         {
++            _lock.Lock();
+             if (_stateControl != nullptr){
+                 _stateControl->Request(PluginHost::IStateControl::SUSPEND);
+             }
++            _lock.Unlock();
+         }
+         bool IsHidden() const override
+         {
+-            return (_stateControl->State() == PluginHost::IStateControl::SUSPENDED);
++            return _hidden;
+         }
+ 
+     private:
+@@ -93,6 +97,7 @@ namespace DIALHandlers {
+         }
+         void Attach()
+         {
++            _lock.Lock();
+             if (_prime == nullptr) {
+                 _prime = Plugin::DIALServer::Default::QueryInterface<Exchange::IAmazonPrime>();
+ 
+@@ -100,10 +105,14 @@ namespace DIALHandlers {
+                     _stateControl = _prime->QueryInterface<PluginHost::IStateControl>();
+                 }
+             }
++            _lock.Unlock();
+         }
+ 
+         void Detach()
+         {
++            _lock.Lock();
++            _hidden = false;
++
+             if (_stateControl != nullptr) {
+                 _stateControl->Release();
+                 _stateControl = nullptr;
+@@ -113,10 +122,18 @@ namespace DIALHandlers {
+                 _prime->Release();
+                 _prime = nullptr;
+             }
++
++            _lock.Unlock();
++        }
++
++        void StateChange(const PluginHost::IStateControl::state state)
++        {
++            _hidden = (state == PluginHost::IStateControl::SUSPENDED);
+         }
+ 
+     private:
+-        class Notification : public PluginHost::IPlugin::INotification {
++        class Notification : public PluginHost::IPlugin::INotification,
++                             public PluginHost::IStateControl::INotification {
+ 
+         public:
+             Notification() = delete;
+@@ -143,9 +160,15 @@ namespace DIALHandlers {
+                 }
+             }
+ 
++            virtual void StateChange(const PluginHost::IStateControl::state value)
++            {
++                _parent.StateChange(value);
++            }
++
+         public:
+             BEGIN_INTERFACE_MAP(Notification)
+             INTERFACE_ENTRY(PluginHost::IPlugin::INotification)
++            INTERFACE_ENTRY(PluginHost::IStateControl::INotification)
+             END_INTERFACE_MAP
+ 
+         private:
+@@ -155,7 +178,9 @@ namespace DIALHandlers {
+         Exchange::IAmazonPrime* _prime;
+         PluginHost::IShell* _service;
+         PluginHost::IStateControl* _stateControl;
++        bool _hidden;
+         Core::Sink<Notification> _notification;
++        mutable Core::CriticalSection _lock;
+         string _callsign;
+ 
+     }; // class AmazonPrime
+diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
+index 5240ca3..d75ed19 100644
+--- a/DIALServer/DIALServer.cpp
++++ b/DIALServer/DIALServer.cpp
+@@ -212,7 +212,7 @@ namespace Plugin {
+     void DIALServer::AppInformation::GetData(string& data, const Version& version) const
+     {
+         bool running = IsRunning();
+-        bool hidden = HasHide() == true && IsHidden() == true;
++        bool hidden = HasHideAndShow() == true && IsHidden() == true;
+         bool isAtLeast2_1 = Version{2, 1, 0} <= version;
+         // allowSop is mandatory to be true starting from 2.1
+         string allowStop = isAtLeast2_1 == true || HasStartAndStop() == true ? "true" : "false";
+@@ -428,8 +428,8 @@ namespace Plugin {
+                 if (app.IsConnected() == false && app.Connect() == false) {
+                     
+                     TRACE_L1("Cannot connect DIAL handler to application %s", app.Name().c_str());
+-                } else if (app.HasHide() == true && app.IsHidden() == true) {
+-                    uint32_t result = app.Start(parameters, payload);
++                } else if (app.HasHideAndShow() == true && app.IsHidden() == true) {
++                    uint32_t result = app.Show();
+ 
+                     // system app has special error codes. Handle them here.
+                     if (app.Name() == _SystemApp) {
+@@ -597,7 +597,7 @@ namespace Plugin {
+                     } else if (request.Verb == Web::Request::HTTP_POST) {
+                         if (index.Next() == true && index.Current() == kHideCommand) {
+                             if (selectedApp->second.IsRunning() == true) {
+-                                if (selectedApp->second.HasHide() == true) {
++                                if (selectedApp->second.HasHideAndShow() == true) {
+                                     result->ErrorCode = Web::STATUS_OK;
+                                     result->Message = _T("OK");
+                                     selectedApp->second.Hide();
+diff --git a/DIALServer/DIALServer.h b/DIALServer/DIALServer.h
+index c0cf46b..27ed64e 100644
+--- a/DIALServer/DIALServer.h
++++ b/DIALServer/DIALServer.h
+@@ -154,7 +154,7 @@ namespace Plugin {
+             virtual bool HasStartAndStop() const = 0;
+ 
+             // Returns wheter DIAL handler has ability to hide & show a service
+-            virtual bool HasHide() const = 0;
++            virtual bool HasHideAndShow() const = 0;
+ 
+             // Start an application with specified URL / payload
+             // Can only be called if HasStartAndStop() evaluates to true
+@@ -173,7 +173,10 @@ namespace Plugin {
+ 
+             virtual bool IsHidden() const = 0;
+ 
+-            // Hide service. Can be used only if HasHide() evaluates to true
++            // Make serivce visible. Can be used only if HasHideAndShow() evaluates to true
++            virtual uint32_t Show() = 0;
++
++            // Hide service. Can be used only if HasHideAndShow() evaluates to true
+             virtual void Hide() = 0;
+ 
+             // Methods for passing a URL to DIAL handler
+@@ -216,8 +219,9 @@ namespace Plugin {
+             bool Connect() override { return true;}
+             bool IsConnected() override {return true;}
+             void Stop(const string& parameters, const string& payload) { ASSERT(!"Not supported and not even supposed to"); }
+-            bool HasHide() const { return true; }
++            bool HasHideAndShow() const { return true; }
+             bool IsHidden() const { return true; }
++            uint32_t Show() override { return Core::ERROR_GENERAL; }
+             void Hide() override {}
+             string URL() const override { return {}; }
+             bool URL(const string& url, const string& payload) override { return (false); };
+@@ -251,7 +255,7 @@ namespace Plugin {
+                 , _isRunning(false)
+                 , _isHidden(false)
+                 , _hasRuntimeChange(config.RuntimeChange.Value())
+-                , _hasHide(config.Hide.Value())
++                , _hasHideAndShow(config.Hide.Value())
+                 , _parent(parent)
+             {
+                 ASSERT(_parent != nullptr);
+@@ -292,8 +296,17 @@ namespace Plugin {
+                 return (_passiveMode == true ? _isRunning : (_switchBoard != nullptr ? _switchBoard->IsActive(_callsign) : (_service->State() == PluginHost::IShell::ACTIVATED)));
+             }
+             bool IsHidden() const override { return _isHidden; }
+-            bool HasHide() const override { return _hasHide; }
++            bool HasHideAndShow() const override { return _hasHideAndShow; }
+             bool HasStartAndStop() const override { return true; }
++            uint32_t Show() override 
++            {
++                if ((_passiveMode == true) && (_isHidden ==true)) {
++                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"show\" }"));
++                    _service->Notify(message);
++                    _parent->event_show(_callsign);   
++                } 
++                return Core::ERROR_NONE; 
++            }
+             void Hide() override 
+             {
+                 if (_passiveMode == true) {
+@@ -432,7 +445,7 @@ namespace Plugin {
+             bool _isRunning;
+             bool _isHidden;
+             bool _hasRuntimeChange;
+-            bool _hasHide;
++            bool _hasHideAndShow;
+             DIALServer* _parent;
+             AdditionalDataType _additionalData;
+         };
+@@ -747,9 +760,13 @@ namespace Plugin {
+             { 
+                 return (_application->IsHidden()); 
+             }
+-            inline bool HasHide() const
++            inline bool HasHideAndShow() const
++            {
++                return _application->HasHideAndShow();
++            }
++            inline uint32_t Show()
+             {
+-                return _application->HasHide();
++                return _application->Show();
+             }
+             inline void Hide() 
+             { 
+@@ -1070,6 +1087,7 @@ namespace Plugin {
+         void event_start(const string& application, const string& parameters, const string& payload);
+         void event_stop(const string& application, const string& parameters);
+         void event_hide(const string& application);
++        void event_show(const string& application);
+ 
+         inline const bool DeprecatedAPI() const { return _deprecatedAPI;}
+ 
+diff --git a/DIALServer/DIALServerJsonRpc.cpp b/DIALServer/DIALServerJsonRpc.cpp
+index a7840fe..30f9c67 100644
+--- a/DIALServer/DIALServerJsonRpc.cpp
++++ b/DIALServer/DIALServerJsonRpc.cpp
+@@ -39,6 +39,15 @@ namespace Plugin {
+         Notify(_T("hide"), params);
+     }
+ 
++    // Event: show - Signals that application show was requested over DIAL *(passive mode only)*
++    void DIALServer::event_show(const string& application)
++    {
++        HideParamsData params;
++        params.Application = application;
++
++        Notify(_T("show"), params);
++    }
++
+     // Event: start - Signals that application start was requested over DIAL *(passive mode only)*
+     void DIALServer::event_start(const string& application, const string& parameters, const string& payload)
+     {
+diff --git a/DIALServer/Netflix.cpp b/DIALServer/Netflix.cpp
+index 9a371db..fa80555 100644
+--- a/DIALServer/Netflix.cpp
++++ b/DIALServer/Netflix.cpp
+@@ -61,7 +61,7 @@ namespace DIALHandlers {
+             , _service(nullptr)
+             , _notification(*this)
+             , _hidden(false)
+-            , _hasHide(config.Hide.Value())
++            , _hasHideAndShow(config.Hide.Value())
+             , _lock()
+             , _callsign(config.Callsign.Value())
+         {
+@@ -80,17 +80,10 @@ namespace DIALHandlers {
+         {
+             const string query = Query(params, payload);
+ 
+-            _lock.Lock();
+-            if ((_netflix != nullptr) && (_hidden == true)) {
+-                _netflix->SetVisible(true);
+-                _hidden = false;
+-            } 
+-            _lock.Unlock();
+-
+             // Set custom query paramters
+             Core::SystemInfo::SetEnvironment(_T("ONE_TIME_QUERY_STRING_OVERRIDE"), query.c_str());
+ 
+-            return (Default::Start(query, payload));
++            return (Default::Start(query, {}));
+         }
+         void Stop(const string& params, const string& payload) override
+         {
+@@ -106,9 +99,22 @@ namespace DIALHandlers {
+         {
+             return (_netflix != nullptr);
+         }
+-        bool HasHide() const override
++        bool HasHideAndShow() const override
++        {
++            return ((_netflix != nullptr) && (_hasHideAndShow == true));
++        }
++        uint32_t Show() override
+         {
+-            return ((_netflix != nullptr) && (_hasHide == true));
++            _lock.Lock();
++            uint32_t result = Core::ERROR_NONE;
++            _hidden = false;
++            if (_netflix != nullptr) {
++                _netflix->SetVisible(true);
++            } else {
++                result = Core::ERROR_GENERAL;
++            }
++            _lock.Unlock();
++            return (result);
+         }
+         void Hide() override
+         {
+@@ -194,7 +200,7 @@ namespace DIALHandlers {
+         PluginHost::IShell* _service;
+         Core::Sink<Notification> _notification;
+         bool _hidden;
+-        bool _hasHide;
++        bool _hasHideAndShow;
+         mutable Core::CriticalSection _lock;
+         string _callsign;
+     }; // class Netflix
+diff --git a/DIALServer/YouTube.cpp b/DIALServer/YouTube.cpp
+index f5c8db8..9a31754 100644
+--- a/DIALServer/YouTube.cpp
++++ b/DIALServer/YouTube.cpp
+@@ -39,7 +39,7 @@ namespace DIALHandlers {
+             : Default(service, config, parent)
+             , _browser(nullptr)
+             , _hidden(false)
+-            , _hasHide(config.Hide.Value())
++            , _hasHideAndShow(config.Hide.Value())
+             , _notification(this)
+         {
+         }
+@@ -52,12 +52,6 @@ namespace DIALHandlers {
+         }
+ 
+     public:
+-        uint32_t Start(const string& params, const string& payload) override
+-        {
+-            _browser->Hide(false);
+-
+-            return Default::Start(params, payload);
+-        }
+         bool Connect() override
+         {
+             _browser = Plugin::DIALServer::Default::QueryInterface<Exchange::IBrowser>();
+@@ -79,9 +73,14 @@ namespace DIALHandlers {
+                 _browser = nullptr;
+             }
+         }
+-        bool HasHide() const override
++        bool HasHideAndShow() const override
+         {
+-            return ((_browser != nullptr) && (_hasHide == true));
++            return ((_browser != nullptr) && (_hasHideAndShow == true));
++        }
++        uint32_t Show() override
++        {
++            _browser->Hide(false);
++            return Core::ERROR_NONE;
+         }
+         void Hide() override
+         {
+@@ -131,7 +130,7 @@ namespace DIALHandlers {
+ 
+         Exchange::IBrowser* _browser;
+         bool _hidden;
+-        bool _hasHide;
++        bool _hasHideAndShow;
+         Core::Sink<Notification> _notification;
+     }; // class YouTube
+ 
+-- 
+2.25.1
+

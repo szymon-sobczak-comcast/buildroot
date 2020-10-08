@@ -1,8 +1,17 @@
+From 44762d7bd0a64626a7cfe60953a0244feafcb643 Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Tue, 6 Oct 2020 20:36:50 +0200
+Subject: [PATCH 2/5] DIAL: network interface workaround
+
+---
+ DIALServer/DIALServer.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
 diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
-index c3de995..aa1683c 100644
+index 11bdc36..5240ca3 100644
 --- a/DIALServer/DIALServer.cpp
 +++ b/DIALServer/DIALServer.cpp
-@@ -277,7 +277,7 @@ namespace Plugin {
+@@ -278,7 +278,7 @@ namespace Plugin {
          _config.FromString(service->ConfigLine());
  
          // get an interface with a public IP address, then we will have a proper MAC address..
@@ -11,3 +20,6 @@ index c3de995..aa1683c 100644
  
          if (selectedNode.IsValid() == false) {
              // Oops no way we can operate...
+-- 
+2.25.1
+

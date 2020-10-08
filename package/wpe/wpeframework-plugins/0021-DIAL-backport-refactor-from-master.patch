@@ -1,0 +1,966 @@
+From 9ff3cc31a11fe1a9045135bf24ede86df58eee8c Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Wed, 7 Oct 2020 21:40:55 +0200
+Subject: [PATCH 1/5] DIAL: backport refactor from master
+
+---
+ DIALServer/AmazonPrime.cpp       | 165 +++++++++++++++++++++++++++++++
+ DIALServer/CMakeLists.txt        |  26 ++++-
+ DIALServer/DIALServer.config     |  15 +++
+ DIALServer/DIALServer.cpp        |  42 ++++----
+ DIALServer/DIALServer.h          | 101 ++++++++++++-------
+ DIALServer/DIALServerJsonRpc.cpp |  16 ++-
+ DIALServer/Netflix.cpp           |  81 ++++++++-------
+ DIALServer/YouTube.cpp           |  70 ++++++++-----
+ 8 files changed, 392 insertions(+), 124 deletions(-)
+ create mode 100644 DIALServer/AmazonPrime.cpp
+
+diff --git a/DIALServer/AmazonPrime.cpp b/DIALServer/AmazonPrime.cpp
+new file mode 100644
+index 0000000..d64696c
+--- /dev/null
++++ b/DIALServer/AmazonPrime.cpp
+@@ -0,0 +1,165 @@
++/*
++ * If not stated otherwise in this file or this component's LICENSE file the
++ * following copyright and licenses apply:
++ *
++ * Copyright 2020 RDK Management
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include "DIALServer.h"
++#include "interfaces/IAmazonPrime.h"
++
++namespace WPEFramework {
++namespace DIALHandlers {
++
++    class AmazonPrime : public Plugin::DIALServer::Default {
++    private:
++        AmazonPrime() = delete;
++        AmazonPrime(const AmazonPrime&) = delete;
++        AmazonPrime& operator=(const AmazonPrime&) = delete;
++
++    public:
++        AmazonPrime(PluginHost::IShell* service, const Plugin::DIALServer::Config::App& config, Plugin::DIALServer* parent)
++            : Default(service, config, parent)
++            , _prime(nullptr)
++            , _service(nullptr)
++            , _notification(*this)
++            , _callsign(config.Callsign.Value())
++        {
++            ASSERT(service != nullptr);
++            ASSERT(parent != nullptr);
++            service->Register(&_notification);
++        }
++
++        ~AmazonPrime() override
++        {
++            Stopped({}, {});
++            _service->Unregister(&_notification);
++        }
++
++    public:
++        uint32_t Start(const string& params, const string& payload) override
++        {
++            if ((_stateControl != nullptr)) {
++                _stateControl->Request(PluginHost::IStateControl::RESUME); 
++            }
++
++            return (Default::Start(params, payload));
++        }    
++
++        bool Connect() override
++        {
++            Attach();
++            return _prime != nullptr;
++        }
++        bool IsConnected() override
++        {
++            return _prime != nullptr;
++        }
++        virtual void Stopped(const string& data, const string& payload)
++        {
++            Detach();
++        }
++        bool HasHide() const override
++        {
++            return true;
++        }
++        void Hide() override
++        {
++            if (_stateControl != nullptr){
++                _stateControl->Request(PluginHost::IStateControl::SUSPEND);
++            }
++        }
++        bool IsHidden() const override
++        {
++            return (_stateControl->State() == PluginHost::IStateControl::SUSPENDED);
++        }
++
++    private:
++        const string& Callsign() const
++        {
++            return (_callsign);
++        }
++        void Attach()
++        {
++            if (_prime == nullptr) {
++                _prime = Plugin::DIALServer::Default::QueryInterface<Exchange::IAmazonPrime>();
++
++                if (_prime != nullptr) {
++                    _stateControl = _prime->QueryInterface<PluginHost::IStateControl>();
++                }
++            }
++        }
++
++        void Detach()
++        {
++            if (_stateControl != nullptr) {
++                _stateControl->Release();
++                _stateControl = nullptr;
++            }
++
++            if (_prime != nullptr) {
++                _prime->Release();
++                _prime = nullptr;
++            }
++        }
++
++    private:
++        class Notification : public PluginHost::IPlugin::INotification {
++
++        public:
++            Notification() = delete;
++            Notification(const Notification&) = delete;
++            Notification& operator=(const Notification&) = delete;
++
++        public:
++            explicit Notification(AmazonPrime& parent)
++                : _parent(parent)
++            {
++            }
++            ~Notification() = default;
++
++        public:
++            void StateChange(PluginHost::IShell* shell) override
++            {
++                ASSERT(shell != nullptr);
++                if (shell->Callsign() == _parent.Callsign()) {
++                    if (shell->State() == PluginHost::IShell::ACTIVATED) {
++                        _parent.Attach();
++                    } else if (shell->State() == PluginHost::IShell::DEACTIVATED) {
++                        _parent.Detach();
++                    }
++                }
++            }
++
++        public:
++            BEGIN_INTERFACE_MAP(Notification)
++            INTERFACE_ENTRY(PluginHost::IPlugin::INotification)
++            END_INTERFACE_MAP
++
++        private:
++            AmazonPrime& _parent;
++        }; // class Notification
++
++        Exchange::IAmazonPrime* _prime;
++        PluginHost::IShell* _service;
++        PluginHost::IStateControl* _stateControl;
++        Core::Sink<Notification> _notification;
++        string _callsign;
++
++    }; // class AmazonPrime
++
++    static Plugin::DIALServer::ApplicationRegistrationType<AmazonPrime> _amazonHandler;
++}
++}
+diff --git a/DIALServer/CMakeLists.txt b/DIALServer/CMakeLists.txt
+index f73d65a..7e21030 100644
+--- a/DIALServer/CMakeLists.txt
++++ b/DIALServer/CMakeLists.txt
+@@ -23,14 +23,17 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
+ 
+ option(PLUGIN_DIALSERVER_ENABLE_YOUTUBE "Enable YouTube support for DIAL server" OFF)
+ option(PLUGIN_DIALSERVER_ENABLE_NETFLIX "Enable Netflix support for DIAL server" OFF)
++option(PLUGIN_DIALSERVER_ENABLE_AMAZON_PRIME "Enable Amazon Prime support for DIAL server" OFF)
+ 
+ set(PLUGIN_DIALSERVER_YOUTUBE_MODE "passive" CACHE STRING "How the DIAL server should process incomming requests from Youtube (passive/active), leave empty to disable")
+ set(PLUGIN_DIALSERVER_NETFLIX_MODE "passive" CACHE STRING "How the DIAL server should process incomming requests from Netflix (passive/active), leave empty to disable")
++set(PLUGIN_DIALSERVER_AMAZON_PRIME_MODE "passive" CACHE STRING "How the DIAL server should process incomming requests from Amazon Prime (passive/active), leave empty to disable")
+ 
+ set(PLUGIN_DIALSERVER_SWITCHBOARD_CALLSIGN "" CACHE STRING "Callsign of the SwitchBoard plugin if used, leave empty to disable")
+ set(PLUGIN_DIALSERVER_WEBSERVER_CALLSIGN "" CACHE STRING "Callsign of the WebServer plugin if used, leave empty to disable")
+ set(PLUGIN_DIALSERVER_NETFLIX_CALLSIGN "" CACHE STRING "Callsign of the Netflix plugin if used in active mode, leave empty to disable")
+ set(PLUGIN_DIALSERVER_YOUTUBE_CALLSIGN "" CACHE STRING "Callsign of the Youtube plugin if used in active mode, leave empty to disable")
++set(PLUGIN_DIALSERVER_AMAZON_PRIME_CALLSIGN "" CACHE STRING "Callsign of the Youtube plugin if used in active mode, leave empty to disable")
+ 
+ set(PLUGIN_DIALSERVER_NAME "${MODULE_NAME}" CACHE STRING "DIAL server name")
+ set(PLUGIN_DIALSERVER_MODEL "Generic Platform" CACHE STRING "Model of the device")
+@@ -42,16 +45,33 @@ add_library(${MODULE_NAME} SHARED
+     DIALServerJsonRpc.cpp
+     Module.cpp)
+ 
+-if(PLUGIN_DIALSERVER_ENABLE_YOUTUBE)
++if(PLUGIN_DIALSERVER_ENABLE_YOUTUBE AND "${PLUGIN_DIALSERVER_YOUTUBE_MODE}" STREQUAL "active")
+     target_sources(${MODULE_NAME}
+         PRIVATE
+             YouTube.cpp)
+ endif()
+ 
+-if(PLUGIN_DIALSERVER_ENABLE_NETFLIX)
+-    target_sources(${MODULE_NAME}
++if(PLUGIN_DIALSERVER_ENABLE_NETFLIX AND "${PLUGIN_DIALSERVER_NETFLIX_MODE}" STREQUAL "active")
++target_sources(${MODULE_NAME}
+         PRIVATE
+             Netflix.cpp)
++            
++if (NETFLIX_VERSION_5_1)
++    target_compile_definitions(${MODULE_NAME} 
++        PRIVATE 
++            NETFLIX_VERSION_5_1=ON)
++endif()
++if(NETFLIX_VERSION_5_2)
++    target_compile_definitions(${MODULE_NAME}
++    PRIVATE
++        NETFLIX_VERSION_5_2=ON)
++endif()
++endif()
++
++if(PLUGIN_DIALSERVER_ENABLE_AMAZON_PRIME AND "${PLUGIN_DIALSERVER_AMAZON_PRIME_MODE}" STREQUAL "active")
++target_sources(${MODULE_NAME}
++        PRIVATE
++            AmazonPrime.cpp)
+ endif()
+ 
+ target_link_libraries(${MODULE_NAME}
+diff --git a/DIALServer/DIALServer.config b/DIALServer/DIALServer.config
+index 8323582..0cea265 100644
+--- a/DIALServer/DIALServer.config
++++ b/DIALServer/DIALServer.config
+@@ -74,3 +74,18 @@ if("${PLUGIN_DIALSERVER_ENABLE_NETFLIX}")
+         message(SEND_ERROR "Unknown Netflix mode:<${PLUGIN_DIALSERVER_NETFLIX_MODE}>")
+     endif()
+ endif()
++
++if("${PLUGIN_DIALSERVER_ENABLE_AMAZON_PRIME}")
++    if("${PLUGIN_DIALSERVER_AMAZON_PRIME_MODE}" STREQUAL "active")
++        add_app( ${configuration}
++            NAME AmazonInstantVideo
++            CALLSIGN ${PLUGIN_DIALSERVER_AMAZON_PRIME_CALLSIGN}
++            URL "https://www.primevideo.com")
++    elseif("${PLUGIN_DIALSERVER_AMAZON_PRIME_MODE}" STREQUAL "passive")
++        add_app( ${configuration}
++            NAME AmazonInstantVideo
++            URL "https://www.primevideo.com")
++    else()
++        message(SEND_ERROR "Unknown Amazon Prime mode:<${PLUGIN_DIALSERVER_AMAZON_PRIME_MODE}>")
++    endif()
++endif()
+diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
+index c3de995..11bdc36 100644
+--- a/DIALServer/DIALServer.cpp
++++ b/DIALServer/DIALServer.cpp
+@@ -31,6 +31,7 @@ namespace Plugin {
+     static const string _DefaultControlExtension(_T("Run"));
+     static const string _DefaultAppInfoDevice(_T("DeviceInfo.xml"));
+     static const string _DefaultRunningExtension(_T("Running"));
++    static const string _DefaultHiddenExtension(_T("Hidden"));
+     static const string _SystemApp(_T("system"));
+ 
+     constexpr char kHideCommand[] = "hide";
+@@ -211,7 +212,7 @@ namespace Plugin {
+     void DIALServer::AppInformation::GetData(string& data, const Version& version) const
+     {
+         bool running = IsRunning();
+-        bool hidden = HasHideAndShow() == true && IsHidden() == true;
++        bool hidden = HasHide() == true && IsHidden() == true;
+         bool isAtLeast2_1 = Version{2, 1, 0} <= version;
+         // allowSop is mandatory to be true starting from 2.1
+         string allowStop = isAtLeast2_1 == true || HasStartAndStop() == true ? "true" : "false";
+@@ -395,12 +396,14 @@ namespace Plugin {
+             response->ErrorCode = Web::STATUS_REQUEST_ENTITY_TOO_LARGE;
+             response->Message = _T("Payload too long");
+         } else {
+-            const string additionalDataUrl = (_T("http://localhost/") + app.Name() + _T("/") + _DefaultDataExtension);
+-            TCHAR encodedDataUrl[additionalDataUrl.length() * 3 * sizeof(TCHAR)];
+-            Core::URL::Encode(additionalDataUrl.c_str(), static_cast<uint16_t>(additionalDataUrl.length()), encodedDataUrl, static_cast<uint16_t>(sizeof(encodedDataUrl)));
++            // FIXME: At the moment part of additionalDataUrl parameter is hardcoded, localhost is obligatory by Netflix 
++            // but rest of the path can be created dynamically or should be retrived from configuration    
++            const string additionalDataUrl = (_T("http://localhost") + ((_webServerPort.empty() == true)? _T("") : _T(":") + _webServerPort) + _T("/Service/DIALServer/Apps/") + app.Name() + _T("/") + _DefaultDataExtension);
++            const uint16_t maxEncodedSize = static_cast<uint16_t>(additionalDataUrl.length() * 3 * sizeof(TCHAR));
++            TCHAR* encodedDataUrl = reinterpret_cast<TCHAR*>(ALLOCA(maxEncodedSize)); 
+             string parameters = (app.AppURL() + (app.HasQueryParameter()? _T("&") : _T("?")) + _T("additionalDataUrl=") + encodedDataUrl);
+ 
+-            TRACE(Trace::Information, (_T("Launch Application [%s] with params: %s"), app.Name().c_str(), parameters.c_str()));
++            TRACE(Trace::Information, (_T("Launch Application [%s] with params: %s, payload: %s"), app.Name().c_str(), parameters.c_str(), payload.c_str()));
+ 
+             // See if we can find the plugin..
+             ASSERT(_service != NULL);
+@@ -425,8 +428,8 @@ namespace Plugin {
+                 if (app.IsConnected() == false && app.Connect() == false) {
+                     
+                     TRACE_L1("Cannot connect DIAL handler to application %s", app.Name().c_str());
+-                } else if (app.HasHideAndShow() == true && app.IsHidden() == true) {
+-                    uint32_t result = app.Show();
++                } else if (app.HasHide() == true && app.IsHidden() == true) {
++                    uint32_t result = app.Start(parameters, payload);
+ 
+                     // system app has special error codes. Handle them here.
+                     if (app.Name() == _SystemApp) {
+@@ -442,15 +445,9 @@ namespace Plugin {
+                         }
+                     } else {
+                         if (result == Core::ERROR_NONE) {
+-                            if (app.URL(parameters, payload) == true) {
+-                                response->Location = _dialServiceImpl->URL() + '/' + app.Name() + '/' + _DefaultControlExtension;
+-                                response->ErrorCode = Web::STATUS_CREATED;
+-                                response->Message = _T("Created");
+-                            }
+-                            else {
+-                                response->ErrorCode = Web::STATUS_NOT_IMPLEMENTED;
+-                                response->Message = _T("Not implemented");
+-                            }
++                            response->Location = _dialServiceImpl->URL() + '/' + app.Name() + '/' + _DefaultControlExtension;
++                            response->ErrorCode = Web::STATUS_CREATED;
++                            response->Message = _T("Created");
+                         }
+                         else {
+                             response->ErrorCode = Web::STATUS_SERVICE_UNAVAILABLE;
+@@ -600,7 +597,7 @@ namespace Plugin {
+                     } else if (request.Verb == Web::Request::HTTP_POST) {
+                         if (index.Next() == true && index.Current() == kHideCommand) {
+                             if (selectedApp->second.IsRunning() == true) {
+-                                if (selectedApp->second.HasHideAndShow() == true) {
++                                if (selectedApp->second.HasHide() == true) {
+                                     result->ErrorCode = Web::STATUS_OK;
+                                     result->Message = _T("OK");
+                                     selectedApp->second.Hide();
+@@ -622,6 +619,12 @@ namespace Plugin {
+                         result->Message = _T("OK");
+                         selectedApp->second.Running(request.Verb == Web::Request::HTTP_POST);
+                     }
++                } else if (index.Current() == _DefaultHiddenExtension) {
++                    if ((request.Verb == Web::Request::HTTP_POST) || (request.Verb == Web::Request::HTTP_DELETE)) {
++                        result->ErrorCode = Web::STATUS_OK;
++                        result->Message = _T("OK");
++                        selectedApp->second.Hidden(request.Verb == Web::Request::HTTP_POST);
++                    }    
+                 } else if (index.Current() == _DefaultDataExtension) {
+                     result->ErrorCode = Web::STATUS_OK;
+                     result->Message = _T("OK");
+@@ -655,6 +658,11 @@ namespace Plugin {
+         // Let's set the URL of the WebServer, as it is active :-)
+         _dialServiceImpl->Locator(pluginInterface->Accessor() + _dialPath);
+ 
++        Core::URL url = Core::URL(pluginInterface->Accessor());
++        if (url.Port().IsSet() == true) {
++            _webServerPort = Core::NumberType<uint16_t>(url.Port().Value()).Text();
++        }
++
+         // Redirect all calls to the DIALServer, via a proxy.
+         pluginInterface->AddProxy(_dialPath, _dialPath, remote);
+ 
+diff --git a/DIALServer/DIALServer.h b/DIALServer/DIALServer.h
+index be47a92..5011ea5 100644
+--- a/DIALServer/DIALServer.h
++++ b/DIALServer/DIALServer.h
+@@ -45,6 +45,7 @@ namespace Plugin {
+                     , URL()
+                     , Config()
+                     , RuntimeChange(false)
++                    , Hide(false)
+                 {
+                     Add(_T("name"), &Name);
+                     Add(_T("callsign"), &Callsign);
+@@ -52,6 +53,7 @@ namespace Plugin {
+                     Add(_T("url"), &URL);
+                     Add(_T("config"), &Config);
+                     Add(_T("runtimechange"), &RuntimeChange);
++                    Add(_T("hide"), &Hide);
+                 }
+                 App(const App& copy)
+                     : Core::JSON::Container()
+@@ -61,6 +63,7 @@ namespace Plugin {
+                     , URL(copy.URL)
+                     , Config(copy.Config)
+                     , RuntimeChange(copy.RuntimeChange)
++                    , Hide(copy.Hide)
+                 {
+                     Add(_T("name"), &Name);
+                     Add(_T("callsign"), &Callsign);
+@@ -68,6 +71,7 @@ namespace Plugin {
+                     Add(_T("url"), &URL);
+                     Add(_T("config"), &Config);
+                     Add(_T("runtimechange"), &RuntimeChange);
++                    Add(_T("hide"), &Hide);
+                 }
+                 virtual ~App()
+                 {
+@@ -80,6 +84,7 @@ namespace Plugin {
+                 Core::JSON::String URL;
+                 Core::JSON::String Config;
+                 Core::JSON::Boolean RuntimeChange;
++                Core::JSON::Boolean Hide;
+             };
+ 
+         private:
+@@ -146,11 +151,11 @@ namespace Plugin {
+             virtual bool HasStartAndStop() const = 0;
+ 
+             // Returns wheter DIAL handler has ability to hide & show a service
+-            virtual bool HasHideAndShow() const = 0;
++            virtual bool HasHide() const = 0;
+ 
+             // Start an application with specified URL / payload
+             // Can only be called if HasStartAndStop() evaluates to true
+-            virtual uint32_t Start(const string& data, const string& payload) = 0;
++            virtual uint32_t Start(const string& parameters, const string& payload) = 0;
+ 
+             // Connect DIAL handler with the service (eg. DIAL of youtube to cobalt).
+             // Returns true if connection is successfull, false otherwise
+@@ -159,16 +164,13 @@ namespace Plugin {
+             // Returns whether DIAL handler is connected with the service
+             virtual bool IsConnected() = 0;
+ 
+-            // Stop a running service. Additional data can be passed if in passive mode
++            // Stop a running service. Additional parameters can be passed if in passive mode
+             // Can only be called if HasStartAndStop() evaluates to true
+-            virtual void Stop(const string& data, const string& payload) = 0;
++            virtual void Stop(const string& parameters, const string& payload) = 0;
+ 
+             virtual bool IsHidden() const = 0;
+ 
+-            // Make serivce visible. Can be used only if HasHideAndShow() evaluates to true
+-            virtual uint32_t Show() = 0;
+-
+-            // Hide service. Can be used only if HasHideAndShow() evaluates to true
++            // Hide service. Can be used only if HasHide() evaluates to true
+             virtual void Hide() = 0;
+ 
+             // Methods for passing a URL to DIAL handler
+@@ -183,6 +185,10 @@ namespace Plugin {
+             // Used only in passive mode
+             virtual void Running(const bool isRunning) = 0;
+ 
++            // Method used for setting the wheter managed service is hidden or not. 
++            // Used only in passive mode
++            virtual void Hidden(const bool isHidden) = 0;
++
+             // Method used for passing a SwitchBoard to DIAL handler. 
+             // Used only in switchboard mode
+             virtual void SwitchBoard(Exchange::ISwitchBoard* switchBoard) = 0;
+@@ -200,22 +206,22 @@ namespace Plugin {
+             ~System() override {}
+             bool IsRunning() const { return true; }
+             bool HasStartAndStop() const override { return false; }
+-            uint32_t Start(const string& data, const string& payload) override {
++            uint32_t Start(const string& parameters, const string& payload) override {
+                 ASSERT(!"Not supported and not even supposed to");
+                 return Core::ERROR_GENERAL;
+             }
+             bool Connect() override { return true;}
+             bool IsConnected() override {return true;}
+-            void Stop(const string& data, const string& payload) { ASSERT(!"Not supported and not even supposed to"); }
+-            bool HasHideAndShow() const { return true; }
++            void Stop(const string& parameters, const string& payload) { ASSERT(!"Not supported and not even supposed to"); }
++            bool HasHide() const { return true; }
+             bool IsHidden() const { return true; }
+-            uint32_t Show() override { return Core::ERROR_GENERAL; }
+             void Hide() override {}
+             string URL() const override { return {}; }
+             bool URL(const string& url, const string& payload) override { return (false); };
+             AdditionalDataType AdditionalData() const override { return { }; }
+             void AdditionalData(AdditionalDataType&& data) override {}
+             void Running(const bool isRunning) override {}
++            void Hidden(const bool isHidden) override {}
+             void SwitchBoard(Exchange::ISwitchBoard* switchBoard) override {}
+         };
+ 
+@@ -240,7 +246,9 @@ namespace Plugin {
+                 , _callsign(config.Callsign.IsSet() == true ? config.Callsign.Value() : config.Name.Value())
+                 , _passiveMode(config.Callsign.IsSet() == false)
+                 , _isRunning(false)
++                , _isHidden(false)
+                 , _hasRuntimeChange(config.RuntimeChange.Value())
++                , _hasHide(config.Hide.Value())
+                 , _parent(parent)
+             {
+                 ASSERT(_parent != nullptr);
+@@ -280,18 +288,25 @@ namespace Plugin {
+             {
+                 return (_passiveMode == true ? _isRunning : (_switchBoard != nullptr ? _switchBoard->IsActive(_callsign) : (_service->State() == PluginHost::IShell::ACTIVATED)));
+             }
+-            bool IsHidden() const override { return false; }
+-            bool HasHideAndShow() const override { return false; }
++            bool IsHidden() const override { return _isHidden; }
++            bool HasHide() const override { return _hasHide; }
+             bool HasStartAndStop() const override { return true; }
+-            uint32_t Show() override { return Core::ERROR_GENERAL; }
+-            void Hide() override {}
+-            virtual uint32_t Start(const string& data, const string& payload)
++            void Hide() override 
++            {
++                if (_passiveMode == true) {
++                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"hide\" }"));
++                    _service->Notify(message);
++                    _parent->event_hide(_callsign);
++                }
++            }
++            virtual uint32_t Start(const string& parameters, const string& payload)
+             {
+                 uint32_t result = Core::ERROR_NONE;
+                 if (_passiveMode == true) {
+-                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"start\", \"data\":\"" + data + "\" }"));
++                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"start\",  \"parameters\":\"" + parameters +  ", \"payload\":\"" + payload +"\" }"));
+                     _service->Notify(message);
+-                    _parent->event_start(_callsign, data);
++                    _parent->event_start(_callsign, parameters, payload);
++                    
+                 } else {
+                     if (_switchBoard != nullptr) {
+                         result = _switchBoard->Activate(_callsign);
+@@ -304,19 +319,19 @@ namespace Plugin {
+                             TRACE_L1("DIAL: Failed to attach to service");
+                             result = Core::ERROR_UNAVAILABLE;
+                         } else {
+-                            URL(data, payload);
++                            URL(parameters, payload);
+                         }
+                     }
+                 }
+ 
+                 return result;
+             }
+-            virtual void Stop(const string& data, const string& payload)
++            virtual void Stop(const string& parameters, const string& payload)
+             {
+                 if (_passiveMode == true) {
+-                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"stop\", \"data\":\"" + data + "\"}"));
++                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"stop\", \"parameters\":\"" + parameters + ", \"payload\":\"" + payload + "\"}"));            
+                     _service->Notify(message);
+-                    _parent->event_stop(_callsign, data);
++                    _parent->event_stop(_callsign, parameters);
+                 } else {
+                     if (_switchBoard != nullptr) {
+                         _switchBoard->Deactivate(_callsign);
+@@ -343,7 +358,7 @@ namespace Plugin {
+ 
+                 if (_hasRuntimeChange == true) {
+                     if (_passiveMode == true) {
+-                        const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"change\", \"data\":\"" + url + "\"}"));
++                        const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"change\", \"parameters\":\"" + url + "\"}"));
+                         _service->Notify(message);
+                         result = true;
+                     }
+@@ -376,6 +391,15 @@ namespace Plugin {
+ 
+                 _isRunning = isRunning;
+             }
++            virtual void Hidden(const bool isHidden)
++            {
++                // This method is only for the Passive mode..
++                if (_passiveMode != true) {
++                    TRACE_L1(_T("This app is not configured to be Passive !!!!%s"), "");
++                }
++
++                _isHidden = isHidden;
++            }
+             virtual void SwitchBoard(Exchange::ISwitchBoard* switchBoard)
+             {
+                 ASSERT((_switchBoard != nullptr) ^ (switchBoard != nullptr));
+@@ -403,7 +427,9 @@ namespace Plugin {
+             string _callsign;
+             bool _passiveMode;
+             bool _isRunning;
++            bool _isHidden;
+             bool _hasRuntimeChange;
++            bool _hasHide;
+             DIALServer* _parent;
+             AdditionalDataType _additionalData;
+         };
+@@ -532,7 +558,7 @@ namespace Plugin {
+                 return application;
+             }
+         };
+-        class EXTERNAL Protocol {
++        class Protocol {
+         private:
+             // -------------------------------------------------------------------
+             // This object should not be copied or assigned. Prevent the copy
+@@ -718,13 +744,9 @@ namespace Plugin {
+             { 
+                 return (_application->IsHidden()); 
+             }
+-            inline bool HasHideAndShow() const
+-            {
+-                return _application->HasHideAndShow();
+-            }
+-            inline uint32_t Show()
++            inline bool HasHide() const
+             {
+-                return _application->Show();
++                return _application->HasHide();
+             }
+             inline void Hide() 
+             { 
+@@ -742,13 +764,17 @@ namespace Plugin {
+             {
+                 _application->Running(isRunning);
+             }
+-            inline uint32_t Start(const string& data, const string& payload)
++            inline void Hidden(const bool isHidden)
++            {
++                _application->Hidden(isHidden);
++            }
++            inline uint32_t Start(const string& parameters, const string& payload)
+             {
+-                return _application->Start(data, payload);
++                return _application->Start(parameters, payload);
+             }
+-            inline void Stop(const string& data, const string& payload)
++            inline void Stop(const string& parameters, const string& payload)
+             {
+-                _application->Stop(data, payload);
++                _application->Stop(parameters, payload);
+             }
+             inline bool HasStartAndStop() const
+             {
+@@ -974,6 +1000,7 @@ namespace Plugin {
+             , _service(NULL)
+             , _dialURL()
+             , _dialPath()
++            , _webServerPort()
+             , _dialServiceImpl(NULL)
+             , _deviceInfo(Core::ProxyType<Web::TextBody>::Create())
+             , _sink(this)
+@@ -1036,8 +1063,9 @@ namespace Plugin {
+         void StopApplication(const Web::Request& request, Core::ProxyType<Web::Response>& response, AppInformation& app);
+ 
+         //JsonRpc
+-        void event_start(const string& application, const string& parameters);
++        void event_start(const string& application, const string& parameters, const string& payload);
+         void event_stop(const string& application, const string& parameters);
++        void event_hide(const string& application);
+ 
+     private:
+         Core::CriticalSection _adminLock;
+@@ -1046,6 +1074,7 @@ namespace Plugin {
+         PluginHost::IShell* _service;
+         Core::URL _dialURL;
+         string _dialPath;
++        string _webServerPort;
+         DIALServerImpl* _dialServiceImpl;
+         Core::ProxyType<Web::TextBody> _deviceInfo;
+         Core::Sink<Notification> _sink;
+diff --git a/DIALServer/DIALServerJsonRpc.cpp b/DIALServer/DIALServerJsonRpc.cpp
+index daef188..a7840fe 100644
+--- a/DIALServer/DIALServerJsonRpc.cpp
++++ b/DIALServer/DIALServerJsonRpc.cpp
+@@ -30,12 +30,22 @@ namespace Plugin {
+     // API implementation
+     //
+ 
++    // Event: hide - Signals that application hide was requested over DIAL *(passive mode only)*
++    void DIALServer::event_hide(const string& application)
++    {
++        HideParamsData params;
++        params.Application = application;
++
++        Notify(_T("hide"), params);
++    }
++
+     // Event: start - Signals that application start was requested over DIAL *(passive mode only)*
+-    void DIALServer::event_start(const string& application, const string& parameters)
++    void DIALServer::event_start(const string& application, const string& parameters, const string& payload)
+     {
+-        StartParamsInfo params;
++        StartParamsData params;
+         params.Application = application;
+         params.Parameters = parameters;
++        params.Payload = payload;
+ 
+         Notify(_T("start"), params);
+     }
+@@ -43,7 +53,7 @@ namespace Plugin {
+     // Event: stop - Signals that application stop was requested over DIAL *(passive mode only)*
+     void DIALServer::event_stop(const string& application, const string& parameters)
+     {
+-        StartParamsInfo params;
++        StopParamsData params;
+         params.Application = application;
+         params.Parameters = parameters;
+ 
+diff --git a/DIALServer/Netflix.cpp b/DIALServer/Netflix.cpp
+index a541dd3..9a371db 100644
+--- a/DIALServer/Netflix.cpp
++++ b/DIALServer/Netflix.cpp
+@@ -25,6 +25,29 @@
+ namespace WPEFramework {
+ namespace DIALHandlers {
+ 
++    static string Query(const string& params, const string& payload)
++    {
++        string query = params;
++#ifdef NETFLIX_VERSION_5_1
++            // Set proper launch type, i.e. launched by DIAL
++            query += _T("&source_type=12");
++#endif
++#ifdef NETFLIX_VERSION_5_2
++            // Set proper launch type, i.e. launched by DIAL
++            // FIXME: Use project specific iid for now
++            query += _T("&iid=7637f789");
++#endif
++       if (payload.empty() == false) {
++           // Netflix expects the payload as urlencoded option "dial"
++            const uint16_t maxEncodeSize = static_cast<uint16_t>(payload.length() * 3 * sizeof(TCHAR));
++            TCHAR* encodedPayload = reinterpret_cast<TCHAR*>(ALLOCA(maxEncodeSize));
++            Core::URL::Encode(payload.c_str(), static_cast<uint16_t>(payload.length()), encodedPayload, maxEncodeSize);
++            query = query + _T("&dial=") + encodedPayload;
++        }
++    
++        return (query);
++    }
++
+     class Netflix : public Plugin::DIALServer::Default {
+     public:
+         Netflix() = delete;
+@@ -38,44 +61,36 @@ namespace DIALHandlers {
+             , _service(nullptr)
+             , _notification(*this)
+             , _hidden(false)
++            , _hasHide(config.Hide.Value())
+             , _lock()
+             , _callsign(config.Callsign.Value())
+         {
+             ASSERT(service != nullptr);
+             ASSERT(parent != nullptr);
+-            if (_callsign.empty() == false) {
+-                service->Register(&_notification);
+-            }
++            service->Register(&_notification);
+         }
+         ~Netflix() override
+         {
+             Detach();
+-            if (_callsign.empty() == false) {
+-                _service->Unregister(&_notification);
+-            }
++            _service->Unregister(&_notification);
+         }
+ 
+     public:
+         uint32_t Start(const string& params, const string& payload) override
+         {
+-            string query = params;
++            const string query = Query(params, payload);
+ 
+-            // Set proper launch type, i.e. launched by DIAL
+-            query += _T("&source_type=12");
+-
+-            if (payload.empty() == false) {
+-                // Netflix expects the payload as urlencoded option "dial"
+-                TCHAR encodedPayload[payload.length() * 3 * sizeof(TCHAR)];
+-                Core::URL::Encode(payload.c_str(), static_cast<uint16_t>(payload.length()), encodedPayload, static_cast<uint16_t>(sizeof(encodedPayload)));
+-                query = query + _T("&dial=") + encodedPayload;
+-            }
++            _lock.Lock();
++            if ((_netflix != nullptr) && (_hidden == true)) {
++                _netflix->SetVisible(true);
++                _hidden = false;
++            } 
++            _lock.Unlock();
+ 
+-            if (_callsign.empty() == false) {
+-                // Set custom query paramters
+-                Core::SystemInfo::SetEnvironment(_T("ONE_TIME_QUERY_STRING_OVERRIDE"), query.c_str());
+-            }
++            // Set custom query paramters
++            Core::SystemInfo::SetEnvironment(_T("ONE_TIME_QUERY_STRING_OVERRIDE"), query.c_str());
+ 
+-            return (Default::Start(query, {}));
++            return (Default::Start(query, payload));
+         }
+         void Stop(const string& params, const string& payload) override
+         {
+@@ -91,22 +106,9 @@ namespace DIALHandlers {
+         {
+             return (_netflix != nullptr);
+         }
+-        bool HasHideAndShow() const override
++        bool HasHide() const override
+         {
+-            return (_netflix != nullptr);
+-        }
+-        uint32_t Show() override
+-        {
+-            _lock.Lock();
+-            uint32_t result = Core::ERROR_NONE;
+-            _hidden = false;
+-            if (_netflix != nullptr) {
+-                _netflix->SetVisible(true);
+-            } else {
+-                result = Core::ERROR_GENERAL;
+-            }
+-            _lock.Unlock();
+-            return (result);
++            return ((_netflix != nullptr) && (_hasHide == true));
+         }
+         void Hide() override
+         {
+@@ -157,7 +159,9 @@ namespace DIALHandlers {
+             Notification() = delete;
+             Notification(const Notification&) = delete;
+             Notification& operator=(const Notification&) = delete;
+-            Notification(Netflix& parent)
++
++        public:
++            explicit Notification(Netflix& parent)
+                 : _parent(parent)
+             {
+             }
+@@ -190,9 +194,10 @@ namespace DIALHandlers {
+         PluginHost::IShell* _service;
+         Core::Sink<Notification> _notification;
+         bool _hidden;
++        bool _hasHide;
+         mutable Core::CriticalSection _lock;
+         string _callsign;
+-    };
++    }; // class Netflix
+ 
+     static Plugin::DIALServer::ApplicationRegistrationType<Netflix> _netflixHandler;
+ }
+diff --git a/DIALServer/YouTube.cpp b/DIALServer/YouTube.cpp
+index 5acb880..f5c8db8 100644
+--- a/DIALServer/YouTube.cpp
++++ b/DIALServer/YouTube.cpp
+@@ -39,13 +39,14 @@ namespace DIALHandlers {
+             : Default(service, config, parent)
+             , _browser(nullptr)
+             , _hidden(false)
++            , _hasHide(config.Hide.Value())
+             , _notification(this)
+         {
+         }
+ #ifdef __WINDOWS__
+ #pragma warning(default : 4355)
+ #endif
+-        virtual ~YouTube()
++        ~YouTube() override
+         {
+             Stopped({}, {});
+         }
+@@ -53,9 +54,10 @@ namespace DIALHandlers {
+     public:
+         uint32_t Start(const string& params, const string& payload) override
+         {
+-            return Default::Start(params + _T("&") + payload, {});
+-        }
++            _browser->Hide(false);
+ 
++            return Default::Start(params, payload);
++        }
+         bool Connect() override
+         {
+             _browser = Plugin::DIALServer::Default::QueryInterface<Exchange::IBrowser>();
+@@ -77,47 +79,61 @@ namespace DIALHandlers {
+                 _browser = nullptr;
+             }
+         }
+-
+-        bool HasHideAndShow() const override {
+-            return _browser != nullptr;
+-        }
+-
+-        uint32_t Show() override {
+-            _browser->Hide(false);
+-            return Core::ERROR_NONE;
++        bool HasHide() const override
++        {
++            return ((_browser != nullptr) && (_hasHide == true));
+         }
+-
+-        void Hide() override {
++        void Hide() override
++        {
+             _browser->Hide(true);
+         }
+-
+-        bool IsHidden() const override {
++        bool IsHidden() const override
++        {
+             return _hidden;
+         }
+ 
+-        bool URL(const string& url, const string& payload) override {
+-            _browser->SetURL(url + _T("&") + payload);
+-            return (true);
+-        }
+-
+     private:
+         struct Notification : public Exchange::IBrowser::INotification {
+-            explicit Notification(YouTube* parent) : _parent(parent) {}
+-            void LoadFinished(const string& URL) override {}
+-            void URLChanged(const string& URL) override {}
+-            void Hidden(const bool hidden) override { _parent->_hidden = hidden; }
+-            void Closure() override {}
++        public:
++            Notification() = delete;
++            Notification(const Notification&) = delete;
++            Notification& operator=(const Notification&) = delete;
++
++        public:
++            explicit Notification(YouTube* parent)
++                : _parent(parent)
++            {
++            }
++            ~Notification() = default;
+ 
+-            BEGIN_INTERFACE_MAP(YouTube)
++        public:
++            void Hidden(const bool hidden) override
++            {
++                _parent->_hidden = hidden;
++            }
++            void LoadFinished(const string& URL) override
++            {
++            }
++            void URLChanged(const string& URL) override
++            {
++            }
++            void Closure() override
++            {
++            }
++
++            BEGIN_INTERFACE_MAP(Notification)
+                 INTERFACE_ENTRY(Exchange::IBrowser::INotification)
+             END_INTERFACE_MAP
+ 
++        private:
+             YouTube* _parent;
+         };
++
+         Exchange::IBrowser* _browser;
+         bool _hidden;
++        bool _hasHide;
+         Core::Sink<Notification> _notification;
+-    };
++    }; // class YouTube
+ 
+     static Plugin::DIALServer::ApplicationRegistrationType<YouTube> _youTubeHandler;
+ }
+-- 
+2.25.1
+
