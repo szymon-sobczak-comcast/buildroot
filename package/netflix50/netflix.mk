@@ -30,7 +30,7 @@ NETFLIX50_DEPENDENCIES = \
 	gst1-plugins-bad \
 	gst1-libav \
 	libgles \
-	libegl \
+	libegl
 	# TODO: seems like they are not needed
 	# fdk-aac \
 	# graphite2 \
@@ -176,6 +176,8 @@ NETFLIX50_CONF_OPTS += \
 	-DNRDP_HAS_AUDIOMIXER=ON \
 	-DUSE_AUDIOMIXER_NEXUS=ON
 endif
+else
+NETFLIX50_CONF_OPTS += -DNRDP_HAS_AUDIOMIXER=OFF
 endif
 
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_COMPOSITORCLIENT),y)
