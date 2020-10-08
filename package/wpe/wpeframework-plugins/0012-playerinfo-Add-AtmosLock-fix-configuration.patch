@@ -1,26 +1,22 @@
-From f455887236a783f98d1d0a7fcdac7181a5818598 Mon Sep 17 00:00:00 2001
-From: Artur Gebicz <a.gebicz@metrological.com>
-Date: Mon, 10 Aug 2020 11:27:03 +0200
-Subject: [PATCH] [playerinfo] Add AtmosLock, fix configuration
+From 15587dd1a85643373fcd2b21995b6ca15fd635b9 Mon Sep 17 00:00:00 2001
+From: Damian Danylko <d.danylko@metrological.com>
+Date: Thu, 8 Oct 2020 10:30:36 +0200
+Subject: [PATCH] PlayerInfor for MCA
 
-This adds Nexus implementaion for AtmosLock. Other methods are dummy
-implementations that should be implemented in the future.
-Additionally fixes for the plugin configuration has been made to
-read configuration parametrs from the build system.
 ---
  PlayerInfo/CMakeLists.txt                 |   4 +-
  PlayerInfo/Dolby.h                        |  35 -------
  PlayerInfo/Dolby/CMakeLists.txt           |  18 +++-
- PlayerInfo/Dolby/DolbyOutput.cpp          |  18 +++-
- PlayerInfo/Dolby/Nexus/Implementation.cpp | 115 ++++++++++++++++++++++
+ PlayerInfo/Dolby/DolbyOutput.cpp          |  19 +++-
+ PlayerInfo/Dolby/Nexus/Implementation.cpp | 116 ++++++++++++++++++++++
  PlayerInfo/Dolby/include/Dolby.h          |   6 ++
  PlayerInfo/PlayerInfo.h                   |   1 +
- 7 files changed, 156 insertions(+), 41 deletions(-)
+ 7 files changed, 158 insertions(+), 41 deletions(-)
  delete mode 100644 PlayerInfo/Dolby.h
  create mode 100644 PlayerInfo/Dolby/Nexus/Implementation.cpp
 
 diff --git a/PlayerInfo/CMakeLists.txt b/PlayerInfo/CMakeLists.txt
-index 660edc1..b494ddd 100644
+index 660edc11..b494dddc 100644
 --- a/PlayerInfo/CMakeLists.txt
 +++ b/PlayerInfo/CMakeLists.txt
 @@ -18,7 +18,7 @@
@@ -43,7 +39,7 @@ index 660edc1..b494ddd 100644
          PRIVATE
 diff --git a/PlayerInfo/Dolby.h b/PlayerInfo/Dolby.h
 deleted file mode 100644
-index 021249d..0000000
+index 021249d1..00000000
 --- a/PlayerInfo/Dolby.h
 +++ /dev/null
 @@ -1,35 +0,0 @@
@@ -83,7 +79,7 @@ index 021249d..0000000
 -}
 -#endif
 diff --git a/PlayerInfo/Dolby/CMakeLists.txt b/PlayerInfo/Dolby/CMakeLists.txt
-index a6f270b..2f8e508 100644
+index a6f270b1..2f8e5086 100644
 --- a/PlayerInfo/Dolby/CMakeLists.txt
 +++ b/PlayerInfo/Dolby/CMakeLists.txt
 @@ -17,7 +17,7 @@
@@ -126,10 +122,18 @@ index a6f270b..2f8e508 100644
      message(SEND_ERROR "No DOLBY_IMPLEMENTATION picked. Turn off dolby support or pick one.")
  endif()
 diff --git a/PlayerInfo/Dolby/DolbyOutput.cpp b/PlayerInfo/Dolby/DolbyOutput.cpp
-index e3c64c2..5ea1316 100644
+index e3c64c24..4dedcda4 100644
 --- a/PlayerInfo/Dolby/DolbyOutput.cpp
 +++ b/PlayerInfo/Dolby/DolbyOutput.cpp
-@@ -24,7 +24,7 @@ namespace WPEFramework
+@@ -17,6 +17,7 @@
+  * limitations under the License.
+  */
+ 
++#include "../../Module.h"
+ #include "Dolby.h"
+ 
+ namespace WPEFramework
+@@ -24,7 +25,7 @@ namespace WPEFramework
      namespace Plugin
      {
  
@@ -138,7 +142,7 @@ index e3c64c2..5ea1316 100644
          {
          public:
              void Mode(const Exchange::Dolby::IOutput::Type value) override
-@@ -43,6 +43,20 @@ namespace WPEFramework
+@@ -43,6 +44,20 @@ namespace WPEFramework
                  return result;
              };
  
@@ -159,7 +163,7 @@ index e3c64c2..5ea1316 100644
              BEGIN_INTERFACE_MAP(DolbyOutputImplementation)
                  INTERFACE_ENTRY(Exchange::Dolby::IOutput)
              END_INTERFACE_MAP
-@@ -51,4 +65,4 @@ namespace WPEFramework
+@@ -51,4 +66,4 @@ namespace WPEFramework
          SERVICE_REGISTRATION(DolbyOutputImplementation, 1, 0);
  
      } // namespace Plugin
@@ -168,10 +172,10 @@ index e3c64c2..5ea1316 100644
 +} // namespace WPEFramework
 diff --git a/PlayerInfo/Dolby/Nexus/Implementation.cpp b/PlayerInfo/Dolby/Nexus/Implementation.cpp
 new file mode 100644
-index 0000000..3b0e3e9
+index 00000000..578a1786
 --- /dev/null
 +++ b/PlayerInfo/Dolby/Nexus/Implementation.cpp
-@@ -0,0 +1,115 @@
+@@ -0,0 +1,116 @@
 +/*
 + * If not stated otherwise in this file or this component's LICENSE file the
 + * following copyright and licenses apply:
@@ -191,6 +195,7 @@ index 0000000..3b0e3e9
 + * limitations under the License.
 + */
 +
++#include "../../Module.h"
 +#include "Dolby.h"
 +
 +#include <nexus_config.h>
@@ -288,7 +293,7 @@ index 0000000..3b0e3e9
 +    return status;
 +}
 diff --git a/PlayerInfo/Dolby/include/Dolby.h b/PlayerInfo/Dolby/include/Dolby.h
-index c2181c6..ef16dbc 100644
+index c2181c65..ef16dbce 100644
 --- a/PlayerInfo/Dolby/include/Dolby.h
 +++ b/PlayerInfo/Dolby/include/Dolby.h
 @@ -51,6 +51,12 @@ set_audio_output_type(const enum WPEFramework::Exchange::Dolby::IOutput::Type ty
@@ -305,7 +310,7 @@ index c2181c6..ef16dbc 100644
  }
  #endif
 diff --git a/PlayerInfo/PlayerInfo.h b/PlayerInfo/PlayerInfo.h
-index fc6010c..35d538f 100644
+index fc6010c3..35d538f4 100644
 --- a/PlayerInfo/PlayerInfo.h
 +++ b/PlayerInfo/PlayerInfo.h
 @@ -52,6 +52,7 @@ namespace Plugin {
