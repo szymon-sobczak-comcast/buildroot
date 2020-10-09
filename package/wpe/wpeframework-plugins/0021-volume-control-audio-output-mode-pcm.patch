@@ -1,0 +1,14 @@
+diff --git a/VolumeControl/Nexus/VolumeControlPlatform.cpp b/VolumeControl/Nexus/VolumeControlPlatform.cpp
+index c691f508..59799fa7 100644
+--- a/VolumeControl/Nexus/VolumeControlPlatform.cpp
++++ b/VolumeControl/Nexus/VolumeControlPlatform.cpp
+@@ -85,6 +85,9 @@ public:
+           type = _T("Linear");
+       }
+ 
++      audioSettings.hdmi.outputMode = NxClient_AudioOutputMode_ePcm;
++      audioSettings.spdif.outputMode = NxClient_AudioOutputMode_ePcm;
++
+       audioSettings.leftVolume = audioSettings.rightVolume = toSet;
+ 
+       int result = NxClient_SetAudioSettings(&audioSettings);
