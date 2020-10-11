@@ -1,7 +1,7 @@
-From 18cc862a30188f514f6e2bb23b87434129916f25 Mon Sep 17 00:00:00 2001
+From 6dc155cf1e238c621a72024ee3fc10b7d2c3dfa4 Mon Sep 17 00:00:00 2001
 From: Bram Oosterhuis <mail@bybram.com>
 Date: Thu, 8 Oct 2020 10:59:05 +0200
-Subject: [PATCH 3/5] DIAL: Add flag to switch deprecated API
+Subject: [PATCH 4/6] DIAL: Add flag to switch deprecated API
 
 ---
  DIALServer/DIALServer.h | 7 +++++++

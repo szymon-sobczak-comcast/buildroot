@@ -1,7 +1,7 @@
-From 52ad6852f34d3204f0798a61ca9e2fc457fae21f Mon Sep 17 00:00:00 2001
+From 630d5378d36e8d4b8ad15d0e72703eec60a80b87 Mon Sep 17 00:00:00 2001
 From: Bram Oosterhuis <mail@bybram.com>
 Date: Wed, 7 Oct 2020 22:38:58 +0200
-Subject: [PATCH 4/5] Revert DIAL: removing show since its not part of the DIAL
+Subject: [PATCH 5/6] Revert DIAL: removing show since its not part of the DIAL
 
 ---
  DIALServer/AmazonPrime.cpp       | 49 ++++++++++++++++++++++++--------
@@ -145,7 +145,7 @@ index d64696c..2c19ee5 100644
  
      }; // class AmazonPrime
 diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
-index 5240ca3..d75ed19 100644
+index cf37c49..b5cd808 100644
 --- a/DIALServer/DIALServer.cpp
 +++ b/DIALServer/DIALServer.cpp
 @@ -212,7 +212,7 @@ namespace Plugin {
@@ -157,7 +157,7 @@ index 5240ca3..d75ed19 100644
          bool isAtLeast2_1 = Version{2, 1, 0} <= version;
          // allowSop is mandatory to be true starting from 2.1
          string allowStop = isAtLeast2_1 == true || HasStartAndStop() == true ? "true" : "false";
-@@ -428,8 +428,8 @@ namespace Plugin {
+@@ -429,8 +429,8 @@ namespace Plugin {
                  if (app.IsConnected() == false && app.Connect() == false) {
                      
                      TRACE_L1("Cannot connect DIAL handler to application %s", app.Name().c_str());
@@ -168,7 +168,7 @@ index 5240ca3..d75ed19 100644
  
                      // system app has special error codes. Handle them here.
                      if (app.Name() == _SystemApp) {
-@@ -597,7 +597,7 @@ namespace Plugin {
+@@ -598,7 +598,7 @@ namespace Plugin {
                      } else if (request.Verb == Web::Request::HTTP_POST) {
                          if (index.Next() == true && index.Current() == kHideCommand) {
                              if (selectedApp->second.IsRunning() == true) {

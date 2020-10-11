@@ -1,14 +1,14 @@
-From 44762d7bd0a64626a7cfe60953a0244feafcb643 Mon Sep 17 00:00:00 2001
+From 7b6b72fb72bfd30c10b16f7f519a6dc875d73529 Mon Sep 17 00:00:00 2001
 From: Bram Oosterhuis <mail@bybram.com>
 Date: Tue, 6 Oct 2020 20:36:50 +0200
-Subject: [PATCH 2/5] DIAL: network interface workaround
+Subject: [PATCH 3/6] DIAL: network interface workaround
 
 ---
  DIALServer/DIALServer.cpp | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
-index 11bdc36..5240ca3 100644
+index 2c90af1..cf37c49 100644
 --- a/DIALServer/DIALServer.cpp
 +++ b/DIALServer/DIALServer.cpp
 @@ -278,7 +278,7 @@ namespace Plugin {
