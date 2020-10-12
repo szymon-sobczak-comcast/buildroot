@@ -49,6 +49,12 @@ menu "DPI options"
       default "36700160"
       help
           Surface cache capacity in bytes
+          
+  config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_NETFLIX_JAVASCRIPT_SIZE
+      string "javascript cache"
+      default "142606336"
+      help
+          Pre-Allocated JavaScript memory in bytes
 
   config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_NETFLIX_APPBOOTKEY
       depends on BR2_PACKAGE_WPEFRAMEWORK_NETFLIX
