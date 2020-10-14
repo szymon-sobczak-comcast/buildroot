@@ -11,6 +11,14 @@ config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_NETFLIX_AUTOSTART
     bool "autostart"
     default n
 menu "DPI options"
+
+  config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_NETFLIX_ENABLE_AUDIO_DOWNMIX
+    depends on BR2_PACKAGE_WPEFRAMEWORK_NETFLIX
+    bool "audiodownmix"
+    default n
+    help
+          Audio downmix flag
+
   config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_NETFLIX_MODEL
       depends on BR2_PACKAGE_WPEFRAMEWORK_NETFLIX
       string "model"
