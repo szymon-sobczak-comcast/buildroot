@@ -1,7 +1,7 @@
-From b08923a102d2946d8e62fb5a622301d80d1dc294 Mon Sep 17 00:00:00 2001
+From 99c25c287be07764037fde08e1cdea9cf2bf1bd3 Mon Sep 17 00:00:00 2001
 From: Bram Oosterhuis <mail@bybram.com>
-Date: Thu, 8 Oct 2020 11:15:57 +0200
-Subject: [PATCH 5/5] DIAL: Use switch to enable deprecated behaviour
+Date: Thu, 15 Oct 2020 00:14:46 +0200
+Subject: [PATCH] DIALServer: Use switch to enable deprecated behaviour
 
 ---
  DIALServer/DIALServer.cpp | 11 ++++++-----
@@ -9,7 +9,7 @@ Subject: [PATCH 5/5] DIAL: Use switch to enable deprecated behaviour
  2 files changed, 24 insertions(+), 7 deletions(-)
 
 diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
-index b5cd808..8c89c77 100644
+index b5cd808..4bc933a 100644
 --- a/DIALServer/DIALServer.cpp
 +++ b/DIALServer/DIALServer.cpp
 @@ -277,6 +277,8 @@ namespace Plugin {
@@ -47,7 +47,7 @@ index b5cd808..8c89c77 100644
                          selectedApp->second.Running(request.Verb == Web::Request::HTTP_POST);
                      }
 -                } else if (index.Current() == _DefaultHiddenExtension) {
-+                } else if (index.Current() == ((DeprecatedAPI() == true) ? _T("hidding") : _DefaultHiddenExtension)) {
++                } else if (index.Current() == ((DeprecatedAPI() == true) ? _T("Hidding") : _DefaultHiddenExtension)) {
                      if ((request.Verb == Web::Request::HTTP_POST) || (request.Verb == Web::Request::HTTP_DELETE)) {
                          result->ErrorCode = Web::STATUS_OK;
                          result->Message = _T("OK");
