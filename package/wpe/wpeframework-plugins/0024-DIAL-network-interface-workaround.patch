@@ -1,7 +1,7 @@
-From 7b6b72fb72bfd30c10b16f7f519a6dc875d73529 Mon Sep 17 00:00:00 2001
+From 3dd1287c1a75a3a3d64e3e40860dae9267452899 Mon Sep 17 00:00:00 2001
 From: Bram Oosterhuis <mail@bybram.com>
 Date: Tue, 6 Oct 2020 20:36:50 +0200
-Subject: [PATCH 3/6] DIAL: network interface workaround
+Subject: [PATCH 2/5] DIAL: network interface workaround
 
 ---
  DIALServer/DIALServer.cpp | 2 +-

@@ -1,7 +1,7 @@
-From 876ab3c0bb1f6f3c792e3fb2cbf33d2292f8dd8a Mon Sep 17 00:00:00 2001
+From b08923a102d2946d8e62fb5a622301d80d1dc294 Mon Sep 17 00:00:00 2001
 From: Bram Oosterhuis <mail@bybram.com>
 Date: Thu, 8 Oct 2020 11:15:57 +0200
-Subject: [PATCH 6/6] DIAL: Use switch to enable deprecated behaviour
+Subject: [PATCH 5/5] DIAL: Use switch to enable deprecated behaviour
 
 ---
  DIALServer/DIALServer.cpp | 11 ++++++-----
@@ -52,7 +52,7 @@ index b5cd808..8c89c77 100644
                          result->ErrorCode = Web::STATUS_OK;
                          result->Message = _T("OK");
 diff --git a/DIALServer/DIALServer.h b/DIALServer/DIALServer.h
-index 27ed64e..fb613c7 100644
+index 66383e4..a0593c8 100644
 --- a/DIALServer/DIALServer.h
 +++ b/DIALServer/DIALServer.h
 @@ -289,6 +289,22 @@ namespace Plugin {
@@ -82,8 +82,8 @@ index 27ed64e..fb613c7 100644
              {
                  uint32_t result = Core::ERROR_NONE;
                  if (_passiveMode == true) {
--                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"start\",  \"parameters\":\"" + parameters +  ", \"payload\":\"" + payload +"\" }"));
-+                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"start\",  \"parameters\":\"" + ( (_parent->DeprecatedAPI() == true) ? ConcatenatePayload(parameters, payload) : parameters) +  ", \"payload\":\"" + payload +"\" }"));
+-                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"start\",  \"parameters\":\"") + parameters +  _T("\", \"payload\":\"") + payload + _T("\" }"));
++                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"start\",  \"parameters\":\"") + ((_parent->DeprecatedAPI() == true) ? ConcatenatePayload(parameters, payload) : parameters) +  _T("\", \"payload\":\"") + payload + _T("\" }"));
                      _service->Notify(message);
 -                    _parent->event_start(_callsign, parameters, payload);
 +                    _parent->event_start(_callsign, (_parent->DeprecatedAPI() == true) ? ConcatenatePayload(parameters, payload) : parameters, payload);

@@ -1,18 +1,41 @@
-From 9ff3cc31a11fe1a9045135bf24ede86df58eee8c Mon Sep 17 00:00:00 2001
+From 89415d4703e50c67ffdefa640ca9c3069b83256b Mon Sep 17 00:00:00 2001
 From: Bram Oosterhuis <mail@bybram.com>
-Date: Wed, 7 Oct 2020 21:40:55 +0200
-Subject: [PATCH 1/6] DIAL: backport refactor from master
+Date: Wed, 14 Oct 2020 14:33:43 +0200
+Subject: [PATCH 1/5] Squashed commit of the following:
 
+commit 63df3dae611b9d58f628c8927ae0c23d74c05656
+Author: HaseenaSainul <h.sainul@metrological.com>
+Date:   Wed Oct 14 17:20:12 2020 +0530
+
+    DIALServer: message with _T usage corrected
+
+commit da2f7e3b4ffb6874fac59f1438af6ede1e37726e
+Author: HaseenaSainul <h.sainul@metrological.com>
+Date:   Wed Oct 14 16:58:26 2020 +0530
+
+    DIALServer: fix added for missing quotes
+
+commit 400a14206ea600b2c2e21168c5d64fdfb49be20b
+Author: modeveci <o.deveci@metrological.com>
+Date:   Sun Oct 11 17:32:10 2020 +0200
+
+    [DIALServer]: add encoded addional data url
+
+commit 9ff3cc31a11fe1a9045135bf24ede86df58eee8c
+Author: Bram Oosterhuis <mail@bybram.com>
+Date:   Wed Oct 7 21:40:55 2020 +0200
+
+    DIAL: backport refactor from master
 ---
  DIALServer/AmazonPrime.cpp       | 165 +++++++++++++++++++++++++++++++
  DIALServer/CMakeLists.txt        |  26 ++++-
  DIALServer/DIALServer.config     |  15 +++
- DIALServer/DIALServer.cpp        |  42 ++++----
+ DIALServer/DIALServer.cpp        |  43 ++++----
  DIALServer/DIALServer.h          | 101 ++++++++++++-------
  DIALServer/DIALServerJsonRpc.cpp |  16 ++-
  DIALServer/Netflix.cpp           |  81 ++++++++-------
  DIALServer/YouTube.cpp           |  70 ++++++++-----
- 8 files changed, 392 insertions(+), 124 deletions(-)
+ 8 files changed, 393 insertions(+), 124 deletions(-)
  create mode 100644 DIALServer/AmazonPrime.cpp
 
 diff --git a/DIALServer/AmazonPrime.cpp b/DIALServer/AmazonPrime.cpp
@@ -269,7 +292,7 @@ index 8323582..0cea265 100644
 +    endif()
 +endif()
 diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
-index c3de995..11bdc36 100644
+index c3de995..2c90af1 100644
 --- a/DIALServer/DIALServer.cpp
 +++ b/DIALServer/DIALServer.cpp
 @@ -31,6 +31,7 @@ namespace Plugin {
@@ -289,7 +312,7 @@ index c3de995..11bdc36 100644
          bool isAtLeast2_1 = Version{2, 1, 0} <= version;
          // allowSop is mandatory to be true starting from 2.1
          string allowStop = isAtLeast2_1 == true || HasStartAndStop() == true ? "true" : "false";
-@@ -395,12 +396,14 @@ namespace Plugin {
+@@ -395,12 +396,15 @@ namespace Plugin {
              response->ErrorCode = Web::STATUS_REQUEST_ENTITY_TOO_LARGE;
              response->Message = _T("Payload too long");
          } else {
@@ -301,6 +324,7 @@ index c3de995..11bdc36 100644
 +            const string additionalDataUrl = (_T("http://localhost") + ((_webServerPort.empty() == true)? _T("") : _T(":") + _webServerPort) + _T("/Service/DIALServer/Apps/") + app.Name() + _T("/") + _DefaultDataExtension);
 +            const uint16_t maxEncodedSize = static_cast<uint16_t>(additionalDataUrl.length() * 3 * sizeof(TCHAR));
 +            TCHAR* encodedDataUrl = reinterpret_cast<TCHAR*>(ALLOCA(maxEncodedSize)); 
++            Core::URL::Encode(additionalDataUrl.c_str(), static_cast<uint16_t>(additionalDataUrl.length()), encodedDataUrl, maxEncodedSize);
              string parameters = (app.AppURL() + (app.HasQueryParameter()? _T("&") : _T("?")) + _T("additionalDataUrl=") + encodedDataUrl);
  
 -            TRACE(Trace::Information, (_T("Launch Application [%s] with params: %s"), app.Name().c_str(), parameters.c_str()));
@@ -308,7 +332,7 @@ index c3de995..11bdc36 100644
  
              // See if we can find the plugin..
              ASSERT(_service != NULL);
-@@ -425,8 +428,8 @@ namespace Plugin {
+@@ -425,8 +429,8 @@ namespace Plugin {
                  if (app.IsConnected() == false && app.Connect() == false) {
                      
                      TRACE_L1("Cannot connect DIAL handler to application %s", app.Name().c_str());
@@ -319,7 +343,7 @@ index c3de995..11bdc36 100644
  
                      // system app has special error codes. Handle them here.
                      if (app.Name() == _SystemApp) {
-@@ -442,15 +445,9 @@ namespace Plugin {
+@@ -442,15 +446,9 @@ namespace Plugin {
                          }
                      } else {
                          if (result == Core::ERROR_NONE) {
@@ -338,7 +362,7 @@ index c3de995..11bdc36 100644
                          }
                          else {
                              response->ErrorCode = Web::STATUS_SERVICE_UNAVAILABLE;
-@@ -600,7 +597,7 @@ namespace Plugin {
+@@ -600,7 +598,7 @@ namespace Plugin {
                      } else if (request.Verb == Web::Request::HTTP_POST) {
                          if (index.Next() == true && index.Current() == kHideCommand) {
                              if (selectedApp->second.IsRunning() == true) {
@@ -347,7 +371,7 @@ index c3de995..11bdc36 100644
                                      result->ErrorCode = Web::STATUS_OK;
                                      result->Message = _T("OK");
                                      selectedApp->second.Hide();
-@@ -622,6 +619,12 @@ namespace Plugin {
+@@ -622,6 +620,12 @@ namespace Plugin {
                          result->Message = _T("OK");
                          selectedApp->second.Running(request.Verb == Web::Request::HTTP_POST);
                      }
@@ -360,7 +384,7 @@ index c3de995..11bdc36 100644
                  } else if (index.Current() == _DefaultDataExtension) {
                      result->ErrorCode = Web::STATUS_OK;
                      result->Message = _T("OK");
-@@ -655,6 +658,11 @@ namespace Plugin {
+@@ -655,6 +659,11 @@ namespace Plugin {
          // Let's set the URL of the WebServer, as it is active :-)
          _dialServiceImpl->Locator(pluginInterface->Accessor() + _dialPath);
  
@@ -373,7 +397,7 @@ index c3de995..11bdc36 100644
          pluginInterface->AddProxy(_dialPath, _dialPath, remote);
  
 diff --git a/DIALServer/DIALServer.h b/DIALServer/DIALServer.h
-index be47a92..5011ea5 100644
+index be47a92..989bea9 100644
 --- a/DIALServer/DIALServer.h
 +++ b/DIALServer/DIALServer.h
 @@ -45,6 +45,7 @@ namespace Plugin {
@@ -523,7 +547,7 @@ index be47a92..5011ea5 100644
                  uint32_t result = Core::ERROR_NONE;
                  if (_passiveMode == true) {
 -                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"start\", \"data\":\"" + data + "\" }"));
-+                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"start\",  \"parameters\":\"" + parameters +  ", \"payload\":\"" + payload +"\" }"));
++                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"start\",  \"parameters\":\"") + parameters +  _T("\", \"payload\":\"") + payload + _T("\" }"));
                      _service->Notify(message);
 -                    _parent->event_start(_callsign, data);
 +                    _parent->event_start(_callsign, parameters, payload);
@@ -548,7 +572,7 @@ index be47a92..5011ea5 100644
              {
                  if (_passiveMode == true) {
 -                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"stop\", \"data\":\"" + data + "\"}"));
-+                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"stop\", \"parameters\":\"" + parameters + ", \"payload\":\"" + payload + "\"}"));            
++                    const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"stop\", \"parameters\":\"") + parameters + _T("\", \"payload\":\"") + payload + _T("\"}"));
                      _service->Notify(message);
 -                    _parent->event_stop(_callsign, data);
 +                    _parent->event_stop(_callsign, parameters);
@@ -560,7 +584,7 @@ index be47a92..5011ea5 100644
                  if (_hasRuntimeChange == true) {
                      if (_passiveMode == true) {
 -                        const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"change\", \"data\":\"" + url + "\"}"));
-+                        const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"change\", \"parameters\":\"" + url + "\"}"));
++                        const string message(_T("{ \"application\": \"") + _callsign + _T("\", \"request\":\"change\", \"parameters\":\"") + url + _T("\"}"));
                          _service->Notify(message);
                          result = true;
                      }
