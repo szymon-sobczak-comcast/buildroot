@@ -6,6 +6,10 @@ menuconfig BR2_PACKAGE_WPEFRAMEWORK_AMAZON
 
 if BR2_PACKAGE_WPEFRAMEWORK_AMAZON
 # options for the plugin
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_AUTOSTART
+    depends on BR2_PACKAGE_WPEFRAMEWORK_AMAZON
+    bool "autostart"
+    default n
 menu "Options"
 config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_DTID
 	string "DTID"
