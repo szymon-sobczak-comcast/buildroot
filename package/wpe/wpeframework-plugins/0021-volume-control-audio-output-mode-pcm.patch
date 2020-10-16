@@ -1,8 +1,18 @@
 diff --git a/VolumeControl/Nexus/VolumeControlPlatform.cpp b/VolumeControl/Nexus/VolumeControlPlatform.cpp
-index c691f508..5792ac41 100644
+index c691f508..e562a56e 100644
 --- a/VolumeControl/Nexus/VolumeControlPlatform.cpp
 +++ b/VolumeControl/Nexus/VolumeControlPlatform.cpp
-@@ -78,6 +78,11 @@ public:
+@@ -56,6 +56,9 @@ public:
+       NxClient_AudioSettings audioSettings;
+       NxClient_GetAudioSettings(&audioSettings);
+       audioSettings.muted = muted;
++      audioSettings.hdmi.muted = muted;
++      audioSettings.spdif.muted = muted;
++      audioSettings.dac.muted = muted;
+       int result = NxClient_SetAudioSettings(&audioSettings); 
+ 
+       TRACE(Trace::Information, (_T("Hardware set muted: %d [%d]"), audioSettings.muted, result));
+@@ -78,6 +81,11 @@ public:
        int32_t toSet = volume;
        NxClient_AudioSettings audioSettings;
        NxClient_GetAudioSettings(&audioSettings);
@@ -14,7 +24,7 @@ index c691f508..5792ac41 100644
        if (audioSettings.volumeType == NEXUS_AudioVolumeType_eDecibel) {
            toSet = VolumeControlPlatformNexus::ToNexusDb(volume);
        } else {
-@@ -85,7 +90,14 @@ public:
+@@ -85,7 +93,14 @@ public:
            type = _T("Linear");
        }
  
