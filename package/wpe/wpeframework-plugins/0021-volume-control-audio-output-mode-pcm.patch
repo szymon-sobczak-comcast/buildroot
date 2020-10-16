@@ -1,14 +1,31 @@
 diff --git a/VolumeControl/Nexus/VolumeControlPlatform.cpp b/VolumeControl/Nexus/VolumeControlPlatform.cpp
-index c691f508..59799fa7 100644
+index c691f508..5792ac41 100644
 --- a/VolumeControl/Nexus/VolumeControlPlatform.cpp
 +++ b/VolumeControl/Nexus/VolumeControlPlatform.cpp
-@@ -85,6 +85,9 @@ public:
+@@ -78,6 +78,11 @@ public:
+       int32_t toSet = volume;
+       NxClient_AudioSettings audioSettings;
+       NxClient_GetAudioSettings(&audioSettings);
++      audioSettings.volumeType = NEXUS_AudioVolumeType_eLinear;
++      audioSettings.dac.volumeType = NEXUS_AudioVolumeType_eLinear;
++      audioSettings.hdmi.volumeType = NEXUS_AudioVolumeType_eLinear;
++      audioSettings.spdif.volumeType = NEXUS_AudioVolumeType_eLinear;
++
+       if (audioSettings.volumeType == NEXUS_AudioVolumeType_eDecibel) {
+           toSet = VolumeControlPlatformNexus::ToNexusDb(volume);
+       } else {
+@@ -85,7 +90,14 @@ public:
            type = _T("Linear");
        }
  
 +      audioSettings.hdmi.outputMode = NxClient_AudioOutputMode_ePcm;
 +      audioSettings.spdif.outputMode = NxClient_AudioOutputMode_ePcm;
++      audioSettings.dac.outputMode = NxClient_AudioOutputMode_ePcm;
 +
        audioSettings.leftVolume = audioSettings.rightVolume = toSet;
++      audioSettings.hdmi.leftVolume = audioSettings.hdmi.rightVolume = toSet;
++      audioSettings.spdif.leftVolume = audioSettings.spdif.rightVolume = toSet;
++      audioSettings.dac.leftVolume = audioSettings.dac.rightVolume = toSet;
  
        int result = NxClient_SetAudioSettings(&audioSettings);
+ 
