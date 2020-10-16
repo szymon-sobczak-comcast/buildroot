@@ -183,7 +183,7 @@ endif
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_COMPOSITORCLIENT),y)
 # TODO: use wpeframework instead of dummy impl
 NETFLIX50_CONF_OPTS += \
-	-DGIBBON_GRAPHICS=null \
+	-DGIBBON_GRAPHICS=wpeframework \
 	-DGIBBON_INPUT=wpeframework \
 	-DGIBBON_PLATFORM=posix
 NETFLIX50_DEPENDENCIES += wpeframework
@@ -226,7 +226,7 @@ ifeq ($(BR2_PACKAGE_NETFLIX50_LIB),y)
 # TODO: fix it back
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_COMPOSITORCLIENT),y)
 define NETFLIX50_INSTALL_WPEFRAMEWORK_XML
-	cp $(@D)/partner/graphics/null/graphics.xml $(1)
+	cp $(@D)/partner/graphics/wpeframework/graphics.xml $(1)
 endef
 endif
 
