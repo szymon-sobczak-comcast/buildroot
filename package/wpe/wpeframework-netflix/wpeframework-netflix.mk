@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WPEFRAMEWORK_NETFLIX_VERSION = f473fe5490e0d8e1de48e04cf61f6ec4052bdf9b
+WPEFRAMEWORK_NETFLIX_VERSION = 9c5b167a0b8d5aa33a786da948b6c4987c777aac
 ifeq ($(BR2_PACKAGE_NETFLIX5),y)
 # Netflix 5 has a little different API, use "netflix5" branch for now.
 WPEFRAMEWORK_NETFLIX_CONF_OPTS += -DNETFLIX_VERSION_5=true
