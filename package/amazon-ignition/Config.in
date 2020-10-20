@@ -32,8 +32,15 @@ config BR2_PACKAGE_AMAZON_IGNITION_BUILD_SHARED_LIBRARY_LAUNCHER
 	bool "shared library launcher"
 	default "n"
 
+config BR2_PACKAGE_AMAZON_IGNITION_DEVELOPER_MODE
+	bool "developer mode"
+	default "n"
+	help
+        Enable this to use info and debug traces
+
 config BR2_PACKAGE_AMAZON_IGNITION_BUILD_TESTS
 	bool "include tests"
+	select BR2_PACKAGE_AMAZON_IGNITION_DEVELOPER_MODE
 	default "n"
 	
 config BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH
