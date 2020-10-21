@@ -17,7 +17,6 @@ endif
 LIBCURL_SOURCE = curl-$(LIBCURL_VERSION).tar.bz2
 LIBCURL_SITE = https://curl.haxx.se/download
 LIBCURL_DEPENDENCIES = host-pkgconf \
-	$(if $(BR2_PACKAGE_ZLIB),zlib) \
 	$(if $(BR2_PACKAGE_LIBIDN),libidn) \
 	$(if $(BR2_PACKAGE_RTMPDUMP),rtmpdump)
 LIBCURL_LICENSE = ISC
@@ -29,7 +28,7 @@ LIBCURL_INSTALL_STAGING = YES
 # probably almost never used. See
 # http://curl.haxx.se/docs/manpage.html#--ntlm.
 LIBCURL_CONF_OPTS = --disable-manual --disable-ntlm-wb \
-	--enable-hidden-symbols --with-random=/dev/urandom --disable-curldebug
+	--enable-hidden-symbols --with-random=/dev/urandom --disable-curldebug --disable-debug --enable-optimize 
 
 ifeq ($(BR2_PACKAGE_LIBCURL_VERBOSE),y)
 LIBCURL_CONF_OPTS += --enable-verbose
@@ -69,6 +68,11 @@ LIBCURL_DEPENDENCIES += c-ares
 LIBCURL_CONF_OPTS += --enable-ares
 else
 LIBCURL_CONF_OPTS += --disable-ares
+endif
+
+ifeq ($(BR2_PACKAGE_ZLIB),y)
+LIBCURL_DEPENDENCIES += zlib
+LIBCURL_CONF_OPTS += --with-zlib
 endif
 
 # Configure curl to support libssh2
