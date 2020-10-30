@@ -1,0 +1,129 @@
+From 26f035b1ecb48707685df895e91253893e3d3aba Mon Sep 17 00:00:00 2001
+From: Xabier Rodriguez Calvar <calvaris@igalia.com>
+Date: Tue, 29 Sep 2020 16:33:45 +0200
+Subject: [PATCH] Added support to enable raking Thunder decryptor
+
+---
+ WebKitBrowser/Amazon.config            | 1 +
+ WebKitBrowser/Apps.config              | 1 +
+ WebKitBrowser/CMakeLists.txt           | 1 +
+ WebKitBrowser/UX.config                | 1 +
+ WebKitBrowser/WebKitBrowser.config     | 1 +
+ WebKitBrowser/WebKitImplementation.cpp | 7 +++++++
+ WebKitBrowser/YouTube.config           | 1 +
+ 7 files changed, 13 insertions(+)
+
+diff --git a/WebKitBrowser/Amazon.config b/WebKitBrowser/Amazon.config
+index 1b3bb39a..dc1e5a19 100644
+--- a/WebKitBrowser/Amazon.config
++++ b/WebKitBrowser/Amazon.config
+@@ -150,6 +150,7 @@ map()
+     end()
+     kv(touch false)
+     kv(msebuffers "audio:2m,video:15m,text:1m")
++    kv(thunderdecryptorpreference true)
+     kv(memoryprofile ${PLUGIN_AMAZON_MEMORYPROFILE})
+     kv(memorypressure ${PLUGIN_AMAZON_MEMORYPRESSURE})
+     kv(mediacontenttypesrequiringhardwaresupport ${PLUGIN_WEBKITBROWSER_MEDIA_CONTENT_TYPES_REQUIRING_HARDWARE_SUPPORT})
+diff --git a/WebKitBrowser/Apps.config b/WebKitBrowser/Apps.config
+index 18862586..d1d7a3dc 100644
+--- a/WebKitBrowser/Apps.config
++++ b/WebKitBrowser/Apps.config
+@@ -18,6 +18,7 @@ map()
+     kv(cursor false)
+     kv(touch false)
+     kv(msebuffers ${PLUGIN_WEBKITBROWSER_MSEBUFFERS})
++    kv(thunderdecryptorpreference true)
+     kv(memoryprofile ${PLUGIN_WEBKITBROWSER_MEMORYPROFILE})
+     kv(memorypressure ${PLUGIN_WEBKITBROWSER_MEMORYPRESSURE})
+     kv(mediacontenttypesrequiringhardwaresupport ${PLUGIN_WEBKITBROWSER_MEDIA_CONTENT_TYPES_REQUIRING_HARDWARE_SUPPORT})
+diff --git a/WebKitBrowser/CMakeLists.txt b/WebKitBrowser/CMakeLists.txt
+index 40133c23..8c2db45b 100644
+--- a/WebKitBrowser/CMakeLists.txt
++++ b/WebKitBrowser/CMakeLists.txt
+@@ -42,6 +42,7 @@ set(PLUGIN_WEBKITBROWSER_WINDOWCLOSE false CACHE STRING "Allow window close")
+ set(PLUGIN_WEBKITBROWSER_WEBGL true CACHE STRING "Enable WebGL")
+ set(PLUGIN_WEBKITBROWSER_RESOLUTION "720p" CACHE STRING "Browser resolution")
+ set(PLUGIN_WEBKITBROWSER_THREADEDPAINTING "1" CACHE STRING "Threads for the Threaded Painting")
++set(PLUGIN_WEBKITBROWSER_THUNDER_DECRYPTOR_PREFERENCE true CACHE STRING "Enable Thunder decryptor preference in WebKit")
+ set(PLUGIN_YOUTUBE_USERAGENT ${PLUGIN_WEBKITBROWSER_USERAGENT} CACHE STRING "User agent string YouTube")
+ set(PLUGIN_UX_AUTOSTART false CACHE STRING "Automatically start UX plugin")
+ set(PLUGIN_UX_USERAGENT ${PLUGIN_WEBKITBROWSER_USERAGENT} CACHE STRING "User agent string for UX")
+diff --git a/WebKitBrowser/UX.config b/WebKitBrowser/UX.config
+index 28e883c4..5d27d98f 100644
+--- a/WebKitBrowser/UX.config
++++ b/WebKitBrowser/UX.config
+@@ -24,6 +24,7 @@ map()
+     kv(cursor false)
+     kv(touch false)
+     kv(msebuffers "audio:2m,video:15m,text:1m")
++    kv(thunderdecryptorpreference ${PLUGIN_WEBKITBROWSER_THUNDER_DECRYPTOR_PREFERENCE})
+     kv(memoryprofile ${PLUGIN_WEBKITBROWSER_MEMORYPROFILE})
+     kv(memorypressure ${PLUGIN_WEBKITBROWSER_MEMORYPRESSURE})
+     kv(mediacontenttypesrequiringhardwaresupport ${PLUGIN_WEBKITBROWSER_MEDIA_CONTENT_TYPES_REQUIRING_HARDWARE_SUPPORT})
+diff --git a/WebKitBrowser/WebKitBrowser.config b/WebKitBrowser/WebKitBrowser.config
+index 49fe9b55..8623b4ab 100644
+--- a/WebKitBrowser/WebKitBrowser.config
++++ b/WebKitBrowser/WebKitBrowser.config
+@@ -28,6 +28,7 @@ map()
+     kv(cursor false)
+     kv(touch false)
+     kv(msebuffers ${PLUGIN_WEBKITBROWSER_MSEBUFFERS})
++    kv(thunderdecryptorpreference ${PLUGIN_WEBKITBROWSER_THUNDER_DECRYPTOR_PREFERENCE})
+     kv(memoryprofile ${PLUGIN_WEBKITBROWSER_MEMORYPROFILE})
+     kv(memorypressure ${PLUGIN_WEBKITBROWSER_MEMORYPRESSURE})
+     kv(mediacontenttypesrequiringhardwaresupport ${PLUGIN_WEBKITBROWSER_MEDIA_CONTENT_TYPES_REQUIRING_HARDWARE_SUPPORT})
+diff --git a/WebKitBrowser/WebKitImplementation.cpp b/WebKitBrowser/WebKitImplementation.cpp
+index 19e49420..95354cd8 100644
+--- a/WebKitBrowser/WebKitImplementation.cpp
++++ b/WebKitBrowser/WebKitImplementation.cpp
+@@ -419,6 +419,7 @@ static GSourceFuncs _handlerIntervention =
+                 , Cursor(false)
+                 , Touch(false)
+                 , MSEBuffers()
++                , ThunderDecryptorPreference()
+                 , MemoryProfile()
+                 , MemoryPressure()
+                 , MediaContentTypesRequiringHardwareSupport()
+@@ -458,6 +459,7 @@ static GSourceFuncs _handlerIntervention =
+                 Add(_T("cursor"), &Cursor);
+                 Add(_T("touch"), &Touch);
+                 Add(_T("msebuffers"), &MSEBuffers);
++                Add(_T("thunderdecryptorpreference"), &ThunderDecryptorPreference);
+                 Add(_T("memoryprofile"), &MemoryProfile);
+                 Add(_T("memorypressure"), &MemoryPressure);
+                 Add(_T("mediacontenttypesrequiringhardwaresupport"), &MediaContentTypesRequiringHardwareSupport);
+@@ -504,6 +506,7 @@ static GSourceFuncs _handlerIntervention =
+             Core::JSON::Boolean Cursor;
+             Core::JSON::Boolean Touch;
+             Core::JSON::String MSEBuffers;
++            Core::JSON::Boolean ThunderDecryptorPreference;
+             Core::JSON::String MemoryProfile;
+             Core::JSON::String MemoryPressure;
+             Core::JSON::String MediaContentTypesRequiringHardwareSupport;
+@@ -873,6 +876,10 @@ static GSourceFuncs _handlerIntervention =
+             if (_config.Touch.Value() == true)
+                 Core::SystemInfo::SetEnvironment(_T("WPE_BCMRPI_TOUCH"), _T("1"), !environmentOverride);
+ 
++            // Rank Thunder Decryptor higher than ClearKey one
++            if (_config.ThunderDecryptorPreference.Value() == true)
++                Core::SystemInfo::SetEnvironment(_T("WEBKIT_GST_EME_RANK_PRIORITY"), _T("Thunder"), !environmentOverride);
++
+             // WPE allows the LLINT to be used if true
+             if (_config.JavaScript.UseLLInt.Value() == false) {
+                 Core::SystemInfo::SetEnvironment(_T("JSC_useLLInt"), _T("false"), !environmentOverride);
+diff --git a/WebKitBrowser/YouTube.config b/WebKitBrowser/YouTube.config
+index 1359038d..b8786eaa 100644
+--- a/WebKitBrowser/YouTube.config
++++ b/WebKitBrowser/YouTube.config
+@@ -24,6 +24,7 @@ map()
+     kv(cursor false)
+     kv(touch false)
+     kv(msebuffers "audio:2m,video:15m,text:1m")
++    kv(thunderdecryptorpreference ${PLUGIN_WEBKITBROWSER_THUNDER_DECRYPTOR_PREFERENCE})
+     kv(memoryprofile ${PLUGIN_WEBKITBROWSER_MEMORYPROFILE})
+     kv(memorypressure ${PLUGIN_WEBKITBROWSER_MEMORYPRESSURE})
+     kv(mediacontenttypesrequiringhardwaresupport ${PLUGIN_WEBKITBROWSER_MEDIA_CONTENT_TYPES_REQUIRING_HARDWARE_SUPPORT})
+-- 
+2.28.0
+
