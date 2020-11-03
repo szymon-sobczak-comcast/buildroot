@@ -101,15 +101,16 @@ config BR2_PACKAGE_NETFLIX50_KEYMAP
 	help
         Install custom keymap
 
-config BR2_PACKAGE_NETFLIX50_WESTEROS_SINK
-	bool "westeros-sink"
-	depends on BR2_PACKAGE_WPEFRAMEWORK_COMPOSITOR
-	default n
+#config BR2_PACKAGE_NETFLIX50_WESTEROS_SINK
+#	bool "westeros-sink"
+#	depends on BR2_PACKAGE_WPEFRAMEWORK_COMPOSITOR
+#	default n
 
 config BR2_PACKAGE_NETFLIX50_AUDIO_MIXER
         bool "audio-mixer"
         select BR2_PACKAGE_TREMOR
 		select BR2_PACKAGE_LIBOGG
+		select BR2_PACKAGE_LIBVORBIS
 
 if BR2_PACKAGE_NETFLIX50_AUDIO_MIXER
 
@@ -124,12 +125,6 @@ config BR2_PACKAGE_NETFLIX50_AUDIO_MIXER_SOFTWARE
 	help
         Software Audio Mixer
 
-config BR2_PACKAGE_NETFLIX50_AUDIO_MIXER_NEXUS
-	bool "nexus"
-	depends on BR2_PACKAGE_HAS_NEXUS
-	help
-        Nexus Audio Mixer
-
 endchoice
 endif
 
@@ -139,11 +134,11 @@ choice
 	help
         Choose DRM Type
 
-config BR2_PACKAGE_NETFLIX50_DRM_PLAYREADY
-	bool "playready"
-	select BR2_PACKAGE_PLAYREADY
-	help
-        DRM Playready
+#config BR2_PACKAGE_NETFLIX50_DRM_PLAYREADY
+#	bool "playready"
+#	select BR2_PACKAGE_PLAYREADY
+#	help
+#        DRM Playready
 
 config BR2_PACKAGE_NETFLIX50_DRM_OCDM
 	bool "ocdm"
