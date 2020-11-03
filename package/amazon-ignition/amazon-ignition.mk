@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AMAZON_IGNITION_VERSION = e72ab40d3eeb885a35170e39d2ba757d653170f3
+AMAZON_IGNITION_VERSION = 8503cf1b445179292c600513e9dd43417c1e5bde
 AMAZON_IGNITION_SITE_METHOD = git
 AMAZON_IGNITION_SITE = git@github.com:Metrological/amazon.git
 AMAZON_IGNITION_DEPENDENCIES = jpeg libpng wpeframework amazon amazon-backend
@@ -136,11 +136,14 @@ define AMAZON_IGNITION_INSTALL_IGNITION
 	
     rsync -av ${AMAZON_IGNITION_BINARY_INSTALL_DIR}/ $(call qstrip,$(1))/$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH)
 
-    ln -sf  "../../../lib/libamazon_backend_device.so" "$(call qstrip,$(1))$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH)/lib/libamazon_backend_device.so"
-    ln -sf "../../../lib/libamazon-backend.so" "$(call qstrip,$(1))$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH)/lib/libamazon-backend.so"
-    ln -sf  "../../../lib/libamazon_player_mediapipeline.so" "$(call qstrip,$(1))$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH)/lib/libamazon_player_mediapipeline.so"
-    ln -sf  "../../../lib/libamazon_player.so" "$(call qstrip,$(1))$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH)/lib/libamazon_player.so"
-    ln -sf  "../../../lib/libamazon_playready.so" "$(call qstrip,$(1))$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH)/lib/libamazon_playready.so"
+    ln -sf "../../../lib/libamazon_backend_device.so" "$(call qstrip,$(1))$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libamazon_backend_device.so"
+    ln -sf "../../../lib/libamazon-backend.so" "$(call qstrip,$(1))$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libamazon-backend.so"
+    ln -sf "../../../lib/libamazon_player_mediapipeline.so" "$(call qstrip,$(1))$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libamazon_player_mediapipeline.so"
+    ln -sf "../../../lib/libamazon_player.so" "$(call qstrip,$(1))$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libamazon_player.so"
+    ln -sf "../../../lib/libamazon_playready.so" "$(call qstrip,$(1))$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libamazon_playready.so"
+
+    ln -sf "$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libignition.so" "$(call qstrip,$(TARGET_DIR))/usr/lib/libignition.so"
+    ln -sf "$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libprime-video-device-layer.so" "$(call qstrip,$(TARGET_DIR))/usr/lib/libprime-video-device-layer.so"
 endef
 
 define AMAZON_IGNITION_INSTALL_IGNITION_DEV
