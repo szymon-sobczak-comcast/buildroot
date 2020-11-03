@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AMAZON_VERSION = 09211c3a93442901700b3813919295357de51961
+AMAZON_VERSION = 771a66234989a0ffb5e51d6e0a90cf725d801bb0
 AMAZON_SITE_METHOD = git
 AMAZON_SITE = git@github.com:Metrological/amazon.git
 AMAZON_INSTALL_STAGING = YES
