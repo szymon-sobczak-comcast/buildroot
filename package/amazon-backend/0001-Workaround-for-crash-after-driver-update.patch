@@ -1,0 +1,36 @@
+From 52f476c3b5ea277784f29b6860b189b0690d0c9e Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Tue, 3 Nov 2020 13:16:49 +0100
+Subject: [PATCH] Workaround for crash after driver update
+
+---
+ devices/DeviceInfoBroadcom.cpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/devices/DeviceInfoBroadcom.cpp b/devices/DeviceInfoBroadcom.cpp
+index 108027e..07526d1 100644
+--- a/devices/DeviceInfoBroadcom.cpp
++++ b/devices/DeviceInfoBroadcom.cpp
+@@ -27,15 +27,17 @@ private:
+     , _HDCPMajor(0) {
+ 
+         NxClient_Join(nullptr);
++        NEXUS_Platform_GetConfiguration(&_platformConfig);
++/*
+         NEXUS_PlatformStatus info;
+         NEXUS_Platform_GetStatus(&info);
+-        NEXUS_Platform_GetConfiguration(&_platformConfig);
+ 
+         // Get chipset name
+         char chipsetName[128];
+         ::snprintf(chipsetName, sizeof(chipsetName), "%x%c%d", info.chipId, 'A' + ((info.chipRevision >> 8) & 0xf)
+                 , (info.chipRevision & 0xf));
+-        _chipSet = chipsetName;
++*/        
++        _chipSet = "UnknownHardware";
+ 
+         // Get FW version
+         _version = "Nexus " + std::to_string(NEXUS_PLATFORM_VERSION_MAJOR) + "." + std::to_string(NEXUS_PLATFORM_VERSION_MINOR);
+-- 
+2.25.1
+
