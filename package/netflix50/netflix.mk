@@ -4,7 +4,7 @@
 #
 ################################################################################
 NETFLIX50_SITE = git@github.com:Metrological/netflix.git
-NETFLIX50_VERSION = aefe77db514724bc9db1626f1f09f285a6ad5232
+NETFLIX50_VERSION = 9c788a34bf9a7114b0503eb27c20fce367885cbd
 NETFLIX50_SITE_METHOD = git
 NETFLIX50_LICENSE = PROPRIETARY
 NETFLIX50_INSTALL_TARGET = YES
