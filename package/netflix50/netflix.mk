@@ -31,12 +31,6 @@ NETFLIX50_DEPENDENCIES = \
 	gst1-libav \
 	libgles \
 	libegl
-	# TODO: seems like they are not needed
-	# fdk-aac \
-	# graphite2 \
-	# lcms2 \
-	# libopenh264 \
-	# openjpeg \
 
 NETFLIX50_RESOURCE_LOC = $(call qstrip,${BR2_PACKAGE_NETFLIX50_RESOURCE_LOCATION})
 NETFLIX50_CONF_ENV += \
@@ -124,10 +118,6 @@ NETFLIX50_CONF_OPTS += \
 	-DNRDP_HAS_TRACING=OFF
 endif
 
-#ifeq ($(BR2_PACKAGE_VSS_SDK),y)
-#NETFLIX50_CONF_OPTS += -DUSE_DISPLAY_SETTINGS=1
-#endif
-
 ifeq ($(BR2_PACKAGE_NETFLIX50_MINIFY_JS),y)
 NETFLIX50_CONF_OPTS += -DJS_MINIFY=ON
 NETFLIX50_DEPENDENCIES += host-nodejs
@@ -151,9 +141,8 @@ endif
 
 ifeq ($(BR2_PACKAGE_NETFLIX50_DRM_OCDM), y)
 NETFLIX50_CONF_OPTS += -DDPI_REFERENCE_DRM=ocdm
-else ifeq ($(BR2_PACKAGE_NETFLIX50_DRM_PLAYREADY), y)
-NETFLIX50_DEPENDENCIES += playready
-NETFLIX50_CONF_OPTS += -DDPI_REFERENCE_DRM=playready2.5
+else
+NETFLIX50_CONF_OPTS += -DDPI_REFERENCE_DRM=none
 endif
 
 ifeq ($(BR2_PACKAGE_NETFLIX50_LIB), y)
@@ -167,34 +156,24 @@ NETFLIX50_CONF_OPTS += -DGIBBON_MODE=executable
 endif
 
 ifeq ($(BR2_PACKAGE_NETFLIX50_AUDIO_MIXER), y)
+NETFLIX50_CONF_OPTS += \
+	-DNRDP_HAS_AUDIOMIXER=ON \
+    -DDPI_REFERENCE_AUDIO_MIXER="gstreamer"
 NETFLIX50_DEPENDENCIES += \
 	libogg \
 	libvorbis \
 	tremor
-ifeq ($(BR2_PACKAGE_NETFLIX50_AUDIO_MIXER_SOFTWARE), y)
-NETFLIX50_CONF_OPTS += \
-    -DDPI_REFERENCE_AUDIO_MIXER="gstreamer" \
-	-DNRDP_HAS_AUDIOMIXER=ON
-endif
 else
 NETFLIX50_CONF_OPTS += -DNRDP_HAS_AUDIOMIXER=OFF
 endif
 
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_COMPOSITORCLIENT),y)
-# TODO: use wpeframework instead of dummy impl
 NETFLIX50_CONF_OPTS += \
 	-DGIBBON_GRAPHICS=wpeframework \
 	-DGIBBON_INPUT=wpeframework \
 	-DGIBBON_PLATFORM=posix
 NETFLIX50_DEPENDENCIES += wpeframework
 endif
-
-#ifeq ($(BR2_PACKAGE_NETFLIX50_WESTEROS_SINK),y)
-#NETFLIX50_CONF_OPTS += -DGST_VIDEO_RENDERING=westeros
-#NETFLIX50_DEPENDENCIES += \
-#	westeros \
-#	westeros-sink
-#endif
 
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_PROVISIONPROXY), y)
 NETFLIX50_CONF_OPTS += -DNETFLIX_USE_PROVISION=ON
@@ -223,7 +202,6 @@ NETFLIX50_DATA_DIR=/usr/share/WPEFramework/Netflix
 
 ifeq ($(BR2_PACKAGE_NETFLIX50_LIB),y)
 
-# TODO: fix it back
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_COMPOSITORCLIENT),y)
 define NETFLIX50_INSTALL_WPEFRAMEWORK_XML
 	cp $(@D)/partner/graphics/wpeframework/graphics.xml $(1)
@@ -242,8 +220,6 @@ define NETFLIX50_INSTALL_NETFLIX50_DATA_CONFIGS
 	$(call NETFLIX50_INSTALL_WPEFRAMEWORK_XML, $(1)$(NETFLIX50_DATA_DIR)/etc/conf)
 endef
 
-# TODO: fix install for 5.2
-# cp -r $(@D)/artifacts/MeteringCertificate.bin $(1)/root/Netflix/artifacts
 define NETFLIX50_INSTALL_TO_TARGET
 	$(INSTALL) -d $(1)/usr/lib
 	$(INSTALL) -m 755 $(NETFLIX50_BUILD_DIR)/src/platform/gibbon/libnetflix.so $(1)/usr/lib
@@ -254,12 +230,6 @@ define NETFLIX50_INSTALL_TO_TARGET
 	mkdir -p $(1)/root/Netflix/artifacts
 
 endef
-# TODO: fix it back
-# cp -Rpf $(@D)/netflix/3rdparty/adf/*.h $(1)/usr/include/netflix/
-# cp -Rpf $(@D)/netflix/3rdparty/harfbuzz/src/*.h $(1)/usr/include/netflix/
-# cp -Rpf $(@D)/netflix/3rdparty/lz4/lz4.h $(1)/usr/include/3rdparty/lz4/
-# cp -Rpf $(@D)/netflix/3rdparty/JavaScriptCore/Source/WTF/wtf/nrdp/Pool.h $(1)/usr/include/3rdparty/JavaScriptCore/Source/WTF/wtf/nrdp/
-# cp -Rpf $(@D)/netflix/3rdparty/JavaScriptCore/Source/WTF/wtf/nrdp/Maddy.h $(1)/usr/include/3rdparty/JavaScriptCore/Source/WTF/wtf/nrdp/
 
 define NETFLIX50_INSTALL_TO_STAGING
 	$(call NETFLIX50_INSTALL_TO_TARGET, $(1))
