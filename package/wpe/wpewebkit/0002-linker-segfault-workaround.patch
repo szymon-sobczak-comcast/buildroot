@@ -1,0 +1,15 @@
+diff --git a/Source/cmake/OptionsWPE.cmake b/Source/cmake/OptionsWPE.cmake
+index b0f081f2af0e..910e6de3256b 100644
+--- a/Source/cmake/OptionsWPE.cmake
++++ b/Source/cmake/OptionsWPE.cmake
+@@ -218,6 +218,10 @@ if (COMPILER_IS_GCC_OR_CLANG AND UNIX AND NOT APPLE)
+     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}${CMAKE_COMPILER_SIZE_OPT_FLAGS} -ffunction-sections -fdata-sections")
+     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}${CMAKE_COMPILER_SIZE_OPT_FLAGS} -ffunction-sections -fdata-sections -fno-rtti")
+     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -Wl,--gc-sections")
++
++    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}${CMAKE_COMPILER_SIZE_OPT_FLAGS} -ffunction-sections -fdata-sections -O1")
++    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}${CMAKE_COMPILER_SIZE_OPT_FLAGS} -ffunction-sections -fdata-sections -fno-rtti -O1")
++    set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -Wl,--gc-sections")
+ endif ()
+ 
+ include(GStreamerChecks)
