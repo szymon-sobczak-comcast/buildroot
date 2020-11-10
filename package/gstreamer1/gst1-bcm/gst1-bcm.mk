@@ -6,7 +6,7 @@
 
 ifneq ($(filter y,$(BR2_PACKAGE_GST1_BCM_UNIFIED_VERSION)),)
 GST1_BCM_SITE = git@github.com:Metrological/bcm-gstreamer.git
-GST1_BCM_VERSION = 1dba31cd2adbab26c463f14e68cf22dc71b7db2b
+GST1_BCM_VERSION = 4b45733aa25ae68f3fa7205c724f77c6a4e622c5
 else
 GST1_BCM_SITE = git@github.com:Metrological/gstreamer-plugins-soc.git
 
@@ -33,7 +33,7 @@ GST1_BCM_VERSION = 17.1-5
 else ifneq ($(filter y,$(BR2_PACKAGE_HOMECAST_SDK)),)
 GST1_BCM_VERSION = 961a36dcd30c91330b8a9503e12ec3ddb30b70b6
 else ifneq ($(filter y,$(BR2_PACKAGE_VSS_SDK)),)
-GST1_BCM_VERSION = 248e2f231a2412d52c178590856327c89a6df592
+GST1_BCM_VERSION = 1b4dd52399826525be861b2add1b6471de01c060
 else ifneq ($(filter y,$(BR2_PACKAGE_EVASION_SDK)),)
 GST1_BCM_VERSION = 18.2-rdkv-20180727
 else ifneq ($(filter y,$(BR2_PACKAGE_VFTV_SDK)),)

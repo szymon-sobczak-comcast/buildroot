@@ -32,7 +32,7 @@ config BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTHREMOTECONTROL
 
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_CDMI
     bool "CDMi"
-    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
     select BR2_PACKAGE_WPEFRAMEWORK_CDM
     default y
     help
@@ -77,6 +77,49 @@ config BR2_PACKAGE_WPEFRAMEWORK_COBALT_OUTOFPROCESS
     default y
     help
       Select this to run this plugin in its own process.
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_USER
+    string "user"
+    default ""
+    help
+        run Cobalt under this user, leave empty to use the same as
+        WPEframework
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_GROUP
+    string "group"
+    default ""
+    help
+        run Cobalt under this group, leave empty to use the same as
+        WPEframework
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_MANUFACTURER_NAME
+    string "manufacturername"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_CHIPSET_MODEL_NUMBER
+    string "chipsetmodelnumber"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_FIRMWARE_VERSION
+    string "firmwareversion"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_MODEL_NAME
+    string "modelname"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_MODEL_YEAR
+    string "modelyear"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_OPERATOR_NAME
+    string "operatorname"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_FRIENDLY_NAME
+    string "friendlyname"
+    default ""
+
 endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_COMMANDER
@@ -230,14 +273,14 @@ endif
 endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_DEVICEINFO
-    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
     bool "DeviceInfo"
     default y
     help
       DeviceInfo Plugin
 
 config BR2_PACKAGE_WPEFRAMEWORK_DEVICEIDENTIFICATION
-    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
     depends on BR2_PACKAGE_HAS_NEXUS
     bool "DeviceIdentification"
     default y
@@ -388,77 +431,13 @@ config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_REPORTING_PIN
           To which pin needs the handler to be associated.
 endif
 
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN1_IO
-    bool "pin1 to control"
-        default y
-        help
-          I/O pin details to be configured
-
-if BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN1_IO
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN1_ID
-    string "pin"
-        default "17"
-        help
-          Id of the pin
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN1_MODE
-    string "mode"
-        default "Output"
-        help
-           Mode of the pin
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN1_STATE
-    string "activelow"
-        default "false"
-        help
-            logic state of the pin
-endif
-
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN2_IO
-    bool "pin2 to control"
-        default y
-        help
-          I/O pin details to be configured
-
-if BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN2_IO
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN2_ID
-    string "pin"
-        default "169"
-        help
-          Id of the pin
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN2_MODE
-    string "mode"
-        default "Output"
-        help
-           Mode of the pin
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN2_STATE
-    string "activelow"
-        default "true"
-        help
-            logic state of the pin
-endif
-
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN3_IO
-    bool "pin3 to control"
-        default y
-        help
-          I/O pin details to be configured
-
-if BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN3_IO
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN3_ID
-    string "pin"
-        default "172"
-        help
-          Id of the pin
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN3_MODE
-    string "mode"
-        default "Output"
-        help
-           Mode of the pin
-config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PIN3_STATE
-    string "activelow"
-        default "true"
-        help
-            logic state of the pin
-endif
+config BR2_PACKAGE_WPEFRAMEWORK_IOCONNECTOR_PINS
+    string "Pin details"
+    default "169:output:true;172:output:false"
+    help
+      Set details of pins in the format "ID:Mode:State".
+      ID: Id of the PIN, Mode: Output/Input, State: activelow or not
+      Example "169:output:true;172:output:false"
 endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_INPUTSWITCH
@@ -469,7 +448,7 @@ config BR2_PACKAGE_WPEFRAMEWORK_INPUTSWITCH
       InputSwitch Plugin.
 
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_LOCATIONSYNC
-    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
     bool "LocationSync"
     help
       LocationSync Plugin
@@ -484,14 +463,14 @@ config BR2_PACKAGE_WPEFRAMEWORK_LOCATIONSYNC_URI
 endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_MESSENGER
-    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
     default n
     bool "Messenger"
     help
       Messenger Plugin
 
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_MONITOR
-    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
     bool "Monitor"
     help
       Monitor Plugin
@@ -506,6 +485,11 @@ config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_WEBKIT
 config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_YOUTUBE
     depends on BR2_PACKAGE_WPEFRAMEWORK_YOUTUBE
     string "youtube-limit"
+    default "614400"
+
+config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_COBALT
+    depends on BR2_PACKAGE_WPEFRAMEWORK_COBALT
+    string "cobalt-limit"
     default "614400"
 
 config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_AMAZON
@@ -530,15 +514,25 @@ config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_NETFLIX
 
 endif
 
-config BR2_PACKAGE_WPEFRAMEWORK_NETWORKCONTROL
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_NETWORKCONTROL
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
     bool "NetworkControl"
     help
       Control the IP adressing of the interfaces in the system from
       WPEFramework (static IPv4/IPv6 or dhcp IPv4)
 
+if BR2_PACKAGE_WPEFRAMEWORK_NETWORKCONTROL
+
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_NETWORKCONTROL_INTERFACES
+    string "Network Interfaces Details"
+    default "eth0:Dynamic:::;wlan0:Dynamic:::;"
+    help
+      Set details of network interfaces in the format "Name:Mode:Address:Netmask:Gateway".
+      Example "wlan0:Manual:192.168.55.1:24:192.168.55.1;eth0:Manual:192.168.1.158:24:192.168.1.1;eth1:Dynamic:::;"
+endif
+
 config BR2_PACKAGE_WPEFRAMEWORK_PACKAGER
-    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
     select BR2_PACKAGE_OPKG
     default n
     bool "Packager"
@@ -654,6 +648,13 @@ config BR2_PACKAGE_WPEFRAMEWORK_REMOTECONTROL_CUSTOM_VIRTUAL_MAP_FILE
 endif
 
 endif
+
+config BR2_PACKAGE_WPEFRAMEWORK_RESOURCEMONITOR
+    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    default n
+    bool "ResourceMonitor"
+    help
+      ResourceMonitor Plugin
 
 config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_RTSPCLIENT
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
@@ -842,15 +843,22 @@ config BR2_PACKAGE_WPEFRAMEWORK_SYSTEMCOMMANDS
     bool "SystemCommands"
     help
       SystemCommands Plugin
-      
+
 config BR2_PACKAGE_WPEFRAMEWORK_FILETRANSFER
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
     bool "FileTransfer"
     help
       FileTransfer Plugin
 
-config BR2_PACKAGE_WPEFRAMEWORK_SECURITYAGENT
+config BR2_PACKAGE_WPEFRAMEWORK_FIRMWARECONTROL
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_MFR_LIBRARY
+    bool "FirmwareControl"
+    help
+      FirmwareControl Plugin
+
+config BR2_PACKAGE_WPEFRAMEWORK_SECURITYAGENT
+    select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
     select BR2_PACKAGE_WPEFRAMEWORK_SECURITYAGENT_ACCESSOR
     bool "SecurityAgent"
     help
@@ -906,7 +914,7 @@ config BR2_PACKAGE_WPEFRAMEWORK_TUNER
       Tuner Plugin
 
 config BR2_PACKAGE_WPEFRAMEWORK_TRACECONTROL
-    select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
+    select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
     bool "TraceControl"
     help
       TraceControl Plugin
@@ -1145,6 +1153,23 @@ config BR2_PACKAGE_WPEFRAMEWORK_UX_AUTOSTART
     bool "autostart"
 
 config BR2_PACKAGE_WPEFRAMEWORK_UX_USERAGENT
+    string "useragent"
+    default ""
+
+endif
+
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_RESIDENTAPP
+    depends on BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER
+    bool "residentapp"
+    help
+      A WPEUIFramework non-compositing WebGL enabled tab.
+
+if BR2_PACKAGE_WPEFRAMEWORK_RESIDENTAPP
+
+config BR2_PACKAGE_WPEFRAMEWORK_RESIDENTAPP_AUTOSTART
+    bool "autostart"
+
+config BR2_PACKAGE_WPEFRAMEWORK_RESIDENTAPP_USERAGENT
     string "useragent"
     default ""
 

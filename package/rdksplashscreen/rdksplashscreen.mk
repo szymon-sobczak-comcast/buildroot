@@ -1,11 +1,11 @@
 ################################################################################
 #
-# WPEFramework UI
+# RDK Splash Screen
 #
 ################################################################################
 
-RDKSPLASHSCREEN_VERSION = 74a27537d11fede7cd0fa6b094db580e08796bcd
-RDKSPLASHSCREEN_SITE = $(call github,WebPlatformForEmbedded,RDKSplashScreen,$(RDKSPLASHSCREEN_VERSION))
+RDKSPLASHSCREEN_VERSION = 7bf07c35cc531cd306c525b554310c48b3558138
+RDKSPLASHSCREEN_SITE = $(call github,rdkcentral,RDKSplashScreen,$(RDKSPLASHSCREEN_VERSION))
 RDKSPLASHSCREEN_DEPENDENCIES = wpeframework wpeframework-plugins
 
 RDKSPLASHSCREEN_INSTALL_STAGING = NO
@@ -20,16 +20,16 @@ define RDKSPLASHSCREEN_INSTALL_TARGET_CMDS
 	else                               \
 		mkdir -p $(TARGET_DIR)/www;\
 	fi
-	cp -r $(@D)/* $(TARGET_DIR)/www/
+	cp -r $(@D)/dist/web/* $(TARGET_DIR)/www/
 endef
 
 define RDKSPLASHSCREEN_WRITE_URL
-        cp -r $(@D)/static/config/config.url.in $(TARGET_DIR)/www/config.json
+        cp -r $(@D)/dist/web/static/config/config.url.in $(TARGET_DIR)/www/config.json
         sed -i -e s,%url%,$(BR2_PACKAGE_RDKSPLASHSCREEN_URL),g $(TARGET_DIR)/www/config.json
 endef
 
 define RDKSPLASHSCREEN_WRITE_OPERATOR
-	cp -r $(@D)/static/config/config.operator.in $(TARGET_DIR)/www/config.json
+	cp -r $(@D)/dist/web/static/config/config.operator.in $(TARGET_DIR)/www/config.json
 	sed -i -e s,%operator%,$(BR2_PACKAGE_RDKSPLASHSCREEN_OPERATOR),g $(TARGET_DIR)/www/config.json
 endef
 
