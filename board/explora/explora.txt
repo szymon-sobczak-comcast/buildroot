@@ -49,6 +49,7 @@ libgstcontroller-1.0.so
 libgstfaad.so
 libgstfft-1.0.so
 libgstinsertbin-1.0.so
+libgstisoff-1.0.so
 libgstpbutils-1.0.so
 libgstmpegts-1.0.so
 libgstnet-1.0.so
