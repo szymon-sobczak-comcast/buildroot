@@ -287,13 +287,17 @@ config BR2_PACKAGE_WPEFRAMEWORK_DEVICEIDENTIFICATION
     help
       DeviceIdentification Plugin (Nexus OTP)
 
+if !BR2_PACKAGE_RPI_VERSION_RPI4
 config BR2_PACKAGE_WPEFRAMEWORK_DISPLAYINFO
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
     bool "DisplayInfo"
     default y
     help
       DisplayInfo Plugin
-
+endif
+if BR2_PACKAGE_RPI_VERSION_RPI4
+comment "PI version 4 is NOT supported by DisplayInfo plugin"
+endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_DSRESOLUTION
     select BR2_PACKAGE_WPEFRAMEWORK_PLUGINS
