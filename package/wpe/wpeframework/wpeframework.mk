@@ -108,18 +108,6 @@ $(error Missing a gstreamer client implementation, please provide one)
 endif
 endif
 
-ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_GSTREAMERCLIENT_OLD),y)
-WPEFRAMEWORK_DEPENDENCIES += gstreamer1 gst1-plugins-base
-WPEFRAMEWORK_CONF_OPTS += -DGSTREAMERCLIENT_OLD=ON
-ifeq ($(BR2_PACKAGE_HAS_NEXUS),y)
-WPEFRAMEWORK_CONF_OPTS += -DGSTREAMER_CLIENT_IMPLEMENTATION=Nexus
-else ifeq  ($(BR2_PACKAGE_RPI_FIRMWARE),y)
-WPEFRAMEWORK_CONF_OPTS += -DGSTREAMER_CLIENT_IMPLEMENTATION=RPI
-else
-$(error Missing a gstreamer client implementation, please provide one)
-endif
-endif
-
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_PROVISIONPROXY),y)
 WPEFRAMEWORK_CONF_OPTS += -DPROVISIONPROXY=ON
 WPEFRAMEWORK_DEPENDENCIES += libprovision
