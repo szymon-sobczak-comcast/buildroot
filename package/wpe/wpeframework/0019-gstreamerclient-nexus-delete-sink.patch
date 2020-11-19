@@ -1,0 +1,27 @@
+From 15344c2d15c80a0cebc04ad324eb08ab1ffc7785 Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Thu, 19 Nov 2020 18:55:14 +0100
+Subject: [PATCH] gstreamerclient: nexus delete sink
+
+---
+ Source/gstreamerclient/Nexus/Implementation.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/Source/gstreamerclient/Nexus/Implementation.cpp b/Source/gstreamerclient/Nexus/Implementation.cpp
+index 4b5a986..5700228 100644
+--- a/Source/gstreamerclient/Nexus/Implementation.cpp
++++ b/Source/gstreamerclient/Nexus/Implementation.cpp
+@@ -490,6 +490,10 @@ int gstreamer_client_sink_unlink (SinkType type, GstElement *pipeline)
+     // Remove from pipeline list
+     instance->Remove(pipeline);
+ 
++    if(sink){
++        delete sink;
++    }
++
+     // pipeline destruction will free allocated elements
+     return 0;
+ }
+-- 
+2.25.1
+
