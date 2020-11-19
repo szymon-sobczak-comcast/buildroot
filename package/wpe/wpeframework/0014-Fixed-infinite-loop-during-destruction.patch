@@ -1,0 +1,23 @@
+From 787657b79a555d20158876bcf5add5c390a820cb Mon Sep 17 00:00:00 2001
+From: krp97 <k.plata@metrological.com>
+Date: Fri, 13 Nov 2020 18:17:05 +0000
+Subject: [PATCH] [DisplayInfo] Fixed infinite loop during destruction
+
+---
+ Source/displayinfo/DisplayInfo.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/Source/displayinfo/DisplayInfo.cpp b/Source/displayinfo/DisplayInfo.cpp
+index 8d004ee..84f62a0 100644
+--- a/Source/displayinfo/DisplayInfo.cpp
++++ b/Source/displayinfo/DisplayInfo.cpp
+@@ -106,7 +106,8 @@ class DisplayInfo : public Core::IReferenceCounted {
+             std::list<DisplayInfo*>::iterator index(std::list<DisplayInfo*>::begin());
+ 
+             while (index != std::list<DisplayInfo*>::end()) {
+-                Trace("Closing %s", (*index)->Name().c_str());
++                Trace("Removing DisplayInfoAdministration with an instance unreleased. <%s>", (*index)->Name().c_str());
++                ++index;
+             }
+ 
+             ASSERT(std::list<DisplayInfo*>::size() == 0);
