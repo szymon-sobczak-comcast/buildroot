@@ -1,0 +1,34 @@
+From b6e93347ff39ef91640b130871473efdbb5dc021 Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Mon, 16 Nov 2020 18:19:09 +0100
+Subject: [PATCH] fix thunder dependecies
+
+---
+ CMakeLists.txt | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 86a610a..3cad895 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -12,6 +12,8 @@ find_package(GstreamerApp REQUIRED)
+ find_package(Gstreamer REQUIRED)
+ find_package(WPEFramework REQUIRED)
+ find_package(${NAMESPACE}Core REQUIRED)
++find_package(CompileSettingsDebug REQUIRED)
++find_package(gstreamerclient REQUIRED)
+ find_package(displayinfo REQUIRED)
+ 
+ find_package(PkgConfig)
+@@ -60,7 +62,7 @@ target_link_libraries(${TARGET_NAME}
+         ${NAMESPACE}Core::${NAMESPACE}Core
+         GStreamer::GStreamer
+         GStreamerApp::GStreamerApp
+-        GStreamerClient::GStreamerClient
++        gstreamerclient::gstreamerclient
+         ${OCDM_LIBRARIES}
+         displayinfo::displayinfo)
+ 
+-- 
+2.25.1
+
