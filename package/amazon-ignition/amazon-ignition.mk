@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AMAZON_IGNITION_VERSION = 7a41974257088becc82788ca5f01b36621c62e7c
+AMAZON_IGNITION_VERSION = 3a79b8cc1a0ef9de189c3d100ce77619ab0e94bb
 AMAZON_IGNITION_SITE_METHOD = git
 AMAZON_IGNITION_SITE = git@github.com:Metrological/amazon.git
 AMAZON_IGNITION_DEPENDENCIES = jpeg libpng wpeframework amazon amazon-backend
