@@ -136,7 +136,6 @@ define AMAZON_IGNITION_INSTALL_IGNITION
 	
     rsync -av ${AMAZON_IGNITION_BINARY_INSTALL_DIR}/ $(call qstrip,$(1))/$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH)
 
-    ln -sf "../../../lib/libamazon_backend_device.so" "$(call qstrip,$(1))$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libamazon_backend_device.so"
     ln -sf "../../../lib/libamazon-backend.so" "$(call qstrip,$(1))$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libamazon-backend.so"
     ln -sf "../../../lib/libamazon_player_mediapipeline.so" "$(call qstrip,$(1))$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libamazon_player_mediapipeline.so"
     ln -sf "../../../lib/libamazon_player.so" "$(call qstrip,$(1))$(call qstrip,$(BR2_PACKAGE_AMAZON_IGNITION_IG_INSTALL_PATH))/lib/libamazon_player.so"
