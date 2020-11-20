@@ -33,7 +33,7 @@ case "$1" in
 		cp -rf "${playready_bin}" /usr/bin/bcm-drm-examples/pr
 	fi
 
-	if [ ! -d /rootAmazonPrime ]; then
+# 	if [ ! -d /root/AmazonPrime ]; then
         mkdir /root/AmazonPrime
         chown $IGNITION_USER:$IGNITION_USER /root/AmazonPrime
     fi
