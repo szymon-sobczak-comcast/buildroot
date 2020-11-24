@@ -5,8 +5,8 @@
 ################################################################################
 
 OPENJPEG_VER_MAJOR = 2
-OPENJPEG_VER_MINOR = 1
-OPENJPEG_VER_PATCH = 2
+OPENJPEG_VER_MINOR = 2
+OPENJPEG_VER_PATCH = 0
 OPENJPEG_VERSION = $(OPENJPEG_VER_MAJOR).$(OPENJPEG_VER_MINOR).$(OPENJPEG_VER_PATCH)
 OPENJPEG_SITE = $(call github,uclouvain,openjpeg,v$(OPENJPEG_VERSION))
 OPENJPEG_LICENSE = BSD-2c
