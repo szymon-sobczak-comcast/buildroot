@@ -20,11 +20,11 @@ else
 GCC_SITE = $(BR2_GNU_MIRROR:/=)/gcc/gcc-$(GCC_VERSION)
 # From version 6.4.0 a bz2 release tarball is not provided anymore. Use the xz
 # tarball instead.
-ifeq ($(BR2_GCC_VERSION_6_X),y)
+ifeq ($(BR2_HOST_GCC_AT_LEAST_6),y)
 GCC_SOURCE = gcc-$(GCC_VERSION).tar.xz
 else
 GCC_SOURCE = gcc-$(GCC_VERSION).tar.bz2
-endif # BR2_GCC_VERSION_6_X
+endif # BR2_TOOLCHAIN_GCC_AT_LEAST_6
 endif
 
 #
@@ -64,9 +64,15 @@ define HOST_GCC_APPLY_PATCHES
 	$(HOST_GCC_APPLY_POWERPC_PATCH)
 endef
 
+ifeq ($(BR2_HOST_GCC_AT_LEAST_7),y)
+HOST_GCC_EXCLUDES = \
+	libjava/* libgo/*
+else
 HOST_GCC_EXCLUDES = \
 	libjava/* libgo/* \
 	gcc/testsuite/* libstdc++-v3/testsuite/*
+endif # BR2_TOOLCHAIN_GCC_AT_LEAST_7
+
 
 define HOST_GCC_FAKE_TESTSUITE
 	mkdir -p $(@D)/libstdc++-v3/testsuite/

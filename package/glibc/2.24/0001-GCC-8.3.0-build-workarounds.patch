@@ -1,0 +1,287 @@
+From c08e6bedb6213553989e27be74b8f7bb144e96b1 Mon Sep 17 00:00:00 2001
+From: Xabier Rodriguez Calvar <calvaris@igalia.com>
+Date: Mon, 16 Nov 2020 18:56:00 +0100
+Subject: [PATCH] GCC 8.3.0 build workarounds
+
+---
+ login/login.c                      | 2 +-
+ login/logout.c                     | 2 +-
+ login/logwtmp.c                    | 6 +++---
+ nis/nss_nisplus/nisplus-alias.c    | 6 ++++++
+ nis/nss_nisplus/nisplus-parser.c   | 4 ++--
+ nscd/connections.c                 | 3 +++
+ nscd/dbg_log.c                     | 3 +++
+ posix/regcomp.c                    | 3 +++
+ resolv/res_debug.c                 | 3 +++
+ sunrpc/rpc_parse.c                 | 3 +++
+ sysdeps/ieee754/dbl-64/e_pow.c     | 3 +++
+ sysdeps/unix/getlogin.c            | 3 ++-
+ sysdeps/unix/getlogin_r.c          | 3 ++-
+ sysdeps/unix/sysv/linux/if_index.c | 3 ++-
+ time/strftime_l.c                  | 8 ++++----
+ timezone/zic.c                     | 2 +-
+ 16 files changed, 42 insertions(+), 15 deletions(-)
+
+diff --git a/login/login.c b/login/login.c
+index 4c6b6bba..dc218c99 100644
+--- a/login/login.c
++++ b/login/login.c
+@@ -115,7 +115,7 @@ login (const struct utmp *ut)
+ 	ttyp = basename (tty);
+ 
+       /* Position to record for this tty.  */
+-      strncpy (copy.ut_line, ttyp, UT_LINESIZE);
++      memcpy (copy.ut_line, ttyp, UT_LINESIZE);
+ 
+       /* Tell that we want to use the UTMP file.  */
+       if (utmpname (_PATH_UTMP) == 0)
+diff --git a/login/logout.c b/login/logout.c
+index ea9c4e05..aaef6b9c 100644
+--- a/login/logout.c
++++ b/login/logout.c
+@@ -39,7 +39,7 @@ logout (const char *line)
+ #if _HAVE_UT_TYPE - 0
+   tmp.ut_type = USER_PROCESS;
+ #endif
+-  strncpy (tmp.ut_line, line, sizeof tmp.ut_line);
++  memcpy (tmp.ut_line, line, sizeof tmp.ut_line);
+ 
+   /* Read the record.  */
+   if (getutline_r (&tmp, &utbuf, &ut) >= 0)
+diff --git a/login/logwtmp.c b/login/logwtmp.c
+index 41ec8c7f..fcab02df 100644
+--- a/login/logwtmp.c
++++ b/login/logwtmp.c
+@@ -36,10 +36,10 @@ logwtmp (const char *line, const char *name, const char *host)
+ #if _HAVE_UT_TYPE - 0
+   ut.ut_type = name[0] ? USER_PROCESS : DEAD_PROCESS;
+ #endif
+-  strncpy (ut.ut_line, line, sizeof ut.ut_line);
+-  strncpy (ut.ut_name, name, sizeof ut.ut_name);
++  memcpy (ut.ut_line, line, sizeof ut.ut_line);
++  memcpy (ut.ut_name, name, sizeof ut.ut_name);
+ #if _HAVE_UT_HOST - 0
+-  strncpy (ut.ut_host, host, sizeof ut.ut_host);
++  memcpy (ut.ut_host, host, sizeof ut.ut_host);
+ #endif
+ 
+ #if _HAVE_UT_TV - 0
+diff --git a/nis/nss_nisplus/nisplus-alias.c b/nis/nss_nisplus/nisplus-alias.c
+index 7f698b4e..111c304c 100644
+--- a/nis/nss_nisplus/nisplus-alias.c
++++ b/nis/nss_nisplus/nisplus-alias.c
+@@ -297,10 +297,16 @@ _nss_nisplus_getaliasbyname_r (const char *name, struct aliasent *alias,
+       return NSS_STATUS_UNAVAIL;
+     }
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wnonnull"
+   char buf[strlen (name) + 9 + tablename_len];
++#pragma GCC diagnostic pop
+   int olderr = errno;
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wformat-truncation="
+   snprintf (buf, sizeof (buf), "[name=%s],%s", name, tablename_val);
++#pragma GCC diagnostic pop
+ 
+   nis_result *result = nis_list (buf, FOLLOW_PATH | FOLLOW_LINKS, NULL, NULL);
+ 
+diff --git a/nis/nss_nisplus/nisplus-parser.c b/nis/nss_nisplus/nisplus-parser.c
+index b2f3ed79..bf339acd 100644
+--- a/nis/nss_nisplus/nisplus-parser.c
++++ b/nis/nss_nisplus/nisplus-parser.c
+@@ -87,7 +87,7 @@ _nss_nisplus_parse_pwent (nis_result *result, struct passwd *pw,
+       if (len >= room_left)
+ 	goto no_more_room;
+ 
+-      strncpy (first_unused, numstr, len);
++      memcpy (first_unused, numstr, len);
+       first_unused[len] = '\0';
+       numstr = first_unused;
+     }
+@@ -103,7 +103,7 @@ _nss_nisplus_parse_pwent (nis_result *result, struct passwd *pw,
+       if (len >= room_left)
+ 	goto no_more_room;
+ 
+-      strncpy (first_unused, numstr, len);
++      memcpy (first_unused, numstr, len);
+       first_unused[len] = '\0';
+       numstr = first_unused;
+     }
+diff --git a/nscd/connections.c b/nscd/connections.c
+index f3b16f72..cc2df57c 100644
+--- a/nscd/connections.c
++++ b/nscd/connections.c
+@@ -1113,7 +1113,10 @@ cannot handle old request version %d; current version is %d"),
+ # endif
+ 
+ 	  snprintf (buf, sizeof (buf), "/proc/%ld/exe", (long int) pid);
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wrestrict"
+ 	  ssize_t n = readlink (buf, buf, sizeof (buf) - 1);
++#pragma GCC diagnostic pop
+ 
+ 	  if (n <= 0)
+ 	    dbg_log (_("\
+diff --git a/nscd/dbg_log.c b/nscd/dbg_log.c
+index f2ca3c87..e31525c4 100644
+--- a/nscd/dbg_log.c
++++ b/nscd/dbg_log.c
+@@ -68,8 +68,11 @@ dbg_log (const char *fmt,...)
+       strftime (buf, sizeof (buf), "%c", &now);
+ 
+       char msg[512];
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wformat-truncation="
+       snprintf (msg, sizeof (msg), "%s - %d: %s%s", buf, getpid (), msg2,
+ 		msg2[strlen (msg2) - 1] == '\n' ? "" : "\n");
++#pragma GCC diagnostic pop
+       if (dbgout)
+ 	{
+ 	  fputs (msg, dbgout);
+diff --git a/posix/regcomp.c b/posix/regcomp.c
+index b6126b7b..306f3b30 100644
+--- a/posix/regcomp.c
++++ b/posix/regcomp.c
+@@ -930,8 +930,11 @@ init_word_char (re_dfa_t *dfa)
+              warnings in the case when this is dead code, i.e. 32-bit.  */
+           const uint64_t wc0 = UINT64_C (0x03ff000000000000);
+           const uint64_t wc1 = UINT64_C (0x07fffffe87fffffe);
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Woverflow"
+ 	  dfa->word_char[0] = wc0;
+ 	  dfa->word_char[1] = wc1;
++#pragma GCC diagnostic pop
+ 	  i = 2;
+ 	}
+       else if (sizeof (dfa->word_char[0]) == 4)
+diff --git a/resolv/res_debug.c b/resolv/res_debug.c
+index bd95590c..20d2f942 100644
+--- a/resolv/res_debug.c
++++ b/resolv/res_debug.c
+@@ -1039,9 +1039,12 @@ p_secstodate (u_long secs) {
+ 	time = __gmtime_r(&clock, &timebuf);
+ 	time->tm_year += 1900;
+ 	time->tm_mon += 1;
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wformat-overflow="
+ 	sprintf(output, "%04d%02d%02d%02d%02d%02d",
+ 		time->tm_year, time->tm_mon, time->tm_mday,
+ 		time->tm_hour, time->tm_min, time->tm_sec);
++#pragma GCC diagnostic pop
+ 	return (output);
+ }
+ libresolv_hidden_def (__p_secstodate)
+diff --git a/sunrpc/rpc_parse.c b/sunrpc/rpc_parse.c
+index 1a1df6d8..e71d5d71 100644
+--- a/sunrpc/rpc_parse.c
++++ b/sunrpc/rpc_parse.c
+@@ -540,7 +540,10 @@ get_prog_declaration (declaration * dec, defkind dkind, int num /* arg number */
+   if (peekscan (TOK_IDENT, &tok))	/* optional name of argument */
+     strcpy (name, tok.str);
+   else
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wformat-overflow="
+     sprintf (name, "%s%d", ARGNAME, num);	/* default name of argument */
++#pragma GCC diagnostic pop
+ 
+   dec->name = (char *) strdup (name);
+ 
+diff --git a/sysdeps/ieee754/dbl-64/e_pow.c b/sysdeps/ieee754/dbl-64/e_pow.c
+index 663fa392..571ffd7e 100644
+--- a/sysdeps/ieee754/dbl-64/e_pow.c
++++ b/sysdeps/ieee754/dbl-64/e_pow.c
+@@ -466,6 +466,8 @@ checkint (double x)
+     return (n & 1) ? -1 : 1;	/* odd or even */
+   if (k > 20)
+     {
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wint-in-bool-context"
+       if (n << (k - 20))
+ 	return 0;		/* if not integer */
+       return (n << (k - 21)) ? -1 : 1;
+@@ -477,4 +479,5 @@ checkint (double x)
+   if (m << (k + 12))
+     return 0;
+   return (m << (k + 11)) ? -1 : 1;
++#pragma GCC diagnostic pop
+ }
+diff --git a/sysdeps/unix/getlogin.c b/sysdeps/unix/getlogin.c
+index 75700d6b..0448e395 100644
+--- a/sysdeps/unix/getlogin.c
++++ b/sysdeps/unix/getlogin.c
+@@ -60,7 +60,8 @@ getlogin (void)
+   real_tty_path += 5;		/* Remove "/dev/".  */
+ 
+   __setutent ();
+-  strncpy (line.ut_line, real_tty_path, sizeof line.ut_line);
++  strncpy (line.ut_line, real_tty_path, sizeof (line.ut_line) - 1);
++  line.ut_line[sizeof (line.ut_line) - 1] = 0;
+   if (__getutline_r (&line, &buffer, &ut) < 0)
+     {
+       if (errno == ESRCH)
+diff --git a/sysdeps/unix/getlogin_r.c b/sysdeps/unix/getlogin_r.c
+index a78e5548..eb1fd942 100644
+--- a/sysdeps/unix/getlogin_r.c
++++ b/sysdeps/unix/getlogin_r.c
+@@ -57,7 +57,8 @@ __getlogin_r (char *name, size_t name_len)
+     return result;
+ 
+   real_tty_path += 5;		/* Remove "/dev/".  */
+-  strncpy (line.ut_line, real_tty_path, sizeof line.ut_line);
++  strncpy (line.ut_line, real_tty_path, sizeof (line.ut_line) - 1);
++  line.ut_line[sizeof (line.ut_line) - 1] = 0;
+ 
+   /* We don't use the normal entry points __setutent et al, because we
+      want setutent + getutline_r + endutent all to happen with the lock
+diff --git a/sysdeps/unix/sysv/linux/if_index.c b/sysdeps/unix/sysv/linux/if_index.c
+index 7c3bb6cb..5dcbe09f 100644
+--- a/sysdeps/unix/sysv/linux/if_index.c
++++ b/sysdeps/unix/sysv/linux/if_index.c
+@@ -43,7 +43,8 @@ __if_nametoindex (const char *ifname)
+   if (fd < 0)
+     return 0;
+ 
+-  strncpy (ifr.ifr_name, ifname, sizeof (ifr.ifr_name));
++  strncpy (ifr.ifr_name, ifname, sizeof (ifr.ifr_name) - 1);
++  ifr.ifr_name [sizeof (ifr.ifr_name) - 1] = 0;
+   if (__ioctl (fd, SIOCGIFINDEX, &ifr) < 0)
+     {
+       int saved_errno = errno;
+diff --git a/time/strftime_l.c b/time/strftime_l.c
+index 12050352..b04eda2e 100644
+--- a/time/strftime_l.c
++++ b/time/strftime_l.c
+@@ -716,11 +716,11 @@ __strftime_internal (CHAR_T *s, size_t maxsize, const CHAR_T *format,
+       switch (format_char)
+ 	{
+ #define DO_NUMBER(d, v) \
+-	  digits = d > width ? d : width;				      \
+-	  number_value = v; goto do_number
++	  { digits = d > width ? d : width;      \
++            number_value = v; goto do_number; }
+ #define DO_NUMBER_SPACEPAD(d, v) \
+-	  digits = d > width ? d : width;				      \
+-	  number_value = v; goto do_number_spacepad
++	  { digits = d > width ? d : width;              \
++            number_value = v; goto do_number_spacepad; }
+ 
+ 	case L_('%'):
+ 	  if (modifier != 0)
+diff --git a/timezone/zic.c b/timezone/zic.c
+index 78ab8709..985992b1 100644
+--- a/timezone/zic.c
++++ b/timezone/zic.c
+@@ -1819,7 +1819,7 @@ writezone(const char *const name, const char *const string, char version)
+ 		}
+ #define DO(field)	fwrite(tzh.field, sizeof tzh.field, 1, fp)
+ 		tzh = tzh0;
+-		strncpy(tzh.tzh_magic, TZ_MAGIC, sizeof tzh.tzh_magic);
++		memcpy(tzh.tzh_magic, TZ_MAGIC, sizeof (tzh.tzh_magic));
+ 		tzh.tzh_version[0] = version;
+ 		convert(thistypecnt, tzh.tzh_ttisgmtcnt);
+ 		convert(thistypecnt, tzh.tzh_ttisstdcnt);
+-- 
+2.29.2
+
