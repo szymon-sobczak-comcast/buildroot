@@ -1,10 +1,10 @@
-From 15344c2d15c80a0cebc04ad324eb08ab1ffc7785 Mon Sep 17 00:00:00 2001
+From f95caceb9169b8e5484da9d8349dcfd062ed8c1e Mon Sep 17 00:00:00 2001
 From: Bram Oosterhuis <mail@bybram.com>
-Date: Thu, 19 Nov 2020 18:55:14 +0100
-Subject: [PATCH] gstreamerclient: nexus delete sink
+Date: Thu, 19 Nov 2020 17:39:41 +0100
+Subject: [PATCH 1/2] gstreamerclient: delete the sink
 
 ---
- Source/gstreamerclient/Nexus/Implementation.cpp | 4 ++++
+ Implementation.cpp | 4 ++++
  1 file changed, 4 insertions(+)
 
 diff --git a/Source/gstreamerclient/Nexus/Implementation.cpp b/Source/gstreamerclient/Nexus/Implementation.cpp
@@ -24,4 +24,141 @@ index 4b5a986..5700228 100644
  }
 -- 
 2.25.1
+From 2628ffcd4b11493a872d64c647b059110e0e7f74 Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Mon, 23 Nov 2020 21:29:11 +0100
+Subject: [PATCH 2/2] unref caps and fix error cases
 
+---
+ Implementation.cpp | 24 +++++++++++++++++-------
+ 1 file changed, 17 insertions(+), 7 deletions(-)
+
+diff --git a/Source/gstreamerclient/Nexus/Implementation.cpp b/Source/gstreamerclient/Nexus/Implementation.cpp
+index 5700228..1bcaf72 100644
+--- a/Source/gstreamerclient/Nexus/Implementation.cpp
++++ b/Source/gstreamerclient/Nexus/Implementation.cpp
+@@ -84,13 +84,17 @@ public:
+            g_signal_connect(_audioDecodeBin, "pad-added", G_CALLBACK(OnAudioPad), this);
+            g_signal_connect(_audioDecodeBin, "element-added", G_CALLBACK(OnAudioElementAdded), this);
+            g_signal_connect(_audioDecodeBin, "element-removed", G_CALLBACK(OnAudioElementRemoved), this);
+-           g_object_set(_audioDecodeBin, "caps", gst_caps_from_string("audio/x-raw; audio/x-brcm-native"), nullptr);
++
++           GstCaps* caps = gst_caps_from_string("audio/x-raw; audio/x-brcm-native");
++           g_object_set(_audioDecodeBin, "caps", caps, nullptr);
+ 
+            // Create an audio sink
+            _audioSink = gst_element_factory_make ("brcmaudiosink", "audio-sink");
+ 
+-           if (!_audioSink)
++           if (!_audioSink){
++               gst_object_unref(_audioDecodeBin);
+                return false;
++           }
+ 
+            gst_bin_add_many (GST_BIN (_pipeline), _audioDecodeBin, _audioSink, nullptr);
+ 
+@@ -105,6 +109,8 @@ public:
+            }
+ 
+            gst_element_sync_state_with_parent(_audioDecodeBin);
++
++           gst_caps_unref(caps);
+         } else {
+            _audioSink = gst_element_factory_make ("brcmpcmsink", "audio-sink");
+ 
+@@ -146,12 +152,16 @@ public:
+         g_signal_connect(_videoDecodeBin, "pad-added", G_CALLBACK(OnVideoPad), this);
+         g_signal_connect(_videoDecodeBin, "element-added", G_CALLBACK(OnVideoElementAdded), this);
+         g_signal_connect(_videoDecodeBin, "element-removed", G_CALLBACK(OnVideoElementRemoved), this);
+-        g_object_set(_videoDecodeBin, "caps", gst_caps_from_string("video/x-raw; video/x-brcm-native"), nullptr);
++
++        GstCaps* caps = gst_caps_from_string("video/x-raw; video/x-brcm-native");
++        g_object_set(_videoDecodeBin, "caps", caps, nullptr);
+ 
+         // Create video sink
+-        _videoSink       = gst_element_factory_make ("brcmvideosink", "video-sink");
+-        if (!_videoSink)
++        _videoSink = gst_element_factory_make ("brcmvideosink", "video-sink");
++        if (!_videoSink){
++            gst_object_unref(_videoDecodeBin);
+             return false;
++        }
+ 
+         _videoCallbacks = callbacks;
+         gst_bin_add_many (GST_BIN (_pipeline), _videoDecodeBin, _videoSink, nullptr);
+@@ -169,6 +179,8 @@ public:
+         gst_element_sync_state_with_parent(_videoDecodeBin);
+         gst_element_sync_state_with_parent(_videoSink);
+ 
++        gst_caps_unref(caps);
++
+         return true;
+     }
+ 
+@@ -413,7 +425,6 @@ public:
+     }
+ 
+     void Remove(GstElement* pipeline) {
+-
+         SinkMap::iterator index(_sinks.find(pipeline));
+ 
+         if (index != _sinks.end()) {
+@@ -424,7 +435,6 @@ public:
+     }
+ 
+     GstPlayerSink* Find(GstElement* pipeline) {
+-
+         GstPlayerSink* result = nullptr;
+         SinkMap::iterator index(_sinks.find(pipeline));
+ 
+-- 
+2.25.1
+From 682fcc8a8e10bd66113a4545d5a31fb3cdd9e144 Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Mon, 23 Nov 2020 22:19:29 +0100
+Subject: [PATCH] move caps unref above all points of return
+
+---
+ Implementation.cpp | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/Source/gstreamerclient/Nexus/Implementation.cpp b/Source/gstreamerclient/Nexus/Implementation.cpp
+index 1bcaf72..c34f7e8 100644
+--- a/Source/gstreamerclient/Nexus/Implementation.cpp
++++ b/Source/gstreamerclient/Nexus/Implementation.cpp
+@@ -87,6 +87,7 @@ public:
+ 
+            GstCaps* caps = gst_caps_from_string("audio/x-raw; audio/x-brcm-native");
+            g_object_set(_audioDecodeBin, "caps", caps, nullptr);
++           gst_caps_unref(caps);
+ 
+            // Create an audio sink
+            _audioSink = gst_element_factory_make ("brcmaudiosink", "audio-sink");
+@@ -109,8 +110,6 @@ public:
+            }
+ 
+            gst_element_sync_state_with_parent(_audioDecodeBin);
+-
+-           gst_caps_unref(caps);
+         } else {
+            _audioSink = gst_element_factory_make ("brcmpcmsink", "audio-sink");
+ 
+@@ -155,6 +154,7 @@ public:
+ 
+         GstCaps* caps = gst_caps_from_string("video/x-raw; video/x-brcm-native");
+         g_object_set(_videoDecodeBin, "caps", caps, nullptr);
++        gst_caps_unref(caps);
+ 
+         // Create video sink
+         _videoSink = gst_element_factory_make ("brcmvideosink", "video-sink");
+@@ -179,8 +179,6 @@ public:
+         gst_element_sync_state_with_parent(_videoDecodeBin);
+         gst_element_sync_state_with_parent(_videoSink);
+ 
+-        gst_caps_unref(caps);
+-
+         return true;
+     }
+ 
+-- 
+2.25.1
