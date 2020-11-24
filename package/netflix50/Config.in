@@ -96,19 +96,13 @@ config BR2_PACKAGE_NETFLIX50_KEYMAP
         Install custom keymap
 
 config BR2_PACKAGE_NETFLIX50_AUDIO_MIXER
-        bool "audio-mixer"
-        select BR2_PACKAGE_TREMOR
-		select BR2_PACKAGE_LIBOGG
-		select BR2_PACKAGE_LIBVORBIS
+	bool "UI Audio Mixer"
+	select BR2_PACKAGE_TREMOR
+	select BR2_PACKAGE_LIBOGG
+	select BR2_PACKAGE_LIBVORBIS
 
-if BR2_PACKAGE_NETFLIX50_AUDIO_MIXER
-
-config BR2_PACKAGE_NETFLIX50_AUDIO_MIXER_SOFTWARE
-	bool "Audio Mixer"
-	help
-        Enables the Audio Mixer (UI)
-
-endif
+config BR2_PACKAGE_NETFLIX50_DISPLAY_INFO
+	bool "Display Info"
 
 choice
 	bool "DRM"
@@ -117,17 +111,36 @@ choice
         Choose DRM Type
 
 config BR2_PACKAGE_NETFLIX50_DRM_OCDM
-	bool "ocdm"
+	bool "OCDM"
 	depends on BR2_PACKAGE_WPEFRAMEWORK_CDMI
 	help
-        DRM Ocdm
+        OCDM
 
 config BR2_PACKAGE_NETFLIX50_DRM_NONE
 	bool "none"
 	help
-        DRM None - no DRM system
+        No DRM system
 
 endchoice
+
+choice
+	bool "REE/TEE"
+	default BR2_PACKAGE_NETFLIX50_REETEE_REFERENCE
+	help
+        Choose REE/TEE implementation
+
+config BR2_PACKAGE_NETFLIX50_REETEE_REFERENCE
+	bool "reference"
+	help
+        Netflix Reference REE/TEE
+
+config BR2_PACKAGE_NETFLIX50_REE_TEE_CRYPTOGRAPHY
+	bool "libcryptography"
+	help
+        Thunder Cryptography library
+
+endchoice
+
 
 config BR2_PACKAGE_NETFLIX50_DISABLE_TOOLS
 	bool "Disable tools"
