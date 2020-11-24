@@ -1,0 +1,30 @@
+From f344de1ccfb3b6b5a9b2b9156f9395387204210c Mon Sep 17 00:00:00 2001
+From: Xabier Rodriguez Calvar <calvaris@igalia.com>
+Date: Tue, 24 Nov 2020 18:03:26 +0100
+Subject: [PATCH] cryptography: encrypt and decrypt functions should return
+ unsigned
+
+---
+ Source/cryptography/implementation/cipher_implementation.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Source/cryptography/implementation/cipher_implementation.h b/Source/cryptography/implementation/cipher_implementation.h
+index dc3d3a4..6cfe00c 100644
+--- a/Source/cryptography/implementation/cipher_implementation.h
++++ b/Source/cryptography/implementation/cipher_implementation.h
+@@ -44,10 +44,10 @@ struct CipherImplementation* cipher_create_aes(const struct VaultImplementation*
+ void cipher_destroy(struct CipherImplementation* cipher);
+ 
+ 
+-int32_t cipher_encrypt(const struct CipherImplementation* cipher, const uint8_t iv_length, const uint8_t iv[],
++uint32_t cipher_encrypt(const struct CipherImplementation* cipher, const uint8_t iv_length, const uint8_t iv[],
+                         const uint32_t input_length, const uint8_t input[], const uint32_t max_output_length, uint8_t output[]);
+ 
+-int32_t cipher_decrypt(const struct CipherImplementation* cipher, const uint8_t iv_length, const uint8_t iv[],
++uint32_t cipher_decrypt(const struct CipherImplementation* cipher, const uint8_t iv_length, const uint8_t iv[],
+                         const uint32_t input_length, const uint8_t input[], const uint32_t max_output_length, uint8_t output[]);
+ 
+ #ifdef __cplusplus
+-- 
+2.29.2
+
