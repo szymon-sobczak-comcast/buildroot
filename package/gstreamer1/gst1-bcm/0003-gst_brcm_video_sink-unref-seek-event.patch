@@ -1,0 +1,45 @@
+From 4d263d39728aaeac6a1b4359308c6b9ea88aaceb Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Wed, 25 Nov 2020 18:01:59 +0100
+Subject: [PATCH] gst_brcm_video_sink: unref seek event
+
+---
+ videosink/src/gst_brcm_video_sink.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/videosink/src/gst_brcm_video_sink.c b/videosink/src/gst_brcm_video_sink.c
+index e390e54..86cd1b6 100755
+--- a/videosink/src/gst_brcm_video_sink.c
++++ b/videosink/src/gst_brcm_video_sink.c
+@@ -929,6 +929,7 @@ gst_brcm_video_sink_sink_event(GstPad *pad, GstObject *parent, GstEvent *event)
+ 
+         const GstSegment *dataSegment;
+         gst_event_parse_segment(event,&dataSegment);
++        gst_event_unref(event);
+         segStart = dataSegment->start;
+         segStop = dataSegment->stop;
+ //        segPos = dataSegment->position;
+From 720781b917b80a8dc3f77d5683c6f8a444080f63 Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Wed, 25 Nov 2020 18:01:05 +0100
+Subject: [PATCH] gst_brcm_audio_decoder: unref event
+
+---
+ audiodecode/src/gst_brcm_audio_decoder.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/audiodecode/src/gst_brcm_audio_decoder.c b/audiodecode/src/gst_brcm_audio_decoder.c
+index 2bda9b5..f01d764 100644
+--- a/audiodecode/src/gst_brcm_audio_decoder.c
++++ b/audiodecode/src/gst_brcm_audio_decoder.c
+@@ -1560,6 +1560,7 @@ static gboolean gst_brcm_audio_decoder_sink_event(GstPad *pad, GstObject *parent
+ 
+         const GstSegment *dataSegment;
+         gst_event_parse_segment(event,&dataSegment);
++        gst_event_unref(event);
+         segStart = dataSegment->start;
+         segStop = dataSegment->stop;
+         segPos = dataSegment->position;
+-- 
+2.25.1
+

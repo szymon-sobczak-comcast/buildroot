@@ -1,0 +1,27 @@
+From f3f08c1e35065cb98b6a21897bdf0d3e5ce5d172 Mon Sep 17 00:00:00 2001
+From: Bram Oosterhuis <mail@bybram.com>
+Date: Wed, 25 Nov 2020 21:29:34 +0100
+Subject: [PATCH] vidfilter: properly release the quered caps
+
+---
+ vidfilter/src/gst_brcm_vid_filter.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/vidfilter/src/gst_brcm_vid_filter.c b/vidfilter/src/gst_brcm_vid_filter.c
+index f0f1722..c589217 100644
+--- a/vidfilter/src/gst_brcm_vid_filter.c
++++ b/vidfilter/src/gst_brcm_vid_filter.c
+@@ -1279,8 +1279,8 @@ static GstPadLinkReturn gst_brcm_vid_filter_sink_link(GstPad *pad, GstObject *pa
+             gchar *caps_str = gst_caps_to_string(caps);
+             GST_WARNING("failed to parse caps %s", caps_str);
+             g_free (caps_str);
+-            gst_caps_unref(caps);
+-        }
++        } 
++        gst_caps_unref(caps);
+     }
+     else
+       GST_WARNING("Peer pad didn't return any valid caps!");
+-- 
+2.25.1
+
