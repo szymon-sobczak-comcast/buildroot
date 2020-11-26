@@ -60,10 +60,10 @@ config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_INSTALL_PATH_OVERRIDE
         leave empty to use path set by amazon-ignition
         
 config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_LOG_LEVEL
-	string "Default log level"
+	string "Default log level ignition"
 	default "ALL:ERROR"
     help
-        Default log level 
+        Default log level ignition
         
         '<category>:<level>,<category>:<level>,...'
         
@@ -79,4 +79,12 @@ config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_LOG_LEVEL
         e.g "DOWNLOADER:INFO,AVPK:DEBUG"
         
         INFO and DEBUG only enable if BR2_PACKAGE_AMAZON_IGNITION_DEVELOPER_MODE is set
+        
+config BR2_PACKAGE_WPEFRAMEWORK_AMAZON_LOG_LEVEL_PLAYER
+	string "Default log level player"
+	default "error"
+    help
+        Default log level player values
+        error | warn | info | verbose | trace
+
 endif
