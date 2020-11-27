@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-COBALT_VERSION = e41cade7433484e958da5e6464da39eec67d8e59
+COBALT_VERSION = 3dfc15266e1a352a024c95d6aee278da6a5cc3de
 COBALT_SITE_METHOD = git
 COBALT_SITE = git@github.com:Metrological/cobalt
 COBALT_INSTALL_STAGING = YES
@@ -30,8 +30,15 @@ else
 export COBALT_HAS_OCDM=0
 endif
 
+ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_PROVISIONPROXY),y)
+export COBALT_HAS_PROVISION=1
+else
+export COBALT_HAS_PROVISION=0
+endif
+
 ifeq ($(BR2_PACKAGE_COBALT_BUILD_TYPE_QA),y)
 	COBALT_BUILD_TYPE = qa
+	COBALT_DEPENDENCIES += host-nodejs
 else ifeq ($(BR2_PACKAGE_COBALT_BUILD_TYPE_GOLD),y)
 	COBALT_BUILD_TYPE = gold
 endif
