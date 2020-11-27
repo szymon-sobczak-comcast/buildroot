@@ -64,6 +64,12 @@ config BR2_PACKAGE_WPEWEBKIT_ALTERNATIVE_EXEC_PATH
 	default ""
 	help
 	  WPEWebKit alternative exec path
+
+config BR2_PACKAGE_WPEWEBKIT_ALTERNATIVE_INJECTED_BUNDLE_PATH
+	string "Alternative injected bundle path"
+	default ""
+	help
+	  WPEWebKit alternative injected bundle path
 choice
 	bool "Debug options"
 	default BR2_PACKAGE_WPEWEBKIT_DEBUG if BR2_ENABLE_DEBUG

@@ -1,0 +1,127 @@
+From 162c05dd9f63dc2d4cdab8fa5a2d0fcf1de956c6 Mon Sep 17 00:00:00 2001
+From: Xabier Rodriguez Calvar <calvaris@igalia.com>
+Date: Fri, 27 Nov 2020 12:58:55 +0100
+Subject: [PATCH] wpewebkit: Added custom injected bundle path
+
+---
+ WebKitBrowser/Amazon.config            | 3 +++
+ WebKitBrowser/Apps.config              | 3 +++
+ WebKitBrowser/UX.config                | 3 +++
+ WebKitBrowser/WebKitBrowser.config     | 3 +++
+ WebKitBrowser/WebKitImplementation.cpp | 8 ++++++++
+ WebKitBrowser/YouTube.config           | 3 +++
+ 6 files changed, 23 insertions(+)
+
+diff --git a/WebKitBrowser/Amazon.config b/WebKitBrowser/Amazon.config
+index 72a7ec48..1c458bd4 100644
+--- a/WebKitBrowser/Amazon.config
++++ b/WebKitBrowser/Amazon.config
+@@ -175,6 +175,9 @@ map()
+     if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH)
+         kv(execpath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH})
+     endif()
++    if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_INJECTED_BUNDLE_PATH)
++        kv(injectedbundlepath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_INJECTED_BUNDLE_PATH})
++    endif()
+     if(PLUGIN_WEBKITBROWSER_HTTP_PROXY)
+         kv(proxy ${PLUGIN_WEBKITBROWSER_HTTP_PROXY})
+     endif()
+diff --git a/WebKitBrowser/Apps.config b/WebKitBrowser/Apps.config
+index ed6ff14a..b38eafae 100644
+--- a/WebKitBrowser/Apps.config
++++ b/WebKitBrowser/Apps.config
+@@ -44,6 +44,9 @@ map()
+     if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH)
+         kv(execpath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH})
+     endif()
++    if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_INJECTED_BUNDLE_PATH)
++        kv(injectedbundlepath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_INJECTED_BUNDLE_PATH})
++    endif()
+     if(PLUGIN_WEBKITBROWSER_HTTP_PROXY)
+         kv(proxy ${PLUGIN_WEBKITBROWSER_HTTP_PROXY})
+     endif()
+diff --git a/WebKitBrowser/UX.config b/WebKitBrowser/UX.config
+index bb439f11..eab54e66 100644
+--- a/WebKitBrowser/UX.config
++++ b/WebKitBrowser/UX.config
+@@ -49,6 +49,9 @@ map()
+     if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH)
+         kv(execpath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH})
+     endif()
++    if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_INJECTED_BUNDLE_PATH)
++        kv(injectedbundlepath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_INJECTED_BUNDLE_PATH})
++    endif()
+     if(PLUGIN_WEBKITBROWSER_HTTP_PROXY)
+         kv(proxy ${PLUGIN_WEBKITBROWSER_HTTP_PROXY})
+     endif()
+diff --git a/WebKitBrowser/WebKitBrowser.config b/WebKitBrowser/WebKitBrowser.config
+index 6c9e0091..03cf6fcf 100644
+--- a/WebKitBrowser/WebKitBrowser.config
++++ b/WebKitBrowser/WebKitBrowser.config
+@@ -59,6 +59,9 @@ map()
+     if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH)
+         kv(execpath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH})
+     endif()
++    if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_INJECTED_BUNDLE_PATH)
++        kv(injectedbundlepath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_INJECTED_BUNDLE_PATH})
++    endif()
+     if(PLUGIN_WEBKITBROWSER_HTTP_PROXY)
+         kv(proxy ${PLUGIN_WEBKITBROWSER_HTTP_PROXY})
+     endif()
+diff --git a/WebKitBrowser/WebKitImplementation.cpp b/WebKitBrowser/WebKitImplementation.cpp
+index 3075b609..32b1f3b4 100644
+--- a/WebKitBrowser/WebKitImplementation.cpp
++++ b/WebKitBrowser/WebKitImplementation.cpp
+@@ -470,6 +470,7 @@ static GSourceFuncs _handlerIntervention =
+                 , ScaleFactor(1.0)
+                 , MaxFPS(60)
+                 , ExecPath()
++                , InjectedBundlePath()
+                 , HTTPProxy()
+                 , HTTPProxyExclusion()
+                 , TCPKeepAlive(false)
+@@ -520,6 +521,7 @@ static GSourceFuncs _handlerIntervention =
+                 Add(_T("maxfps"), &MaxFPS);
+                 Add(_T("bundle"), &Bundle);
+                 Add(_T("execpath"), &ExecPath);
++                Add(_T("injectedbundlepath"), &InjectedBundlePath);
+                 Add(_T("proxy"), &HTTPProxy);
+                 Add(_T("proxyexclusion"), &HTTPProxyExclusion);
+                 Add(_T("tcpkeepalive"), &TCPKeepAlive);
+@@ -575,6 +577,7 @@ static GSourceFuncs _handlerIntervention =
+             Core::JSON::DecUInt8 MaxFPS; // A value between 1 and 100...
+             BundleConfig Bundle;
+             Core::JSON::String ExecPath;
++            Core::JSON::String InjectedBundlePath;
+             Core::JSON::String HTTPProxy;
+             Core::JSON::String HTTPProxyExclusion;
+             Core::JSON::Boolean TCPKeepAlive;
+@@ -1544,6 +1547,11 @@ static GSourceFuncs _handlerIntervention =
+                 Core::SystemInfo::SetEnvironment(_T("WEBKIT_EXEC_PATH"), _config.ExecPath.Value(), !environmentOverride);
+             }
+ 
++            // InjectedBundlePath
++            if (_config.InjectedBundlePath.IsSet() == true) {
++                Core::SystemInfo::SetEnvironment(_T("WEBKIT_INJECTED_BUNDLE_PATH"), _config.InjectedBundlePath.Value(), !environmentOverride);
++            }
++
+             //  HTTPProxy
+             if (_config.HTTPProxy.IsSet() == true) {
+                 Core::SystemInfo::SetEnvironment(_T("http_proxy"), _config.HTTPProxy.Value(), !environmentOverride);
+diff --git a/WebKitBrowser/YouTube.config b/WebKitBrowser/YouTube.config
+index 73926188..0821d0cf 100644
+--- a/WebKitBrowser/YouTube.config
++++ b/WebKitBrowser/YouTube.config
+@@ -49,6 +49,9 @@ map()
+     if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH)
+         kv(execpath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH})
+     endif()
++    if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_INJECTED_BUNDLE_PATH)
++        kv(injectedbundlepath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_INJECTED_BUNDLE_PATH})
++    endif()
+     if(PLUGIN_WEBKITBROWSER_HTTP_PROXY)
+         kv(proxy ${PLUGIN_WEBKITBROWSER_HTTP_PROXY})
+     endif()
+-- 
+2.29.2
+
