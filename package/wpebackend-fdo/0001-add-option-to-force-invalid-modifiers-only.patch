@@ -1,0 +1,28 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a77e469..635870c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -247,3 +247,8 @@ if (BUILD_DOCS)
+         message(FATAL_ERROR "Hotdoc C extension not found, can't build documentation.")
+     endif ()
+ endif ()
++
++option(FORCE_LINEAR_INVALID_MODIFIERS "Force linear invalid modifiers only" OFF)
++if (FORCE_LINEAR_INVALID_MODIFIERS)
++  target_compile_definitions(WPEBackend-fdo PRIVATE FORCE_LINEAR_INVALID_MODIFIERS)
++endif ()
+diff --git a/src/linux-dmabuf/linux-dmabuf.cpp b/src/linux-dmabuf/linux-dmabuf.cpp
+index 0f84222..a31c364 100644
+--- a/src/linux-dmabuf/linux-dmabuf.cpp
++++ b/src/linux-dmabuf/linux-dmabuf.cpp
+@@ -372,6 +372,10 @@ bind_linux_dmabuf(struct wl_client *client, void *data, uint32_t version, uint32
+ 
+     WS::instanceImpl<WS::ImplEGL>().foreachDmaBufModifier(
+         [version, resource] (int format, uint64_t modifier) {
++#ifdef FORCE_LINEAR_INVALID_MODIFIERS
++            if (modifier != DRM_FORMAT_MOD_LINEAR && modifier != DRM_FORMAT_MOD_INVALID)
++                return;
++#endif
+             if (version >= ZWP_LINUX_DMABUF_V1_MODIFIER_SINCE_VERSION) {
+                 uint32_t modifier_lo = modifier & 0xFFFFFFFF;
+                 uint32_t modifier_hi = modifier >> 32;

@@ -58,6 +58,16 @@ hdmi_mode=16
 __EOF__
                 fi
 	        ;;
+		--add-vc4-fkms-v3d)
+		if ! grep -qE '^dtoverlay=vc4-fkms-v3d' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Adding 'dtoverlay=vc4-fkms-v3d' to config.txt."
+			cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Add vc4-fkms-v3d
+dtoverlay=vc4-fkms-v3d
+__EOF__
+		fi
+		;;
 	        --overclock*)
 	        if ! grep -qE '^arm_freq=' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
 		    echo "Adding 'overclock' to config.txt."
