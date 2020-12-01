@@ -17,3 +17,14 @@ config BR2_PACKAGE_WPEBACKEND_FDO
 	  WPEBackend interface using freedesktop.org API.
 
 	  https://wpewebkit.org/
+
+if BR2_PACKAGE_WPEBACKEND_FDO
+
+config BR2_PACKAGE_WPEBACKEND_FDO_RPI4
+	bool "Use rpi4 configuration"
+        default n
+        depends on BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4
+	help
+	  Enable rpi4 mode.
+
+endif
