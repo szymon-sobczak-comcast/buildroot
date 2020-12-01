@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AMAZON_BACKEND_VERSION = 35e330a0abbd585e5c301a7627f0ac5993ede43b
+AMAZON_BACKEND_VERSION = 4d68759d23d0bb181fc5abd9afc0c75fdb1f9d16
 AMAZON_BACKEND_SITE = git@github.com:Metrological/amazon-backend.git
 AMAZON_BACKEND_SITE_METHOD = git
 AMAZON_BACKEND_DEPENDENCIES =
