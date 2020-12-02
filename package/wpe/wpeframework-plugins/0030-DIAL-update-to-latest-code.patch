@@ -252,7 +252,7 @@ index 83235825..0cea2657 100644
 +    endif()
 +endif()
 diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
-index c3de9953..de42dd04 100644
+index c3de9953..1bc6934f 100644
 --- a/DIALServer/DIALServer.cpp
 +++ b/DIALServer/DIALServer.cpp
 @@ -31,31 +31,22 @@ namespace Plugin {
@@ -665,19 +665,7 @@ index c3de9953..de42dd04 100644
                  } else if (index.Current() == _DefaultDataExtension) {
                      result->ErrorCode = Web::STATUS_OK;
                      result->Message = _T("OK");
-@@ -640,12 +615,32 @@ namespace Plugin {
- 
-         if (request.Origin.IsSet() == true) {
-             result->AccessControlOrigin = request.Origin.Value();
-+
-+            // Terrible hack to be removed !!!
-+            if (request.Origin.Value().find(".youtube.com") == string::npos && result->ErrorCode == Web::STATUS_NOT_FOUND)
-+            {
-+                return (result);
-+            }
-         }
- 
-         TRACE(Protocol, (&(*result)));
+@@ -646,6 +621,20 @@ namespace Plugin {
          return (result);
      }
  
@@ -698,7 +686,7 @@ index c3de9953..de42dd04 100644
      void DIALServer::Activated(Exchange::IWebServer* pluginInterface)
      {
          string remote(_dialURL.Host().Value() + ':' + (_dialURL.Port().IsSet() ? Core::NumberType<uint16_t>(_dialURL.Port().Value()).Text() : _T("80")));
-@@ -655,6 +650,11 @@ namespace Plugin {
+@@ -655,6 +644,11 @@ namespace Plugin {
          // Let's set the URL of the WebServer, as it is active :-)
          _dialServiceImpl->Locator(pluginInterface->Accessor() + _dialPath);
  
