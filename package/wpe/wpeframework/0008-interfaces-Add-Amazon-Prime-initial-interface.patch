@@ -63,22 +63,6 @@ index 00000000..c2a4bab7
 +};
 +}
 +}
-diff --git a/Source/interfaces/Ids.h b/Source/interfaces/Ids.h
-index 55d1d2bc..ebef859d 100644
---- a/Source/interfaces/Ids.h
-+++ b/Source/interfaces/Ids.h
-@@ -171,7 +171,10 @@ namespace Exchange {
-         ID_BLUETOOTH_CLASSIC_SECURITYCALLBACK,
-         ID_BLUETOOTH_LOWENERGY,
- 
--        ID_DOLBY_OUTPUT
-+        ID_DOLBY_OUTPUT,
-+
-+        ID_AMAZONPRIME,
-+        ID_AMAZONPRIME_NOTIFICATION
-     };
- }
- }
 -- 
 2.25.1
 

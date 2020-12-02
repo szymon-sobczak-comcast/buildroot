@@ -1,0 +1,151 @@
+diff --git a/WebServer/WebServer.config b/WebServer/WebServer.config
+index 75505223..ef420ce5 100644
+--- a/WebServer/WebServer.config
++++ b/WebServer/WebServer.config
+@@ -12,7 +12,9 @@ map()
+     kv(port ${PLUGIN_WEBSERVER_PORT})
+     kv(binding "0.0.0.0")
+     kv(path ${PLUGIN_WEBSERVER_PATH})
+-    kv(proxies ___array___)
++    if(PLUGIN_WEBSERVER_PROXY_DEVICEINFO OR PLUGIN_WEBSERVER_PROXY_DIALSERVER)
++      kv(proxies ___array___)
++    endif(PLUGIN_WEBSERVER_PROXY_DEVICEINFO OR PLUGIN_WEBSERVER_PROXY_DIALSERVER)
+ end()
+ ans(configuration)
+ 
+diff --git a/WebServer/WebServer.cpp b/WebServer/WebServer.cpp
+index ecc4c172..8365b372 100644
+--- a/WebServer/WebServer.cpp
++++ b/WebServer/WebServer.cpp
+@@ -63,27 +63,35 @@ namespace Plugin {
+                 _server = nullptr;
+ 
+             } else {
+-                stateControl->Configure(_service);
++                uint32_t result = stateControl->Configure(_service);
+                 stateControl->Release();
+ 
+-                RPC::IRemoteConnection* connection = _service->RemoteConnection(_connectionId);
++                if (result != Core::ERROR_NONE) {
++                    message = _T("WebServer could not be configured.");
++                    _server->Release();
++                    _server = nullptr;
++                }
++                else {
++                    RPC::IRemoteConnection* connection = _service->RemoteConnection(_connectionId);
+ 
+-                if(connection != nullptr) {
+-                    _memory = WPEFramework::WebServer::MemoryObserver(connection);
+-                    connection->Release();
++                    if (connection != nullptr) {
++                        _memory = WPEFramework::WebServer::MemoryObserver(connection);
++                        connection->Release();
+ 
+-                    ASSERT(_memory != nullptr);
+-                }
++                        ASSERT(_memory != nullptr);
++                    }
+ 
+-                PluginHost::ISubSystem* subSystem = service->SubSystems();
++                    PluginHost::ISubSystem* subSystem = service->SubSystems();
+ 
+-                if (subSystem != nullptr) {
+-                    if (subSystem->IsActive(PluginHost::ISubSystem::WEBSOURCE) == true) {
+-                        SYSLOG(Logging::Startup, (_T("WebSource is not defined as External !!")));
+-                    } else {
+-                        subSystem->Set(PluginHost::ISubSystem::WEBSOURCE, nullptr);
++                    if (subSystem != nullptr) {
++                        if (subSystem->IsActive(PluginHost::ISubSystem::WEBSOURCE) == true) {
++                            SYSLOG(Logging::Startup, (_T("WebSource is not defined as External !!")));
++                        }
++                        else {
++                            subSystem->Set(PluginHost::ISubSystem::WEBSOURCE, nullptr);
++                        }
++                        subSystem->Release();
+                     }
+-                    subSystem->Release();
+                 }
+             }
+         }
+@@ -108,17 +116,13 @@ namespace Plugin {
+         }
+ 
+         // Stop processing of the browser:
+-        if (_server->Release() != Core::ERROR_DESTRUCTION_SUCCEEDED) {
+-
+-            ASSERT(_connectionId != 0);
+-
+-            TRACE_L1("OutOfProcess Plugin is not properly destructed. PID: %d", _connectionId);
++        _server->Release();
+ 
++        if(_connectionId != 0){
+             RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));
+ 
+             // The process can disappear in the meantime...
+             if (connection != nullptr) {
+-
+                 // But if it did not dissapear in the meantime, forcefully terminate it. Shoot to kill :-)
+                 connection->Terminate();
+                 connection->Release();
+diff --git a/WebServer/WebServerImplementation.cpp b/WebServer/WebServerImplementation.cpp
+index 47b5dd88..dff17e11 100644
+--- a/WebServer/WebServerImplementation.cpp
++++ b/WebServer/WebServerImplementation.cpp
+@@ -206,16 +206,16 @@ namespace Plugin {
+         private:
+             class OutgoingChannel : public Web::WebLinkType<Core::SocketStream, Web::Response, Web::Request, ResponseFactory> {
+             private:
+-                OutgoingChannel() = delete;
+-                OutgoingChannel(const OutgoingChannel&) = delete;
+-                OutgoingChannel& operator=(const OutgoingChannel&) = delete;
+-
+                 struct OutstandingMessage {
+                     Core::ProxyType<Web::Request> Request;
+                     uint32_t Id;
+                 };
+ 
+             public:
++                OutgoingChannel() = delete;
++                OutgoingChannel(const OutgoingChannel&) = delete;
++                OutgoingChannel& operator=(const OutgoingChannel&) = delete;
++
+                 OutgoingChannel(const string& path, const string& replacement, ProxyMap& proxyMap, const Core::NodeId& remoteId)
+                     : Web::WebLinkType<Core::SocketStream, Web::Response, Web::Request, ResponseFactory>(2, false, remoteId.AnyInterface(), remoteId, 1024, 1024)
+                     , _path(path)
+@@ -224,6 +224,10 @@ namespace Plugin {
+                     , _proxyMap(proxyMap)
+                 {
+                 }
++                
++                ~OutgoingChannel() override {
++                    Close(Core::infinite);
++                }
+ 
+                 void ProxyRequest(Core::ProxyType<Web::Request>& request, uint32_t id)
+                 {
+@@ -404,20 +408,21 @@ namespace Plugin {
+         };
+ 
+         class IncomingChannel : public Web::WebLinkType<Core::SocketStream, Web::Request, Web::Response, RequestFactory> {
+-        private:
++        public:
+             IncomingChannel() = delete;
+             IncomingChannel(const IncomingChannel& copy) = delete;
+             IncomingChannel& operator=(const IncomingChannel&) = delete;
+-
+-        public:
++            
+             IncomingChannel(const SOCKET& connector, const Core::NodeId& remoteId, Core::SocketServerType<IncomingChannel>* parent)
+                 : Web::WebLinkType<Core::SocketStream, Web::Request, Web::Response, RequestFactory>(2, false, connector, remoteId, 1024, 1024)
+                 , _id(0)
+                 , _parent(static_cast<ChannelMap&>(*parent))
+             {
+             }
+-            virtual ~IncomingChannel()
++            
++            ~IncomingChannel() override
+             {
++                Close(Core::infinite);
+             }
+ 
+         private:

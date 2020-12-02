@@ -1,0 +1,101 @@
+From 0cf9ba741e7fc69a894397c84244e14ed7c0a229 Mon Sep 17 00:00:00 2001
+From: Damian Danylko <d.danylko@metrological.com>
+Date: Wed, 2 Dec 2020 11:41:37 +0100
+Subject: [PATCH] Update interfaces for Cobalt
+
+---
+ Source/interfaces/IApplication.h | 38 ++++++++++++++++++++++++++++++++
+ Source/interfaces/Ids.h          | 21 +++++++++++++++++-
+ 2 files changed, 58 insertions(+), 1 deletion(-)
+ create mode 100644 Source/interfaces/IApplication.h
+
+diff --git a/Source/interfaces/IApplication.h b/Source/interfaces/IApplication.h
+new file mode 100644
+index 00000000..22f7708c
+--- /dev/null
++++ b/Source/interfaces/IApplication.h
+@@ -0,0 +1,38 @@
++/*
++ * If not stated otherwise in this file or this component's LICENSE file the
++ * following copyright and licenses apply:
++ *
++ * Copyright 2020 RDK Management
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++#pragma once
++
++#include "Module.h"
++
++namespace WPEFramework {
++namespace Exchange {
++
++    // This interface gives direct access to an Application instance
++    struct IApplication : virtual public Core::IUnknown {
++
++        enum { ID = ID_APPLICATION };
++
++
++        virtual ~IApplication() {}
++
++        virtual void Reset() = 0;
++        virtual void DeepLink(const string& deepLink) = 0;
++    };
++}
++}
+diff --git a/Source/interfaces/Ids.h b/Source/interfaces/Ids.h
+index e35c995e..02f17461 100644
+--- a/Source/interfaces/Ids.h
++++ b/Source/interfaces/Ids.h
+@@ -91,6 +91,9 @@ namespace Exchange {
+         ID_SECURESHELLSERVER_CLIENT = 0x00000088,
+         ID_SECURESHELLSERVER_CLIENT_ITERATOR = 0x00000089,
+ 
++        ID_PACKAGER_PACKAGEINFOEX,
++        ID_PACKAGER_PACKAGEINFOEX_ITERATOR,
++
+         ID_TESTCONTROLLER,
+         ID_TESTCONTROLLER_TEST,
+         ID_TESTCONTROLLER_TEST_ITERATOR,
+@@ -152,6 +155,9 @@ namespace Exchange {
+         ID_CONNECTION_PROPERTIES,
+         ID_CONNECTION_PROPERTIES_NOTIFICATION,
+ 
++        ID_HDR_PROPERTIES,
++        ID_HDR_ITERATOR,
++
+         ID_PLAYER_PROPERTIES,
+         ID_PLAYER_PROPERTIES_AUDIO,
+         ID_PLAYER_PROPERTIES_VIDEO,
+@@ -171,7 +177,20 @@ namespace Exchange {
+         ID_BLUETOOTH_CLASSIC_SECURITYCALLBACK,
+         ID_BLUETOOTH_LOWENERGY,
+ 
+-        ID_DOLBY_OUTPUT
++        ID_DOLBY_OUTPUT,
++        ID_DOLBY_OUTPUT_NOTIFICATION,
++
++        ID_WEBKITBROWSER_NOTIFICATION,
++
++        ID_AMAZONPRIME,
++        ID_AMAZONPRIME_NOTIFICATION,
++
++        ID_CUSTOMER_CARE_OPERATIONS,
++
++        ID_MEDIAPLAYER,
++        ID_MEDIAPLAYER_NOTIFICATION,
++
++        ID_APPLICATION
+     };
+ }
+ }

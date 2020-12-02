@@ -49,21 +49,6 @@ index 0000000..f0c7999
 +};
 +}
 +}
-diff --git a/Source/interfaces/Ids.h b/Source/interfaces/Ids.h
-index 0752d45..e7e8cc5 100644
---- a/Source/interfaces/Ids.h
-+++ b/Source/interfaces/Ids.h
-@@ -177,7 +177,9 @@ namespace Exchange {
-         ID_DOLBY_OUTPUT,
- 
-         ID_AMAZONPRIME,
--        ID_AMAZONPRIME_NOTIFICATION
-+        ID_AMAZONPRIME_NOTIFICATION,
-+
-+        ID_CUSTOMER_CARE_OPERATIONS
-     };
- }
- }
 -- 
 2.25.1
 

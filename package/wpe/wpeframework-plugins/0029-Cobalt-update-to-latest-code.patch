@@ -1,19 +1,3 @@
-From 7c9aa6b348f73efa917967fee0bf5dbd715a1b74 Mon Sep 17 00:00:00 2001
-From: Damian Danylko <d.danylko@metrological.com>
-Date: Wed, 25 Nov 2020 12:15:26 +0100
-Subject: [PATCH] Update to latest version of Cobalt plugin
-
----
- Cobalt/CMakeLists.txt           |   1 +
- Cobalt/Cobalt.config            |  36 +++++++-
- Cobalt/Cobalt.cpp               |   1 +
- Cobalt/Cobalt.h                 |   3 +
- Cobalt/CobaltImplementation.cpp | 140 ++++++++++++++++++++++++++++++--
- Cobalt/CobaltJsonRpc.cpp        |  34 +++++++-
- Cobalt/CobaltPlugin.json        |  86 ++++++++++++++++++++
- Cobalt/doc/CobaltPlugin.md      | 101 +++++++++++++++++++++--
- 8 files changed, 387 insertions(+), 15 deletions(-)
-
 diff --git a/Cobalt/CMakeLists.txt b/Cobalt/CMakeLists.txt
 index ba2d1b2a..6ed4e48a 100644
 --- a/Cobalt/CMakeLists.txt
@@ -27,7 +11,7 @@ index ba2d1b2a..6ed4e48a 100644
  find_package(${NAMESPACE}Plugins REQUIRED)
  find_package(Cobalt REQUIRED)
 diff --git a/Cobalt/Cobalt.config b/Cobalt/Cobalt.config
-index 77a352ec..cfc1ca6e 100644
+index 77a352ec..276cc149 100644
 --- a/Cobalt/Cobalt.config
 +++ b/Cobalt/Cobalt.config
 @@ -1,13 +1,20 @@
@@ -52,7 +36,7 @@ index 77a352ec..cfc1ca6e 100644
      kv(height ${PLUGIN_COBALT_HEIGHT})
      kv(width ${PLUGIN_COBALT_WIDTH})
      kv(repeatstart 500)
-@@ -15,6 +22,33 @@ map()
+@@ -15,6 +22,36 @@ map()
      if(PLUGIN_COBALT_CLIENTIDENTIFIER)
          kv(clientidentifier ${PLUGIN_COBALT_CLIENTIDENTIFIER})
      endif()
@@ -83,14 +67,21 @@ index 77a352ec..cfc1ca6e 100644
 +    if(PLUGIN_COBALT_SECRET)
 +        kv(secret ${PLUGIN_COBALT_SECRET})
 +    endif()
++    if("${PLUGIN_COBALT_PLAYBACKRATES}" STREQUAL false)
++        kv(playbackrates ${PLUGIN_COBALT_PLAYBACKRATES})
++    endif()     
  end()
  ans(configuration)
  
 diff --git a/Cobalt/Cobalt.cpp b/Cobalt/Cobalt.cpp
-index e3f9211b..feddacb2 100644
+index e3f9211b..5e65db46 100644
 --- a/Cobalt/Cobalt.cpp
 +++ b/Cobalt/Cobalt.cpp
-@@ -42,6 +42,7 @@ static Core::ProxyPoolType<Web::JSONBodyType<Cobalt::Data>> jsonBodyDataFactory(
+@@ -39,9 +39,11 @@ static Core::ProxyPoolType<Web::JSONBodyType<Cobalt::Data>> jsonBodyDataFactory(
+ 
+     ASSERT(_service == nullptr);
+     ASSERT(_cobalt == nullptr);
++    ASSERT(_application == nullptr);
      ASSERT(_memory == nullptr);
  
      config.FromString(service->ConfigLine());
@@ -98,20 +89,66 @@ index e3f9211b..feddacb2 100644
  
      _connectionId = 0;
      _service = service;
+@@ -73,6 +75,7 @@ static Core::ProxyPoolType<Web::JSONBodyType<Cobalt::Data>> jsonBodyDataFactory(
+             stateControl->Register(&_notification);
+             stateControl->Configure(_service);
+             stateControl->Release();
++            _application = _cobalt->QueryInterface<Exchange::IApplication>();
+         }
+     }
+ 
+@@ -89,6 +92,7 @@ static Core::ProxyPoolType<Web::JSONBodyType<Cobalt::Data>> jsonBodyDataFactory(
+ /* virtual */void Cobalt::Deinitialize(PluginHost::IShell *service) {
+     ASSERT(_service == service);
+     ASSERT(_cobalt != nullptr);
++    ASSERT(_application != nullptr);
+     ASSERT(_memory != nullptr);
+ 
+     PluginHost::IStateControl *stateControl(
+@@ -99,6 +103,7 @@ static Core::ProxyPoolType<Web::JSONBodyType<Cobalt::Data>> jsonBodyDataFactory(
+     _service->Unregister(&_notification);
+     _cobalt->Unregister(&_notification);
+     _memory->Release();
++    _application->Release();
+ 
+     // In case Cobalt crashed, there is no access to the statecontrol interface,
+     // check it !!
 diff --git a/Cobalt/Cobalt.h b/Cobalt/Cobalt.h
-index 22670126..3f9f46cd 100644
+index 22670126..63e78edb 100644
 --- a/Cobalt/Cobalt.h
 +++ b/Cobalt/Cobalt.h
-@@ -178,6 +178,8 @@ class Cobalt: public PluginHost::IPlugin,
+@@ -21,6 +21,7 @@
+ 
+ #include "Module.h"
+ #include <interfaces/IBrowser.h>
++#include <interfaces/IApplication.h>
+ #include <interfaces/IMemory.h>
+ #include <interfaces/json/JsonData_Browser.h>
+ #include <interfaces/json/JsonData_StateControl.h>
+@@ -115,7 +116,7 @@ public:
+ 
+ public:
+     Cobalt() :
+-            _skipURL(0), _hidden(false), _cobalt(nullptr),
++            _skipURL(0), _hidden(false), _cobalt(nullptr), _application(nullptr),
+             _memory(nullptr), _service(nullptr), _notification(this) {
+         RegisterAll();
+     }
+@@ -178,6 +179,9 @@ private:
              Core::JSON::EnumType<JsonData::StateControl::StateType> &response) const; // StateControl
      uint32_t set_state(
              const Core::JSON::EnumType<JsonData::StateControl::StateType> &param); // StateControl
 +    uint32_t endpoint_delete(const JsonData::Browser::DeleteParamsData& params);
 +    uint32_t delete_dir(const string& path);
++    uint32_t set_deeplink(const Core::JSON::String &param); // Application
      void event_urlchange(const string &url, const bool &loaded); // Browser
      void event_visibilitychange(const bool &hidden); // Browser
      void event_statechange(const bool &suspended); // StateControl
-@@ -190,6 +192,7 @@ class Cobalt: public PluginHost::IPlugin,
+@@ -187,9 +191,11 @@ private:
+     uint32_t _connectionId;
+     bool _hidden;
+     Exchange::IBrowser *_cobalt;
++    Exchange::IApplication *_application;
      Exchange::IMemory *_memory;
      PluginHost::IShell *_service;
      Core::Sink<Notification> _notification;
@@ -120,22 +157,25 @@ index 22670126..3f9f46cd 100644
  }
  } // namespace
 diff --git a/Cobalt/CobaltImplementation.cpp b/Cobalt/CobaltImplementation.cpp
-index 5474a9dc..7138ebd2 100644
+index 5474a9dc..99d20ab8 100644
 --- a/Cobalt/CobaltImplementation.cpp
 +++ b/Cobalt/CobaltImplementation.cpp
-@@ -20,8 +20,8 @@
+@@ -20,8 +20,9 @@
  #include "Module.h"
  #include <interfaces/IMemory.h>
  #include <interfaces/IBrowser.h>
++#include <interfaces/IApplication.h>
 +#include <locale.h>
  
 -#include "starboard/export.h"
  #include "third_party/starboard/wpe/shared/cobalt_api_wpe.h"
  
  extern int StarboardMain(int argc, char **argv);
-@@ -32,39 +32,86 @@ namespace Plugin {
+@@ -31,40 +32,85 @@ namespace Plugin {
+ 
  class CobaltImplementation:
          public Exchange::IBrowser,
++        public Exchange::IApplication,
          public PluginHost::IStateControl {
 +public:
 +    enum connection {
@@ -174,7 +214,6 @@ index 5474a9dc..7138ebd2 100644
 +            , Language()
 +            , Connection(CABLE)
 +            , PlaybackRates(true)
-+            , DeepLink()
          {
              Add(_T("url"), &Url);
 +            Add(_T("inspector"), &Inspector);
@@ -195,7 +234,6 @@ index 5474a9dc..7138ebd2 100644
 +            Add(_T("language"), &Language);
 +            Add(_T("connection"), &Connection);
 +            Add(_T("playbackrates"), &PlaybackRates);
-+            Add(_T("deeplink"), &DeepLink);
          }
          ~Config() {
          }
@@ -220,21 +258,19 @@ index 5474a9dc..7138ebd2 100644
 +        Core::JSON::String Language;
 +        Core::JSON::EnumType<connection> Connection;
 +        Core::JSON::Boolean PlaybackRates;
-+        Core::JSON::String DeepLink;
      };
  
      class NotificationSink: public Core::Thread {
-@@ -117,6 +164,9 @@ class CobaltImplementation:
+@@ -117,6 +163,8 @@ private:
          CobaltWindow()
              : Core::Thread(0, _T("Cobalt"))
              , _url{"https://www.youtube.com/tv"}
 +            , _debugListenIp("0.0.0.0")
 +            , _debugPort()
-+            , _deepLink("launch=menu")
          {
          }
          virtual ~CobaltWindow()
-@@ -163,10 +213,71 @@ class CobaltImplementation:
+@@ -163,10 +211,68 @@ private:
                  Core::SystemInfo::SetEnvironment(_T("COBALT_KEY_REPEAT_INTERVAL"), repeatInterval);
              }
  
@@ -275,7 +311,8 @@ index 5474a9dc..7138ebd2 100644
 +            }
 +
 +            if (config.Language.IsSet() == true) {
-+                setlocale(LC_ALL, config.Language.Value().c_str());
++                Core::SystemInfo::SetEnvironment(_T("LANG"), config.Language.Value().c_str());
++                Core::SystemInfo::SetEnvironment(_T("LANGUAGE"), config.Language.Value().c_str());
 +            }
 +
 +            if ( (config.Connection.IsSet() == true) && (config.Connection == CobaltImplementation::connection::WIRELESS) ) {
@@ -299,25 +336,20 @@ index 5474a9dc..7138ebd2 100644
 +                }
 +            }
 +
-+            if (config.DeepLink.IsSet() == true) {
-+              _deepLink = config.DeepLink.Value();
-+            }
-+
              Run();
              return result;
          }
-@@ -198,14 +309,20 @@ class CobaltImplementation:
+@@ -198,14 +304,18 @@ private:
          uint32_t Worker() override
          {
              const std::string cmdURL = "--url=" + _url;
 -            const char* argv[] = {"Cobalt", cmdURL.c_str()};
 +            const std::string cmdDebugListenIp = "--dev_servers_listen_ip=" + _debugListenIp;
 +            const std::string cmdDebugPort = "--remote_debugging_port=" + std::to_string(_debugPort);
-+            const std::string cmdDeepLink = "--link=" + _deepLink;
-+            const char* argv[] = {"Cobalt", cmdURL.c_str(), cmdDebugListenIp.c_str(), cmdDebugPort.c_str(), cmdDeepLink.c_str()};
++            const char* argv[] = {"Cobalt", cmdURL.c_str(), cmdDebugListenIp.c_str(), cmdDebugPort.c_str()};
              while (IsRunning() == true) {
 -                StarboardMain(2, const_cast<char**>(argv));
-+                StarboardMain(5, const_cast<char**>(argv));
++                StarboardMain(4, const_cast<char**>(argv));
              }
              return (Core::infinite);
          }
@@ -325,11 +357,31 @@ index 5474a9dc..7138ebd2 100644
          string _url;
 +        string _debugListenIp;
 +        uint16_t _debugPort;
-+        string _deepLink;
      };
  
  private:
-@@ -490,4 +607,13 @@ class MemoryObserverImpl: public Exchange::IMemory {
+@@ -278,6 +388,12 @@ public:
+         _adminLock.Unlock();
+     }
+ 
++    virtual void Reset() { /*Not implemented yet!*/ }
++
++    virtual void DeepLink(const string& deepLink) {
++        third_party::starboard::wpe::shared::DeepLink(deepLink.c_str());
++    }
++
+     virtual void Register(PluginHost::IStateControl::INotification *sink) {
+         _adminLock.Lock();
+ 
+@@ -388,6 +504,7 @@ public:
+     BEGIN_INTERFACE_MAP (CobaltImplementation)
+         INTERFACE_ENTRY (Exchange::IBrowser)
+         INTERFACE_ENTRY (PluginHost::IStateControl)
++        INTERFACE_ENTRY (Exchange::IApplication)
+     END_INTERFACE_MAP
+ 
+ private:
+@@ -490,4 +607,13 @@ private:
          return (result);
      }
  }
@@ -344,26 +396,29 @@ index 5474a9dc..7138ebd2 100644
 +
  } // namespace
 diff --git a/Cobalt/CobaltJsonRpc.cpp b/Cobalt/CobaltJsonRpc.cpp
-index b3010c88..e1abbbec 100644
+index b3010c88..69ea1072 100644
 --- a/Cobalt/CobaltJsonRpc.cpp
 +++ b/Cobalt/CobaltJsonRpc.cpp
-@@ -41,6 +41,7 @@ void Cobalt::RegisterAll() {
+@@ -41,6 +41,9 @@ void Cobalt::RegisterAll() {
      Property < Core::JSON::EnumType
              < StateType
                      >> (_T("state"), &Cobalt::get_state, &Cobalt::set_state, this); /* StateControl */
 +    Register<DeleteParamsData,void>(_T("delete"), &Cobalt::endpoint_delete, this);
++    Property < Core::JSON::String
++            > (_T("deeplink"), nullptr, &Cobalt::set_deeplink, this); /* Application */
  }
  
  void Cobalt::UnregisterAll() {
-@@ -48,6 +49,7 @@ void Cobalt::UnregisterAll() {
+@@ -48,6 +51,8 @@ void Cobalt::UnregisterAll() {
      Unregister(_T("fps"));
      Unregister(_T("visibility"));
      Unregister(_T("url"));
 +    Unregister(_T("delete"));
++    Unregister(_T("deeplink"));
  }
  
  // API implementation
-@@ -83,8 +85,11 @@ uint32_t Cobalt::set_url(const Core::JSON::String &param) /* Browser */
+@@ -83,8 +88,11 @@ uint32_t Cobalt::set_url(const Core::JSON::String &param) /* Browser */
  //  - ERROR_NONE: Success
  uint32_t Cobalt::get_visibility(
          Core::JSON::EnumType<VisibilityType> &response) const /* Browser */ {
@@ -375,7 +430,7 @@ index b3010c88..e1abbbec 100644
  }
  
  // Property: visibility - Current browser visibility
-@@ -92,9 +97,9 @@ uint32_t Cobalt::get_visibility(
+@@ -92,9 +100,9 @@ uint32_t Cobalt::get_visibility(
  //  - ERROR_NONE: Success
  uint32_t Cobalt::set_visibility(
          const Core::JSON::EnumType<VisibilityType> &param) /* Browser */ {
@@ -386,7 +441,7 @@ index b3010c88..e1abbbec 100644
      if (param.IsSet()) {
          if (param == VisibilityType::VISIBLE) {
              _cobalt->Hide(true);
-@@ -104,6 +109,8 @@ uint32_t Cobalt::set_visibility(
+@@ -104,6 +112,8 @@ uint32_t Cobalt::set_visibility(
          result = Core::ERROR_NONE;
      }
      return result;
@@ -395,7 +450,7 @@ index b3010c88..e1abbbec 100644
  }
  
  // Property: fps - Current number of frames per second the browser is rendering
-@@ -158,6 +165,31 @@ uint32_t Cobalt::set_state(const Core::JSON::EnumType<StateType> &param) /* Stat
+@@ -158,6 +168,46 @@ uint32_t Cobalt::set_state(const Core::JSON::EnumType<StateType> &param) /* Stat
      return result;
  }
  
@@ -424,14 +479,29 @@ index b3010c88..e1abbbec 100644
 +    return result;
 +}
 +
++// Property: deeplink - DeepLink loaded in the browser
++// Return codes:
++//  - ERROR_NONE: Success
++//  - ERROR_INCORRECT_URL: Incorrect DeepLink given
++uint32_t Cobalt::set_deeplink(const Core::JSON::String &param) /* Application */
++{
++    ASSERT(_application != nullptr);
++    uint32_t result = Core::ERROR_INCORRECT_URL;
++    if (param.IsSet() && !param.Value().empty()) {
++        _application->DeepLink(param.Value());
++        result = Core::ERROR_NONE;
++    }
++    return result;
++}
++
  // Event: urlchange - Signals a URL change in the browser
  void Cobalt::event_urlchange(const string &url, const bool &loaded) /* Browser */
  {
 diff --git a/Cobalt/CobaltPlugin.json b/Cobalt/CobaltPlugin.json
-index 741d8eb9..e60ef0ea 100644
+index 741d8eb9..57028cbf 100644
 --- a/Cobalt/CobaltPlugin.json
 +++ b/Cobalt/CobaltPlugin.json
-@@ -18,6 +18,92 @@
+@@ -18,6 +18,88 @@
            "url": {
              "type": "string",
              "description": "The URL that is loaded upon starting the browser"
@@ -517,10 +587,6 @@ index 741d8eb9..e60ef0ea 100644
 +          "playbackrates": {
 +            "type": "boolean",
 +            "description": "If enabled, Cobalt supports different rates, otherwise, it supports only 0 and 1 (default: true)"
-+          },
-+          "deeplink": {
-+            "type": "string",
-+            "description": "The deeplink that is loaded upon starting the browser (default: launch=menu)"
            }
          }
        }
