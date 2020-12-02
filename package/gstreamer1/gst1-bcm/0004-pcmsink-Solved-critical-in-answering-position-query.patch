@@ -1,0 +1,34 @@
+From 2dedcb0aa027b1ddcacf9e12c162ed90c046c596 Mon Sep 17 00:00:00 2001
+From: Xabier Rodriguez Calvar <calvaris@igalia.com>
+Date: Wed, 2 Dec 2020 13:10:17 +0100
+Subject: [PATCH] pcmsink: Solved critical in answering position query
+
+---
+ pcmsink/src/gst_pcm_sink.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/pcmsink/src/gst_pcm_sink.c b/pcmsink/src/gst_pcm_sink.c
+index 64dbe4d..84d00ea 100755
+--- a/pcmsink/src/gst_pcm_sink.c
++++ b/pcmsink/src/gst_pcm_sink.c
+@@ -972,8 +972,15 @@ static gboolean gst_brcm_pcm_sink_query (GstElement *element, GstQuery *query) {
+             if (rc != NEXUS_SUCCESS) {
+                 GST_ERROR("NEXUS_SimpleAudioPlayback_GetStatus failed (rc=%d)", rc);
+             } else {
+-                gst_query_set_position(query, GST_FORMAT_BYTES, playbackStatus.playedBytes);
+-                return TRUE;
++                GstFormat format = GST_FORMAT_UNDEFINED;
++                gst_query_parse_position(query, &format, NULL);
++                if (format == GST_FORMAT_BYTES || format == GST_FORMAT_UNDEFINED) {
++                  gst_query_set_position(query, GST_FORMAT_BYTES, playbackStatus.playedBytes);
++                  GST_DEBUG_OBJECT(element, "returning %zu bytes to query", playbackStatus.playedBytes);
++                  return TRUE;
++                }
++                GST_DEBUG_OBJECT(element, "returning FALSE, not answering query because requested format is %s and I can only answer bytes", gst_format_get_name(format));
++                return FALSE;
+             }
+         } // fall-through!
+       case GST_QUERY_DURATION:
+-- 
+2.29.2
+
