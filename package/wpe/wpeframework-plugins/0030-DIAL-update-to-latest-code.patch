@@ -252,7 +252,7 @@ index 83235825..0cea2657 100644
 +    endif()
 +endif()
 diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
-index c3de9953..1bc6934f 100644
+index c3de9953..f0520201 100644
 --- a/DIALServer/DIALServer.cpp
 +++ b/DIALServer/DIALServer.cpp
 @@ -31,31 +31,22 @@ namespace Plugin {
@@ -320,7 +320,7 @@ index c3de9953..1bc6934f 100644
 +
 +        // 2.1 spec adds "hidden" state. It also introduces "installable" state.
 +        // We may consider adding support for it at some point - thanks to the Packager.
-+        string state((running == true) ? _T("running") : ((isAtLeast2_1 == true) && (HasHide() == true) && (IsHidden() == true) ? _T("hidden") : _T("stopped")));
++        string state(((isAtLeast2_1 == true) && (HasHide() == true) && (IsHidden() == true) ? _T("hidden") : ((running == true) ? _T("running") : _T("stopped"))));
 +
 +        // allowStop is mandatory to be true starting from 2.1
 +        string allowStop((isAtLeast2_1 == true) || (HasStartAndStop() == true) ? "true" : "false");
@@ -699,7 +699,7 @@ index c3de9953..1bc6934f 100644
          pluginInterface->AddProxy(_dialPath, _dialPath, remote);
  
 diff --git a/DIALServer/DIALServer.h b/DIALServer/DIALServer.h
-index be47a929..9b003d2d 100644
+index be47a929..a715bd29 100644
 --- a/DIALServer/DIALServer.h
 +++ b/DIALServer/DIALServer.h
 @@ -30,6 +30,10 @@ namespace Plugin {
@@ -1084,7 +1084,7 @@ index be47a929..9b003d2d 100644
      private:
 -        DIALServer(const DIALServer&) = delete;
 -        DIALServer& operator=(const DIALServer&) = delete;
-+        static const uint32_t MaxDialQuerySize = 2096;
++        static const uint32_t MaxDialQuerySize = 4096;
  
 -        struct Version {
 -            Version(uint8_t major, uint8_t minor, uint8_t patch)
