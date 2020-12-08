@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AMAZON_IGNITION_VERSION = 3a79b8cc1a0ef9de189c3d100ce77619ab0e94bb
+AMAZON_IGNITION_VERSION = 5d2b638b0f962e860a2e771ed64c4440d64fd285
 AMAZON_IGNITION_SITE_METHOD = git
 AMAZON_IGNITION_SITE = git@github.com:Metrological/amazon.git
 AMAZON_IGNITION_DEPENDENCIES = jpeg libpng wpeframework amazon amazon-backend
@@ -45,6 +45,10 @@ AMAZON_IGNITION_CONF_OPTS += \
    -DBUILD_AS_SHARED_LIBRARY=ON \
    -DBUILD_CURL_7_72_0=ON 
 
+ifeq ($(BR2_PACKAGE_AMAZON),y)
+AMAZON_IGNITION_CONF_OPTS += -DENABLE_RUBY_PLAYER=ON
+endif
+   
 ifeq ($(BR2_PACKAGE_AMAZON_IGNITION_BUILD_TESTS),y)
 AMAZON_IGNITION_CONF_OPTS += -DBUILD_SHARED_LIBRARY_LAUNCHER=ON
 endif
