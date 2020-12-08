@@ -68,7 +68,7 @@ config BR2_PACKAGE_WPEFRAMEWORK_TEST_UNITTESTS
 	bool "Unit Tests"
 	help
 	   Builds Unit Tests
-
+   select BR2_PACKAGE_WPEFRAMEWORK_EXCEPTIONS_ENABLE
 endmenu
 
 endmenu
