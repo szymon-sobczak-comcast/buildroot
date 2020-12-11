@@ -1,0 +1,54 @@
+From 1309883337419e317ac1b657662d23c39512e8a2 Mon Sep 17 00:00:00 2001
+From: Xabier Rodriguez Calvar <calvaris@igalia.com>
+Date: Thu, 10 Dec 2020 16:35:43 +0100
+Subject: [PATCH 3/3] webkitbrowser: always rank thunder decryptor no matter
+ what
+
+---
+ WebKitBrowser/UX.config            | 2 +-
+ WebKitBrowser/WebKitBrowser.config | 2 +-
+ WebKitBrowser/YouTube.config       | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/WebKitBrowser/UX.config b/WebKitBrowser/UX.config
+index b96b31d1..dce9aa38 100644
+--- a/WebKitBrowser/UX.config
++++ b/WebKitBrowser/UX.config
+@@ -24,7 +24,7 @@ map()
+     kv(cursor false)
+     kv(touch false)
+     kv(msebuffers "audio:2m,video:15m,text:1m")
+-    kv(thunderdecryptorpreference ${PLUGIN_WEBKITBROWSER_THUNDER_DECRYPTOR_PREFERENCE})
++    kv(thunderdecryptorpreference true)
+     kv(memoryprofile ${PLUGIN_WEBKITBROWSER_MEMORYPROFILE})
+     kv(memorypressure ${PLUGIN_WEBKITBROWSER_MEMORYPRESSURE})
+     kv(mediacontenttypesrequiringhardwaresupport ${PLUGIN_WEBKITBROWSER_MEDIA_CONTENT_TYPES_REQUIRING_HARDWARE_SUPPORT})
+diff --git a/WebKitBrowser/WebKitBrowser.config b/WebKitBrowser/WebKitBrowser.config
+index a90b9cf1..34a00f9a 100644
+--- a/WebKitBrowser/WebKitBrowser.config
++++ b/WebKitBrowser/WebKitBrowser.config
+@@ -30,7 +30,7 @@ map()
+     kv(cursor false)
+     kv(touch false)
+     kv(msebuffers ${PLUGIN_WEBKITBROWSER_MSEBUFFERS})
+-    kv(thunderdecryptorpreference ${PLUGIN_WEBKITBROWSER_THUNDER_DECRYPTOR_PREFERENCE})
++    kv(thunderdecryptorpreference true)
+     kv(memoryprofile ${PLUGIN_WEBKITBROWSER_MEMORYPROFILE})
+     kv(memorypressure ${PLUGIN_WEBKITBROWSER_MEMORYPRESSURE})
+     kv(mediacontenttypesrequiringhardwaresupport ${PLUGIN_WEBKITBROWSER_MEDIA_CONTENT_TYPES_REQUIRING_HARDWARE_SUPPORT})
+diff --git a/WebKitBrowser/YouTube.config b/WebKitBrowser/YouTube.config
+index d934fc89..9f5d0a1d 100644
+--- a/WebKitBrowser/YouTube.config
++++ b/WebKitBrowser/YouTube.config
+@@ -24,7 +24,7 @@ map()
+     kv(cursor false)
+     kv(touch false)
+     kv(msebuffers "audio:2m,video:15m,text:1m")
+-    kv(thunderdecryptorpreference ${PLUGIN_WEBKITBROWSER_THUNDER_DECRYPTOR_PREFERENCE})
++    kv(thunderdecryptorpreference true)
+     kv(memoryprofile ${PLUGIN_WEBKITBROWSER_MEMORYPROFILE})
+     kv(memorypressure ${PLUGIN_WEBKITBROWSER_MEMORYPRESSURE})
+     kv(mediacontenttypesrequiringhardwaresupport ${PLUGIN_WEBKITBROWSER_MEDIA_CONTENT_TYPES_REQUIRING_HARDWARE_SUPPORT})
+-- 
+2.29.2
+
