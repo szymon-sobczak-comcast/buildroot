@@ -22,8 +22,6 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-First attempt. Possibly wrong and / or incomplete, and may contain 'bad' code and / or coding practice.
 */
 
 #include "common.h"
@@ -44,7 +42,7 @@ extern "C" {
 }
 #endif
 
-// An interposition function should be located outside this library
+// An interposition target function should be located outside this library
 COMMON_PRIVATE const std::string& libraryName () {
     static std::string _libname;
 
@@ -63,7 +61,7 @@ COMMON_PRIVATE const std::string& libraryName () {
 }
 
 // Lookup the symbols in the scope associated with this library
-COMMON_PRIVATE bool lookup (const std::string symbol, uintptr_t& _address, bool default_scope) {
+COMMON_PRIVATE bool lookup (const std::string& symbol, uintptr_t& _address, bool default_scope) {
     bool ret = false;
 
     if (symbol.empty () != true)
@@ -92,7 +90,7 @@ COMMON_PRIVATE bool lookup (const std::string symbol, uintptr_t& _address, bool 
     return ret;
 }
 
-COMMON_PRIVATE bool loaded(const std::string lib) {
+COMMON_PRIVATE bool loaded(const std::string& lib) {
     bool ret = false;
 
     if (lib.empty () != true) {

@@ -22,16 +22,24 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-First attempt. Possibly wrong and / or incomplete, and may contain 'bad' code and / or coding practice.
 */
+
+// https://gcc.gnu.org/projects/cxx-status.html
+// https://en.cppreference.com/w/cpp/feature_test
+#if __cplusplus >= 200806L || defined (__cpp_threadsafe_static_init)
+#warning "Thread safe static initialization is supported"
+#else
+#error "Thread safe static initialization is NOT supported but is required."
+#endif
 
 #include "common.h"
 
 #include <string>
 
 // A little less code bloat
+#ifndef _2CSTR
 #define _2CSTR(str) std::string (str).c_str ()
+#endif
 
 #define PROXYEGL_PRIVATE COMMON_PRIVATE
 #define PROXYEGL_PUBLIC COMMON_PUBLIC
@@ -40,6 +48,7 @@ First attempt. Possibly wrong and / or incomplete, and may contain 'bad' code an
 #include <vector>
 #include <cstring>
 #include <unordered_map>
+#include <atomic>
 
 #ifdef __cplusplus
 extern "C" {
@@ -125,45 +134,71 @@ PROXYEGL_PUBLIC EGLSurface eglCreatePlatformWindowSurface (EGLDisplay, EGLConfig
 }
 #endif
 
+namespace std {
+
+// hash specialization that works with constant pointers
+template <typename T>
+struct hash <T* const> {
+    size_t operator () (const T* const & obj) const {
+        size_t _ret = 0;
+
+        std::hash <const T*> hashfnc;
+
+        _ret = hashfnc (obj);
+
+        return _ret;
+    }
+};
+
+}
+
 namespace {
 // Suppress compiler preprocessor 'visibiity ignored' in anonymous namespace
 #define _PROXYEGL_PRIVATE /*PROXYEGL_PRIVATE*/
 #define _PROXYEGL_PUBLIC PROXYEGL_PUBLIC
 
 class Platform : public Singleton <Platform> {
+    using sync_t = Mutex;
 
-    // This friend has access to all memebers!
+    // This friend has access to all members!
     friend Singleton <Platform>;
 
     public :
+        // Not all EGL platforms use underlying pointers for these types, code might require (future) changesi / adaptations
+        static_assert (std::is_pointer <EGLDisplay>::value != false);
+        static_assert (std::is_pointer <EGLSurface>::value != false);
+        static_assert (std::is_pointer <EGLNativeDisplayType>::value != false);
+        static_assert (std::is_pointer <EGLNativeWindowType>::value != false);
 
-        _PROXYEGL_PRIVATE bool isGBMdevice (const EGLNativeDisplayType& display) const;
-        _PROXYEGL_PRIVATE bool isGBMsurface (const EGLNativeWindowType& window) const;
+        _PROXYEGL_PRIVATE bool isGBMdevice (EGLNativeDisplayType const & display) const;
+        _PROXYEGL_PRIVATE bool isGBMsurface (EGLNativeWindowType const & window) const;
 
-        _PROXYEGL_PRIVATE void FilterConfigs (const EGLDisplay& display, std::vector <EGLConfig>& configs) const;
+        _PROXYEGL_PRIVATE void FilterConfigs (EGLDisplay const & display, std::vector <EGLConfig> & configs) const;
 
-        _PROXYEGL_PRIVATE bool Add (const EGLDisplay&, const EGLNativeDisplayType&);
-        _PROXYEGL_PRIVATE bool Add (const EGLSurface&, const EGLNativeWindowType&);
+        _PROXYEGL_PRIVATE bool Add (EGLDisplay const & display, EGLNativeDisplayType const & native);
+        _PROXYEGL_PRIVATE bool Add (EGLSurface const & surface, EGLNativeWindowType const & native);
 
-        // EGLDisplay is ignored if all equals true
-        // EGLDisplay handles remain valid after their creation (until the application ends)
-//        _PROXYEGL_PRIVATE bool Remove (const EGLDisplay&, bool all = false);
-        // EGLSurface is ignored if all equals true
-        _PROXYEGL_PRIVATE bool Remove (const EGLSurface&, bool all = false);
+        // Reminder: EGLDisplay handles remain valid after their creation (until the application ends)
 
-        _PROXYEGL_PRIVATE bool ScanOut (const EGLSurface&) const;
+//        // The second parameters does not have to be (explicitly) specified
+//        _PROXYEGL_PRIVATE bool Remove (EGLDisplay const&, bool all = false);
+        // The second parameters does not have to be (explicitly) specified
+        _PROXYEGL_PRIVATE bool Remove (EGLSurface const & surface, bool all = false);
 
-        _PROXYEGL_PRIVATE void Lock (void) const;
-        _PROXYEGL_PRIVATE void Unlock (void) const;
+        _PROXYEGL_PRIVATE bool ScanOut (EGLSurface const & surface) const;
 
         // Expected runtime dependencies and their names
         // Also see helpers
-        _PROXYEGL_PRIVATE static constexpr const char* libGBMname() {
+        _PROXYEGL_PRIVATE static constexpr const char* libGBMname () {
             return "libgbm.so";
         }
 
         _PROXYEGL_PRIVATE static constexpr const char* libDRMname () {
             return "libdrm.so";
+        }
+
+        _PROXYEGL_PRIVATE static constexpr sync_t& SyncObject () {
+            return _syncobject;
         }
 
     protected :
@@ -172,29 +207,22 @@ class Platform : public Singleton <Platform> {
 
     private :
 
-        using drm_callback_data_t = struct { int fd; uint32_t fb; struct gbm_bo* bo; bool waiting; };
+        using gbm_bo_t = struct gbm_bo*;
+        using gbm_surface_t = struct gbm_surface*;
+        using gbm_device_t = struct gbm_device*;
 
-        enum class JMP_STATUS : sig_atomic_t {UNDEFINED, SETUP, PROCESSED};
+        using drm_callback_data_t = struct { int fd; uint32_t fb; gbm_bo_t bo; bool waiting; };
 
-        mutable volatile JMP_STATUS _safe;
-        mutable sigjmp_buf _stack_env;
+        _PROXYEGL_PRIVATE static sync_t _syncobject;
 
-        pthread_once_t _jmp_mutex_initialized;
-        mutable pthread_mutex_t _jmp_mutex;
+        // The custom hash does not have to be explicitly specified since it is injected into std namespace
+        using map_dpy_t  = std::unordered_map <EGLDisplay const, EGLNativeDisplayType const>;
+        using map_surf_t = std::unordered_map <EGLSurface const, EGLNativeWindowType const>;
 
-#ifdef _HASH
-        // Let std::hash <const T> be (well-)defined
-        static_assert (std::is_pointer <EGLDisplay>::value != false && sizeof (EGLDisplay) <= sizeof (void*));
-        static_assert (std::is_pointer <EGLSurface>::value != false && sizeof (EGLSurface) <= sizeof (void*));
+        map_dpy_t _map_dpy;
+        map_surf_t _map_surf;
 
-        std::unordered_map <const void* /*EGLDisplay*/, const EGLNativeDisplayType> _map_dpy;
-        std::unordered_map <const void* /*EGLSurface*/, const EGLNativeWindowType> _map_surf;
-#else
-        std::unordered_map <EGLDisplay, EGLNativeDisplayType> _map_dpy;
-        std::unordered_map <EGLSurface, EGLNativeWindowType> _map_surf;
-#endif
-
-        Platform () : _safe (Platform::JMP_STATUS::UNDEFINED), _jmp_mutex_initialized (PTHREAD_ONCE_INIT) {
+        Platform () {
             /*void*/ _map_dpy.clear ();
             /*void*/ _map_surf.clear ();
         }
@@ -204,17 +232,12 @@ class Platform : public Singleton <Platform> {
         template <typename Func>
         _PROXYEGL_PRIVATE bool hasGBMproperty(Func func) const;
 
-        _PROXYEGL_PRIVATE struct gbm_bo* ScanOut (const struct gbm_bo* bo, uint8_t buffers = 2) const;
+        _PROXYEGL_PRIVATE gbm_bo_t ScanOut (gbm_bo_t const & bo, uint8_t buffers = 2) const;
 
         // Seconds
         _PROXYEGL_PRIVATE static constexpr time_t FrameDuration () {
             return 1;
         }
-
-//        _PROXYEGL_PRIVATE void Lock (void) const;
-//        _PROXYEGL_PRIVATE void Unlock (void) const;
-
-        _PROXYEGL_PRIVATE bool InitLock (void);
 
         _PROXYEGL_PRIVATE static constexpr uint32_t NonEmptySizeInitialValue (void) {
             return 1;
@@ -222,12 +245,14 @@ class Platform : public Singleton <Platform> {
 
         // Helpers, make the GBM API well-defined within this unit
         // All these are ill-defined for EGL_DEFAULT_DISPLAY
-        _PROXYEGL_PRIVATE struct gbm_bo* gbm_surface_lock_front_buffer (struct gbm_surface* surface) const;
-        _PROXYEGL_PRIVATE void gbm_surface_release_buffer (struct gbm_surface* surface, struct gbm_bo* bo) const;
-        _PROXYEGL_PRIVATE int gbm_surface_has_free_buffers (struct gbm_surface* surface) const;
+// TODO: validate signature
+        _PROXYEGL_PRIVATE gbm_bo_t gbm_surface_lock_front_buffer (gbm_surface_t surface) const;
+        _PROXYEGL_PRIVATE void gbm_surface_release_buffer (gbm_surface_t surface, gbm_bo_t bo) const;
+        _PROXYEGL_PRIVATE int gbm_surface_has_free_buffers (gbm_surface_t surface) const;
 };
 
-// TODO: safeguard simultaneous access / recursive access
+/*_PROXYEGL_PRIVATE*/ Platform::sync_t Platform::_syncobject;
+
 template <typename Func>
 bool Platform::hasGBMproperty (Func func) const {
     bool ret = false;
@@ -238,6 +263,11 @@ bool Platform::hasGBMproperty (Func func) const {
     constexpr uint8_t NEW = 0;
     constexpr uint8_t OLD = 1;
 
+    static Mutex _mutex;
+
+    // It's time to block any of the calling threads before the first has completed the test
+    std::lock_guard < decltype (_mutex) > _lock (_mutex);
+
     if (sigemptyset (&_mask[NEW]) != 0 || sigaddset (&_mask[NEW], SIGSEGV) != 0) {
         // Error
     }
@@ -245,12 +275,18 @@ bool Platform::hasGBMproperty (Func func) const {
         // Undefined behavior if SIGFPE, SIGILL, SIGSEGV, or SIGBUS are blocked and not generated by kill, pthreadd_kill, raise or sigqueue on the same thread; generated by other processes is ok
         // At least unblock any inadvertently blocked SIGSEGV
         if (pthread_sigmask (SIG_UNBLOCK /* ignored */,&_mask[NEW], &_mask[OLD]) == 0) {
+            enum class JMP_STATUS : sig_atomic_t {UNDEFINED, SETUP, PROCESSED};
+
+            static volatile JMP_STATUS _safe;
+            static sigjmp_buf _stack_env;
+
+            _safe = JMP_STATUS::UNDEFINED;
 
             // Strictly speaking c++ linkage and not C linkage
             // Asynchronous, but never called more than once (although pending SIGSEGV are possible, but they are usually redirected to one of the avaiable threads), still in scope until the old handler is restored
             auto handler = +[] (int signo) /*-> void */ {
-                switch (Platform::Instance ()._safe) {
-                    case Platform::JMP_STATUS::UNDEFINED :
+                switch (_safe) {
+                    case JMP_STATUS::UNDEFINED :
                         {
                             // Handler triggered before the stack enviroment was set up
 
@@ -280,15 +316,15 @@ bool Platform::hasGBMproperty (Func func) const {
                             }
                             break;
                         }
-                    case Platform::JMP_STATUS::SETUP :
+                    case JMP_STATUS::SETUP :
                         {
-                            Platform::Instance ()._safe = Platform::JMP_STATUS::PROCESSED;
+                            _safe = JMP_STATUS::PROCESSED;
 
-                            siglongjmp (Platform::Instance ()._stack_env , 1 /* anything not 0 */);
+                            siglongjmp (_stack_env , 1 /* anything not 0 */);
 
                             break;
                         }
-                    case Platform::JMP_STATUS::PROCESSED :
+                    case JMP_STATUS::PROCESSED :
                     default                              :
                         {  // Error, this should not happen
                             LOG (_2CSTR ("Unexpected state in the SIGSEGV handler"));
@@ -303,65 +339,32 @@ bool Platform::hasGBMproperty (Func func) const {
             // Only if SA_NODEFER is set
 //            _action[NEW].sa_mask = _mask[NEW];
 
-            // It's time to block any of the caller threads before the first has completed the test
-
-            // This makes it well defined
-            static pthread_once_t _initialized = PTHREAD_ONCE_INIT;
-            static pthread_mutex_t _mutex;
-
-            // Strictly speaking c++ linkage and not C linkage
-            auto init_once = +[] ()/* -> void*/ {
-                pthread_mutexattr_t _attr;
-
-                // Set the defaults used by the implementation
-                if (pthread_mutexattr_init (&_attr) != 0 || \
-                    pthread_mutexattr_settype (&_attr, PTHREAD_MUTEX_ERRORCHECK /*PTHREAD_MUTEX_NORMAL*/) != 0 || \
-                    pthread_mutex_init (&_mutex, &_attr)) {
-
-                    // Error
-                    assert (false);
-                }
-            };
-
-            // Captureless (positive, eg add '+' in front) lambda's can be cast to regular function pointers
-            // void (*init_routine)(void);
-            // All threads block until pthread_once returns
-            if (pthread_once (&_initialized, init_once) != 0) {
-                LOG (_2CSTR ("Unable to initialize required mutex"));
-            }
-
-            // Initialize mutex once and (re-)install new handler
-            if (pthread_mutex_lock (&_mutex) != 0 || sigaction (SIGSEGV, &_action[NEW], &_action[OLD]) != 0) {
-                // Error, we cannot probe
+            if (sigsetjmp (_stack_env, 1 /* save signal mask */) != 0) {
+                // Returned from siglongjmp in signal handler and rewinded the stack etc
+                // Return value equals value set in siglongjmp
+                 LOG (_2CSTR ("Returned from the signal handler"));
             }
             else {
-                if (sigsetjmp (_stack_env, 1 /* save signal mask */) != 0) {
-                    // Returned from siglongjmp in signal handler and rewinded the stack etc
-                    // Return value equals value set in siglongjmp
-                    LOG (_2CSTR ("Returned from the signal handler"));
-                }
-                else {
-                    // Prepare to probe
-                    // True return of sigsetjmp equals 0
+                // Prepare to probe
+                // True return of sigsetjmp equals 0
 
 #ifndef _TEST
-                    // Handler and stack environment are set up
-                    _safe = JMP_STATUS::SETUP;
+                // Handler and stack environment are set up
+                _safe = JMP_STATUS::SETUP;
 
-                    // Probe gbm property
-                    func();
+                // Probe gbm property
+                func();
 #else
-                    // Deliberately cause a segfault
-                    LOG (_2CSTR ("Deliberately invoking SIGSEGV"));
-                    if (pthread_kill (pthread_self (), SIGSEGV) != 0) {
-                    }
+                // Deliberately cause a segfault
+                LOG (_2CSTR ("Deliberately invoking SIGSEGV"));
+                if (pthread_kill (pthread_self (), SIGSEGV) != 0) {
+                }
 #endif
-                }
+            }
 
-                // Restore by at least disabling the 'local' signal handler
-                if (sigaction (SIGSEGV, &_action[OLD], nullptr) != 0) {
-                    // Error
-                }
+            // Restore by at least disabling the 'local' signal handler
+            if (sigaction (SIGSEGV, &_action[OLD], nullptr) != 0) {
+                // Error
             }
 
             // Wait until none of the pending signals is a SIGSEGV
@@ -380,10 +383,10 @@ bool Platform::hasGBMproperty (Func func) const {
                 }
             } while (value == 1 || value == -1); // SIGSEGV pending or error
 
-            // Assume display is a struct gbmdevice* If the handler was not invoked
-             ret = !(_safe == Platform::JMP_STATUS::PROCESSED);
+            // Assume display is a of gbm_device_t If the handler was not invoked
+             ret = !(_safe == JMP_STATUS::PROCESSED);
 
-            _safe = Platform::JMP_STATUS::UNDEFINED;
+            _safe = JMP_STATUS::UNDEFINED;
 
 #ifdef _TEST
             // Deliberately cause a segfault
@@ -393,21 +396,19 @@ bool Platform::hasGBMproperty (Func func) const {
             }
 #endif
 
-            if (pthread_mutex_unlock (&_mutex) != 0) {
-                assert (false);
-            }
         }
     }
 
     return ret;
 }
 
-// Hack based on gbmint.h
-bool Platform::isGBMdevice (const EGLNativeDisplayType& display) const {
+// Uses hasGBMproperty, hence no guard
+bool Platform::isGBMdevice (EGLNativeDisplayType const & display) const {
     // Probe gbm device
     auto func = [&display] () -> bool {
         bool ret = false;
 
+        // Not using Platform::gbm_device_t! Here using gbmint.h internals.
         using gbm_device_t = struct { struct gbm_device* (*dummy) (int); };
 
         // Expect some slicing
@@ -435,20 +436,23 @@ bool Platform::isGBMdevice (const EGLNativeDisplayType& display) const {
     return ret;
 }
 
-// Hack based on gbmint.h
-bool Platform::isGBMsurface (const EGLNativeWindowType& window) const {
+// Uses hasGBMproperty, hence no guard
+bool Platform::isGBMsurface (EGLNativeWindowType const & window) const {
     // Probe gbm surface
     auto func = [&window] () -> bool {
         bool ret = false;
 
+        // Not using Platform::gbm_device_t! Here using gbmint.h internals.
         using gbm_surface_t = struct { struct gbm_device* gbm; };
 
         // Expect some slicing
         const gbm_surface_t* _surface = reinterpret_cast <const gbm_surface_t*> (window);
 
         if (_surface != nullptr && _surface->gbm != nullptr) {
+            // Not using Platform::gbm_device_t! Here using gbmint.h internals.
             using gbm_device_t = struct { struct gbm_device* (*dummy) (int); };
 
+            // Expect some slicing
             const gbm_device_t* _device = reinterpret_cast <const gbm_device_t*> (_surface->gbm);
 
             if (_device != nullptr && _device->dummy != nullptr) {
@@ -472,8 +476,8 @@ bool Platform::isGBMsurface (const EGLNativeWindowType& window) const {
     return ret;
 }
 
-void Platform::FilterConfigs (const EGLDisplay& display, std::vector <EGLConfig>& configs) const {
-    Lock ();
+void Platform::FilterConfigs (EGLDisplay const & display, std::vector <EGLConfig>& configs) const {
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
     auto _it_dpy = _map_dpy.find (display);
 
@@ -492,19 +496,17 @@ void Platform::FilterConfigs (const EGLDisplay& display, std::vector <EGLConfig>
                 }
             }
 
-            it++;
+            ++it;
         }
     }
-
-    Unlock ();
 }
 
-bool Platform::Add (const EGLDisplay& egl, const EGLNativeDisplayType& native) {
-    Lock ();
-
+bool Platform::Add (EGLDisplay const & egl, EGLNativeDisplayType const & native) {
     bool ret = false;
 
     //  An EGL display remains valid until an application ends, here until the library unloads
+
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
     auto _it_dpy = _map_dpy.find (egl);
 
@@ -513,11 +515,7 @@ bool Platform::Add (const EGLDisplay& egl, const EGLNativeDisplayType& native) {
         ret = _it_dpy->second == native;
     }
     else {
-#ifdef _HASH
         auto result = _map_dpy.insert (std::pair <EGLDisplay, EGLNativeDisplayType> (egl, native));
-#else
-        auto result = _map_dpy.insert (std::pair <EGLDisplay, EGLNativeDisplayType> ( const_cast <EGLDisplay> (egl), const_cast <EGLNativeDisplayType> (native)));
-#endif
 
         // On failure, eg, key exists, false is returned
         ret = result.second;
@@ -529,13 +527,11 @@ bool Platform::Add (const EGLDisplay& egl, const EGLNativeDisplayType& native) {
         LOG (_2CSTR ("Unable to add EGLDisplay "), egl, _2CSTR (" and native display "), native, _2CSTR (" to the associative map"));
     }
 
-    Unlock ();
-
     return ret;
 }
 
-bool Platform::Add (const EGLSurface& egl, const EGLNativeWindowType& native) {
-    Lock ();
+bool Platform::Add (EGLSurface const & egl, EGLNativeWindowType const & native) {
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
     auto result = _map_surf.insert (std::pair <EGLSurface, EGLNativeWindowType> (egl, native));
 
@@ -548,16 +544,14 @@ bool Platform::Add (const EGLSurface& egl, const EGLNativeWindowType& native) {
         LOG (_2CSTR ("Unable to add EGLSurface "), egl, _2CSTR (" and native window "), native, _2CSTR (" to the associative map"));
     }
 
-    Unlock ();
-
     return ret;
 }
 
 // EGLSurface is ignored if all equals true
-bool Platform::Remove (const EGLSurface& egl, bool all) {
-    Lock ();
-
+bool Platform::Remove (EGLSurface const & egl, bool all) {
     bool ret = false;
+
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
     if (all != true) {
         ret = _map_surf.erase (egl) ==  1;
@@ -578,15 +572,13 @@ bool Platform::Remove (const EGLSurface& egl, bool all) {
         LOG (_2CSTR ("Unable to remove "), all != false ? _2CSTR ("all EGLSurfaces ") : _2CSTR ("EGLSurface "), all != false ? _2CSTR ("") : egl, _2CSTR ("from the associatve map"));
     }
 
-    Unlock ();
-
     return ret;
 }
 
-bool Platform::ScanOut (const EGLSurface& surface) const {
-    Lock ();
-
+bool Platform::ScanOut (EGLSurface const & surface) const {
     bool ret = false;
+
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
     auto it = _map_surf.find (surface);
 
@@ -603,9 +595,9 @@ bool Platform::ScanOut (const EGLSurface& surface) const {
         }
 
         if (_native != EGL_DEFAULT_DISPLAY && _dpy != EGL_NO_DISPLAY) {
-            struct gbm_surface* _gbm_surf = reinterpret_cast <struct gbm_surface*> (it->second);
+            gbm_surface_t _gbm_surf = reinterpret_cast <gbm_surface_t> (it->second);
 
-            struct gbm_bo* _gbm_bo = nullptr;
+            gbm_bo_t _gbm_bo = nullptr;
 
             if (_it_dpy != _map_dpy.end ()) {
                 _native = _it_dpy->second;
@@ -622,7 +614,7 @@ bool Platform::ScanOut (const EGLSurface& surface) const {
 
                 if (eglQuerySurface (_dpy, surface, EGL_RENDER_BUFFER, &_value) != EGL_FALSE) {
 // TODO: validate surface belongs to device
-                    struct gbm_bo* _available = ScanOut (_gbm_bo, _value != EGL_BACK_BUFFER ? 1 : 2);
+                    gbm_bo_t _available = ScanOut (_gbm_bo, _value != EGL_BACK_BUFFER ? 1 : 2);
 
                     if (_available != nullptr) {
                         // Probably not required after removing the FB, but just be safe
@@ -644,15 +636,11 @@ bool Platform::ScanOut (const EGLSurface& surface) const {
         assert (false);
     }
 
-    Unlock ();
-
     return ret;
 }
 
-struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) const {
-    // Avoid many additional const_cast's for the GBM API
-    struct gbm_bo* _bo = const_cast <struct gbm_bo*> (bo);
-
+// Never called directly, hence no guard
+Platform::gbm_bo_t Platform::ScanOut (gbm_bo_t const & _bo, uint8_t buffers) const {
     // Determine current CRTC; currently only considers just a single crtc-encoder-connector path
     auto func = [] (uint32_t fd, uint32_t& crtc, uint32_t& connectors) -> uint32_t {
         uint32_t ret = 0;
@@ -680,7 +668,7 @@ struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) cons
 
                                 connectors = _con->connector_id;
 
-                                ret++;
+                                ++ret;
 
                                 drmModeFreeEncoder (_enc);
                             }
@@ -702,9 +690,9 @@ struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) cons
         return ret;
     };
 
-    struct gbm_bo* ret = nullptr;
+    gbm_bo_t ret = nullptr;
 
-    struct gbm_device* _gbm_device = gbm_bo_get_device (_bo);
+    gbm_device_t _gbm_device = gbm_bo_get_device (_bo);
 
     // This can be an expensive test, thus cache the result
     static bool _loaded = loaded (libGBMname ()) && loaded (libDRMname ());
@@ -736,7 +724,7 @@ struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) cons
                 // drm_fourcc.c illustrates that DRM_FORMAT_XRGB8888 has depth 24, and DRM_FORMAT_ARGB8888 has depth 32
                 if (drmModeAddFB (_fd, _width, _height, _format != DRM_FORMAT_ARGB8888 ? _bpp - 8 : _bpp, _bpp, _stride, _handle, &_fb) == 0) {
 
-                    auto enqueue = [&buffers] (int fd, int fb, struct gbm_bo* bo) -> struct gbm_bo* {
+                    auto enqueue = [&buffers] (int fd, int fb, gbm_bo_t bo) -> gbm_bo_t {
                         // Single, double or multibuffering
 
                         if (buffers != 2) {
@@ -746,9 +734,9 @@ struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) cons
 
                         static int _fb [1] = { 0 };
 // TODO: 'dangerous', on a 'restart' in EGL context, eg, apllication 'never' ends
-                        static struct gbm_bo* _bo [1] = { nullptr };
+                        static gbm_bo_t _bo [1] = { nullptr };
 
-                        struct gbm_bo* ret = nullptr;
+                        gbm_bo_t ret = nullptr;
 
                         if (fd < 0 || _fb[0] == 0 || _bo[0] == nullptr || drmModeRmFB (fd, _fb [0]) != 0) {
                             // Always true for the initial frame
@@ -771,7 +759,11 @@ struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) cons
                     static uint32_t _connectors = 0;
                     static uint32_t _count = func (_fd, _crtc, _connectors);
 
-                    Platform::drm_callback_data_t _callback_data = {_fd, _fb, _bo, true};
+                    static Platform::drm_callback_data_t _callback_data = {_fd, _fb, _bo, true};
+                    // Guardian of the shared data presented one line earlier
+                    static Mutex _mutex;
+
+                    _callback_data = {_fd, _fb, _bo, true};
 
                     int _err = drmModePageFlip (_fd, _crtc, _fb, DRM_MODE_PAGE_FLIP_EVENT, &_callback_data);
 
@@ -780,6 +772,8 @@ struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) cons
                                             // Strictly speaking c++ linkage and not C linkage
                                             // Asynchronous, but never called more than once, waiting in scope
                                             auto handler = +[] (int fd, unsigned int frame, unsigned int sec, unsigned int usec, void* data) {
+                                                std::lock_guard < decltype (_mutex) > _lock (_mutex);
+
                                                 if (data != nullptr) {
                                                     Platform::drm_callback_data_t* _data = reinterpret_cast <Platform::drm_callback_data_t*> (data);
 
@@ -800,7 +794,14 @@ struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) cons
 
                                             struct timespec _timeout = { .tv_sec = Platform::FrameDuration (), .tv_nsec = 0 };
 
-                                            while (_callback_data.waiting != false) {
+                                            bool _waiting = true;
+
+                                            {
+                                                std::lock_guard < decltype (_mutex) > _lock (_mutex);
+                                                _waiting = _callback_data.waiting;
+                                            }
+
+                                            while (_waiting != false) {
                                                 FD_ZERO (&_fds);
                                                 FD_SET( _fd, &_fds);
 
@@ -829,6 +830,11 @@ struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) cons
                                                         }
                                                     }
                                                 }
+
+                                                {
+                                                     std::lock_guard < decltype (_mutex) > _lock (_mutex);
+                                                    _waiting = _callback_data.waiting;
+                                                }
                                             }
 
                                             break;
@@ -853,9 +859,9 @@ struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) cons
                                             break;
                                       }
                         case EBUSY  :
-                        default :   {
-                                        // There is nothing to be done about it
-                                    }
+                        default     : {
+                                          // There is nothing to be done about it
+                                      }
                     }
                 }
             }
@@ -871,57 +877,15 @@ struct gbm_bo* Platform::ScanOut (const struct gbm_bo* bo, uint8_t buffers) cons
     return ret;
 }
 
-void Platform::Lock (void) const {
-    if (Instance ().InitLock () != false && pthread_mutex_lock (&_jmp_mutex) != 0) {
-        assert (false);
-    }
-}
-
-void Platform::Unlock (void) const {
-    if (Platform::Instance ().InitLock () != false && pthread_mutex_unlock (&_jmp_mutex) != 0) {
-        // Error
-        assert (false);
-    }
-}
-
-bool Platform::InitLock (void) {
-    // Non-capturing positive lambda's can be cast to regular function pointers with the same signature
-    // Strictly speaking c++ linkage and not C linkage
-    auto init_once = +[] ()/* -> void*/ {
-        pthread_mutexattr_t _attr;
-
-        // Set the defaults used by the implementation
-        if (pthread_mutexattr_init (&_attr) != 0 || \
-            pthread_mutexattr_settype (&_attr, PTHREAD_MUTEX_ERRORCHECK /*PTHREAD_MUTEX_NORMAL*/) != 0 || \
-            pthread_mutex_init (&Platform::Instance ()._jmp_mutex, &_attr) ) {
-
-            // Error
-            assert (false);
-        }
-    };
-
-    bool ret = false;
-
-    if (pthread_once (&_jmp_mutex_initialized, init_once) != 0) {
-        LOG (_2CSTR ("Unable to initialize required mutex"));
-        assert (false);
-    }
-    else {
-        ret = true;
-    }
-
-    return ret;
-}
-
 // Helpers
 
-struct gbm_bo* Platform::gbm_surface_lock_front_buffer (struct gbm_surface *surface) const {
-    struct gbm_bo* ret = nullptr;
+Platform::gbm_bo_t Platform::gbm_surface_lock_front_buffer (gbm_surface_t surface) const {
+    gbm_bo_t ret = nullptr;
 
     // This can be an expensive test thus cache the result
     static bool _loaded = loaded (libGBMname ());
 
-    // Some symbols may be undefined if libgbm is not explicitly loaded
+    // Some symbols may be undefined if libgbm is not (explicitly) loaded
     if (_loaded != false) {
         ret = ::gbm_surface_lock_front_buffer (surface);
     }
@@ -933,11 +897,11 @@ struct gbm_bo* Platform::gbm_surface_lock_front_buffer (struct gbm_surface *surf
     return ret;
 }
 
-void Platform::gbm_surface_release_buffer (struct gbm_surface* surface, struct gbm_bo* bo) const {
+void Platform::gbm_surface_release_buffer (gbm_surface_t surface, gbm_bo_t bo) const {
     // This can be an expensive test thus cache the result
     static bool _loaded = loaded (libGBMname ());
 
-    // Some symbols may be undefined if libgbm is not explicitly loaded
+    // Some symbols may be undefined if libgbm is not (explicitly) loaded
     if (_loaded != false) {
         /* void */ ::gbm_surface_release_buffer (surface, bo); 
     }
@@ -947,13 +911,13 @@ void Platform::gbm_surface_release_buffer (struct gbm_surface* surface, struct g
     }
 }
 
-int Platform::gbm_surface_has_free_buffers (struct gbm_surface* surface) const {
-    int ret = 0;
-
+int Platform::gbm_surface_has_free_buffers (gbm_surface_t surface) const {
     // This can be an expensive test thus cache the result
     static bool _loaded = loaded (libGBMname ());
 
-    // Some symbols may be undefined if libgbm is not explicitly loaded
+    int ret = 0;
+
+    // Some symbols may be undefined if libgbm is not (explicitly) loaded
     if (_loaded != false) {
         ret = ::gbm_surface_has_free_buffers (surface);
     }
@@ -971,24 +935,13 @@ int Platform::gbm_surface_has_free_buffers (struct gbm_surface* surface) const {
 
 // EGL 1.4 / 1.5 extension support
 __eglMustCastToProperFunctionPointerType eglGetProcAddress (const char* procname) {
-/**/     Platform::Instance ().Lock ();
-
-//    static thread_local void* (*_eglGetProcAddress) (const char*) = nullptr;
     static void* (*_eglGetProcAddress) (const char*) = nullptr;
 
-//    static thread_local bool resolved = false;
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglGetProcAddress", reinterpret_cast <uintptr_t&> (_eglGetProcAddress));
-    }
-
-/**/     Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglGetProcAddress", reinterpret_cast <uintptr_t&> (_eglGetProcAddress));
 
     __eglMustCastToProperFunctionPointerType ret = nullptr;
 
     if (resolved != false) {
-
         // Intercept to be able to intercept the underlying functions
         if (procname != nullptr) {
             if (std::string (procname).compare ("eglGetPlatformDisplayEXT") == 0) {
@@ -1019,26 +972,11 @@ __eglMustCastToProperFunctionPointerType eglGetProcAddress (const char* procname
 }
 
 EGLDisplay eglGetPlatformDisplayEXT (EGLenum platform, void* native_display, const EGLAttrib* attrib_list) {
-/**/    Platform::Instance ().Lock ();
+    static void* (*_eglGetProcAddress) (const char*) = nullptr;
 
-//    static thread_local EGLDisplay (*_eglGetPlatformDisplayEXT) (EGLenum, void*, const EGLAttrib*) = nullptr;
-/**/    static EGLDisplay (*_eglGetPlatformDisplayEXT) (EGLenum, void*, const EGLAttrib*) = nullptr;
+    static EGLDisplay (*_eglGetPlatformDisplayEXT) (EGLenum, void*, const EGLAttrib*) = (lookup ("eglGetProcAddress", reinterpret_cast <uintptr_t&> (_eglGetProcAddress)) != true ? nullptr : reinterpret_cast <EGLDisplay (*) (EGLenum, void*, const EGLAttrib*)> ( _eglGetProcAddress("eglGetPlatformDisplayEXT") ) );
 
-//    static thread_local bool resolved = false;
-/**/    static bool resolved = false;
-
-    if (resolved != true) {
-        // Deliberatly another funtion because extentions are resolved internally
-        void* (*_eglGetProcAddress) (const char*) = nullptr;
-
-        if (lookup ("eglGetProcAddress", reinterpret_cast <uintptr_t&> (_eglGetProcAddress)) != false) {
-            _eglGetPlatformDisplayEXT = reinterpret_cast <EGLDisplay (*) (EGLenum, void*, const EGLAttrib*)> ( _eglGetProcAddress("eglGetPlatformDisplayEXT") );
-        }
-
-        resolved = _eglGetPlatformDisplayEXT != nullptr;
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = _eglGetPlatformDisplayEXT != nullptr;
 
     EGLDisplay ret = EGL_NO_DISPLAY;
 
@@ -1047,10 +985,10 @@ EGLDisplay eglGetPlatformDisplayEXT (EGLenum platform, void* native_display, con
 
         ret = _eglGetPlatformDisplayEXT (platform, native_display, attrib_list);
 
-        if (ret != EGL_NO_DISPLAY && platform == EGL_PLATFORM_GBM_KHR) {
-//TODO: Extra validation Platform::isGBMDevice
+//        static_assert (std::is_pointer <EGLNativeDisplayType>::value != false);
+        if (ret != EGL_NO_DISPLAY && platform == EGL_PLATFORM_GBM_KHR && Platform::Instance ().isGBMdevice (reinterpret_cast <EGLNativeDisplayType> (native_display)) != false) {
 
-            LOG (_2CSTR ("Detected GBM platform, hence, native_display is a struct gbm_device*"));
+            LOG (_2CSTR ("Detected GBM platform, hence, native_display is of gbm_device_t"));
 
             if (Platform::Instance ().Add (ret, reinterpret_cast <EGLNativeDisplayType> (native_display)) != false) {
                 // Hand over the result
@@ -1070,26 +1008,11 @@ EGLDisplay eglGetPlatformDisplayEXT (EGLenum platform, void* native_display, con
 }
 
 EGLSurface eglCreatePlatformWindowSurfaceEXT (EGLDisplay dpy, EGLConfig config, void* native_window, const EGLAttrib* attrib_list) {
-/**/    Platform::Instance ().Lock ();
+    static void* (*_eglGetProcAddress) (const char*) = nullptr;
 
-//    static thread_local EGLSurface (*_eglCreatePlatformWindowSurfaceEXT) (EGLDisplay, EGLConfig, void*, const EGLAttrib*) = nullptr;
-/**/    static EGLSurface (*_eglCreatePlatformWindowSurfaceEXT) (EGLDisplay, EGLConfig, void*, const EGLAttrib*) = nullptr;
+    static EGLSurface (*_eglCreatePlatformWindowSurfaceEXT) (EGLDisplay, EGLConfig, void*, const EGLAttrib*) = (lookup ("eglGetProcAddress", reinterpret_cast <uintptr_t&> (_eglGetProcAddress)) != true ? nullptr : reinterpret_cast <EGLSurface (*) (EGLDisplay, EGLConfig, void*, const EGLAttrib*)> ( _eglGetProcAddress("eglCreatePlatformWindowSurfaceEXT") ));
 
-//    static thread_local bool resolved = false;
-/**/    static bool resolved = false;
-
-    if (resolved != true) {
-        // Deliberatly another funtion because extentions are resolved internally
-        void* (*_eglGetProcAddress) (const char*) = nullptr;
-
-        if (lookup ("eglGetProcAddress", reinterpret_cast <uintptr_t&> (_eglGetProcAddress)) != false) {
-            _eglCreatePlatformWindowSurfaceEXT = reinterpret_cast <EGLSurface (*) (EGLDisplay, EGLConfig, void*, const EGLAttrib*)> ( _eglGetProcAddress("eglCreatePlatformWindowSurfaceEXT") );
-        }
-
-        resolved = _eglCreatePlatformWindowSurfaceEXT != nullptr;
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = _eglCreatePlatformWindowSurfaceEXT != nullptr;
 
     EGLSurface ret = EGL_NO_SURFACE;
 
@@ -1098,6 +1021,7 @@ EGLSurface eglCreatePlatformWindowSurfaceEXT (EGLDisplay dpy, EGLConfig config, 
 
         ret = _eglCreatePlatformWindowSurfaceEXT (dpy, config, native_window, attrib_list);
 
+//        static_assert (std::is_pointer <EGLNativeWindowType>::value != false);
         if (ret != EGL_NO_SURFACE && Platform::Instance ().isGBMsurface ( reinterpret_cast <EGLNativeWindowType> (native_window) ) != false) {
             if (Platform::Instance ().Add (ret, reinterpret_cast <EGLNativeWindowType> (native_window)) != false) {
                 // Hand over the result
@@ -1119,19 +1043,9 @@ EGLSurface eglCreatePlatformWindowSurfaceEXT (EGLDisplay dpy, EGLConfig config, 
 // EGL 1.4 support
 
 EGLDisplay eglGetDisplay (EGLNativeDisplayType display_id) {
-/**/    Platform::Instance ().Lock ();
+    static EGLDisplay (*_eglGetDisplay) (EGLNativeDisplayType) = nullptr;
 
-//    static thread_local EGLDisplay (*_eglGetDisplay) (EGLNativeDisplayType) = nullptr;
-/**/    static EGLDisplay (*_eglGetDisplay) (EGLNativeDisplayType) = nullptr;
-
-//    static thread_local bool resolved = false;
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglGetDisplay", reinterpret_cast <uintptr_t&> (_eglGetDisplay));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglGetDisplay", reinterpret_cast <uintptr_t&> (_eglGetDisplay));
 
     EGLDisplay ret = EGL_NO_DISPLAY;
 
@@ -1191,19 +1105,9 @@ EGLDisplay eglGetDisplay (EGLNativeDisplayType display_id) {
 }
 
 EGLBoolean eglTerminate (EGLDisplay dpy) {
-/**/    Platform::Instance ().Lock ();
+    static EGLBoolean (*_eglTerminate) (EGLDisplay) = nullptr;
 
-//    static thread_local EGLBoolean (*_eglTerminate) (EGLDisplay) = nullptr;
-/**/    static EGLBoolean (*_eglTerminate) (EGLDisplay) = nullptr;
-
-//    static thread_local bool resolved = false;
-/**/    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglTerminate", reinterpret_cast <uintptr_t&> (_eglTerminate));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglTerminate", reinterpret_cast <uintptr_t&> (_eglTerminate));
 
     EGLBoolean ret = EGL_FALSE;
 
@@ -1228,23 +1132,12 @@ EGLBoolean eglTerminate (EGLDisplay dpy) {
     }
 
     return ret;
-
 }
 
 EGLBoolean eglChooseConfig (EGLDisplay dpy, const EGLint* attrib_list, EGLConfig* configs, EGLint config_size, EGLint* num_config) {
-/**/    Platform::Instance ().Lock ();
+    static EGLBoolean (*_eglChooseConfig) (EGLDisplay, const EGLint*, EGLConfig*, EGLint, EGLint*) = nullptr;
 
-//    static thread_local EGLBoolean (*_eglChooseConfig) (EGLDisplay, const EGLint*, EGLConfig*, EGLint, EGLint*) = nullptr;
-/**/    static EGLBoolean (*_eglChooseConfig) (EGLDisplay, const EGLint*, EGLConfig*, EGLint, EGLint*) = nullptr;
-
-//    static thread_local bool resolved = false;
-/**/    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglChooseConfig", reinterpret_cast <uintptr_t&> (_eglChooseConfig));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglChooseConfig", reinterpret_cast <uintptr_t&> (_eglChooseConfig));
 
     EGLBoolean ret = EGL_FALSE;
 
@@ -1308,19 +1201,9 @@ EGLBoolean eglChooseConfig (EGLDisplay dpy, const EGLint* attrib_list, EGLConfig
 }
 
 EGLSurface eglCreateWindowSurface (EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint* attrib_list) {
-/**/    Platform::Instance ().Lock ();
+    static EGLSurface (*_eglCreateWindowSurface) (EGLDisplay, EGLConfig, EGLNativeWindowType, const EGLint*) = nullptr;
 
-//    static thread_local EGLSurface (*_eglCreateWindowSurface) (EGLDisplay, EGLConfig, EGLNativeWindowType, const EGLint*) = nullptr;
-/**/    static EGLSurface (*_eglCreateWindowSurface) (EGLDisplay, EGLConfig, EGLNativeWindowType, const EGLint*) = nullptr;
-
-//    static thread_local bool resolved = false;
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglCreateWindowSurface", reinterpret_cast <uintptr_t&> (_eglCreateWindowSurface));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglCreateWindowSurface", reinterpret_cast <uintptr_t&> (_eglCreateWindowSurface));
 
     EGLSurface ret = EGL_NO_SURFACE;
 
@@ -1375,23 +1258,13 @@ EGLSurface eglCreateWindowSurface (EGLDisplay dpy, EGLConfig config, EGLNativeWi
 }
 
 EGLBoolean eglDestroySurface (EGLDisplay dpy, EGLSurface surface) {
-/**/    Platform::Instance ().Lock ();
+    static EGLBoolean (*_eglDestroySurface) (EGLDisplay, EGLSurface) = nullptr;
 
-//    static thread_local EGLBoolean (*_eglDestroySurface) (EGLDisplay, EGLSurface) = nullptr;
-/**/    static EGLBoolean (*_eglDestroySurface) (EGLDisplay, EGLSurface) = nullptr;
-
-//    static thread_local bool resolved = false;
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglDestroySurface", reinterpret_cast <uintptr_t&> (_eglDestroySurface));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglDestroySurface", reinterpret_cast <uintptr_t&> (_eglDestroySurface));
 
     EGLBoolean ret = EGL_FALSE;
 
-    if (_eglDestroySurface != nullptr) {
+    if (resolved != false) {
         LOG (_2CSTR ("Calling Real eglDestroySurface"));
 
         ret = _eglDestroySurface(dpy, surface);
@@ -1411,19 +1284,9 @@ EGLBoolean eglDestroySurface (EGLDisplay dpy, EGLSurface surface) {
 }
 
 EGLBoolean eglSwapBuffers (EGLDisplay dpy, EGLSurface surface) {
-/**/    Platform::Instance ().Lock ();
+    static EGLBoolean (*_eglSwapBuffers) (EGLDisplay, EGLSurface) = nullptr;
 
-//    static thread_local EGLBoolean (*_eglSwapBuffers) (EGLDisplay, EGLSurface) = nullptr;
-/**/    static EGLBoolean (*_eglSwapBuffers) (EGLDisplay, EGLSurface) = nullptr;
-
-//    static thread_local bool resolved = false;
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglSwapBuffers", reinterpret_cast <uintptr_t&> (_eglSwapBuffers));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglSwapBuffers", reinterpret_cast <uintptr_t&> (_eglSwapBuffers));
 
     EGLBoolean ret = EGL_FALSE;
 
@@ -1496,19 +1359,9 @@ EGLBoolean eglSwapBuffers (EGLDisplay dpy, EGLSurface surface) {
 
 #ifdef _MESADEBUG
 EGLContext eglCreateContext (EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint* attrib_list) {
-/**/    Platform::Instance ().Lock ();
+    static EGLContext (*_eglCreateContext) (EGLDisplay, EGLConfig, EGLContext, const EGLint*) = nullptr;
 
-//    static thread_local EGLContext (*_eglCreateContext) (EGLDisplay, EGLConfig, EGLContext, const EGLint*) = nullptr;
-/**/    static EGLContext (*_eglCreateContext) (EGLDisplay, EGLConfig, EGLContext, const EGLint*) = nullptr;
-
-//    static thread_local bool resolved = false;
-/**/    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglCreateContext", reinterpret_cast <uintptr_t&> (_eglCreateContext));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglCreateContext", reinterpret_cast <uintptr_t&> (_eglCreateContext));
 
     EGLContext ret = EGL_NO_CONTEXT;
 
@@ -1570,19 +1423,9 @@ EGLContext eglCreateContext (EGLDisplay dpy, EGLConfig config, EGLContext share_
 }
 
 EGLBoolean eglDestroyContext (EGLDisplay dpy, EGLContext ctx) {
-/**/    Platform::Instance ().Lock ();
+    static EGLBoolean (*_eglDestroyContext) (EGLDisplay, EGLContext) = nullptr;
 
-//    static thread_local EGLBoolean (*_eglDestroyContext) (EGLDisplay, EGLContext) = nullptr;
-/**/    static EGLBoolean (*_eglDestroyContext) (EGLDisplay, EGLContext) = nullptr;
-
-//    static thread_local bool resolved = false;
-/**/    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglDestroyContext", reinterpret_cast <uintptr_t&> (_eglDestroyContext));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglDestroyContext", reinterpret_cast <uintptr_t&> (_eglDestroyContext));
 
     EGLBoolean ret = EGL_FALSE;
 
@@ -1604,19 +1447,9 @@ EGLBoolean eglDestroyContext (EGLDisplay dpy, EGLContext ctx) {
 }
 
 EGLSurface eglCreatePbufferSurface (EGLDisplay dpy, EGLConfig config, const EGLint* attrib_list) {
-/**/    Platform::Instance ().Lock ();
+    static EGLSurface (*_eglCreatePbufferSurface) (EGLDisplay, EGLConfig, const EGLint*) = nullptr;
 
-//    static thread_local EGLSurface (*_eglCreatePbufferSurface) (EGLDisplay, EGLConfig, const EGLint*) = nullptr;
-/**/    static EGLSurface (*_eglCreatePbufferSurface) (EGLDisplay, EGLConfig, const EGLint*) = nullptr;
-
-//    static thread_local bool resolved = false;
-/**/    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglCreatePbufferSurface", reinterpret_cast <uintptr_t&> (_eglCreatePbufferSurface));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglCreatePbufferSurface", reinterpret_cast <uintptr_t&> (_eglCreatePbufferSurface));
 
     EGLSurface ret = EGL_NO_SURFACE;
 
@@ -1634,19 +1467,9 @@ EGLSurface eglCreatePbufferSurface (EGLDisplay dpy, EGLConfig config, const EGLi
 }
 
 EGLBoolean eglMakeCurrent (EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx) {
-/**/    Platform::Instance ().Lock ();
+    static EGLBoolean (*_eglMakeCurrent) (EGLDisplay, EGLSurface, EGLSurface, EGLContext) = nullptr;
 
-//    static thread_local EGLBoolean (*_eglMakeCurrent) (EGLDisplay, EGLSurface, EGLSurface, EGLContext) = nullptr;
-/**/    static EGLBoolean (*_eglMakeCurrent) (EGLDisplay, EGLSurface, EGLSurface, EGLContext) = nullptr;
-
-//    static thread_local bool resolved = false;
-/**/    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglMakeCurrent", reinterpret_cast <uintptr_t&> (_eglMakeCurrent));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglMakeCurrent", reinterpret_cast <uintptr_t&> (_eglMakeCurrent));
 
     EGLBoolean ret = EGL_FALSE;
 
@@ -1667,19 +1490,9 @@ EGLBoolean eglMakeCurrent (EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGL
 // EGL 1.5 support
 
 EGLDisplay eglGetPlatformDisplay (EGLenum platform, void* native_display, const EGLAttrib* attrib_list) {
-/**/    Platform::Instance ().Lock ();
+    static EGLDisplay (*_eglGetPlatformDisplay) (EGLenum, void*, const EGLAttrib*) = nullptr;
 
-//    static thread_local EGLDisplay (*_eglGetPlatformDisplay) (EGLenum, void*, const EGLAttrib*) = nullptr;
-/**/    static EGLDisplay (*_eglGetPlatformDisplay) (EGLenum, void*, const EGLAttrib*) = nullptr;
-
-//    static thread_local bool resolved = false;
-/**/    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglGetPlatformDisplay", reinterpret_cast <uintptr_t&> (_eglGetPlatformDisplay));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglGetPlatformDisplay", reinterpret_cast <uintptr_t&> (_eglGetPlatformDisplay));
 
     EGLDisplay ret = EGL_NO_DISPLAY;
 
@@ -1694,8 +1507,9 @@ EGLDisplay eglGetPlatformDisplay (EGLenum platform, void* native_display, const 
         if (ret != EGL_NO_SURFACE && platform == EGL_PLATFORM_GBM_KHR) {
 
             // Create a mapping; the caller is responsible for being truthful
-            LOG (_2CSTR ("Detected GBM platform, hence, native_display is a struct gbm_device*"));
+            LOG (_2CSTR ("Detected GBM platform, hence, native_display is of gbm_device_t"));
 
+//            static_assert (std::is_pointer <EGLNativeDisplayType>::value != false);
             if (Platform:: Instance ().Add (ret, reinterpret_cast <EGLNativeDisplayType> (native_display)) != false) {
                 // Hand over the result
             }
@@ -1716,19 +1530,9 @@ EGLDisplay eglGetPlatformDisplay (EGLenum platform, void* native_display, const 
 }
 
 EGLSurface eglCreatePlatformWindowSurface (EGLDisplay dpy, EGLConfig config, void* native_window, const EGLAttrib* attrib_list) {
-/**/    Platform::Instance ().Lock ();
+    static EGLSurface (*_eglCreatePlatformWindowSurface) (EGLDisplay, EGLConfig, void*, const EGLAttrib*) = nullptr;
 
-//    static thread_local EGLSurface (*_eglCreatePlatformWindowSurface) (EGLDisplay, EGLConfig, void*, const EGLAttrib*) = nullptr;
-/**/    static EGLSurface (*_eglCreatePlatformWindowSurface) (EGLDisplay, EGLConfig, void*, const EGLAttrib*) = nullptr;
-
-//    static thread_local bool resolved = false;
-/**/    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("eglCreatePlatformCreateWindowSurface", reinterpret_cast <uintptr_t&> (_eglCreatePlatformWindowSurface));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("eglCreatePlatformCreateWindowSurface", reinterpret_cast <uintptr_t&> (_eglCreatePlatformWindowSurface));
 
     EGLSurface ret = EGL_NO_SURFACE;
 
@@ -1740,8 +1544,9 @@ EGLSurface eglCreatePlatformWindowSurface (EGLDisplay dpy, EGLConfig config, voi
 
         if (ret != EGL_NO_SURFACE && Platform::Instance ().isGBMsurface ( reinterpret_cast <EGLNativeWindowType> (native_window) ) != false) {
 
-            LOG (_2CSTR ("Detected GBM platform, hence, native_window is a struct gbm_surface*"));
+            LOG (_2CSTR ("Detected GBM platform, hence, native_window is of gbm_surface_t"));
 
+//            static_assert (std::is_pointer <EGLNativeWindowType>::value != false);
             if (Platform::Instance ().Add (ret, reinterpret_cast <EGLNativeWindowType> (native_window)) != false) {
                 // Hand over the result
             }

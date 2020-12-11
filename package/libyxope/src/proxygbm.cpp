@@ -22,16 +22,24 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-First attempt. Possibly wrong and / or incomplete, and may contain 'bad' code and / or coding practice.
 */
+
+// https://gcc.gnu.org/projects/cxx-status.html
+// https://en.cppreference.com/w/cpp/feature_test
+#if __cplusplus >= 200806L || defined (__cpp_threadsafe_static_init)
+#warning "Thread safe static initialization is supported"
+#else
+#error "Thread safe static initialization is NOT supported but is required."
+#endif
 
 #include "common.h"
 
 #include <string>
 
 // A little less code bloat
+#ifndef _2CSTR
 #define _2CSTR(str) std::string (str).c_str ()
+#endif
 
 #define PROXYGBM_PRIVATE COMMON_PRIVATE
 #define PROXYGBM_PUBLIC COMMON_PUBLIC
@@ -40,6 +48,7 @@ First attempt. Possibly wrong and / or incomplete, and may contain 'bad' code an
 
 #include <unordered_map>
 #include <unordered_set>
+#include <functional>
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,6 +78,24 @@ PROXYGBM_PUBLIC struct gbm_device* gbm_create_device (int fd);
 }
 #endif
 
+namespace std {
+
+// Hash specialization that works with constant pointers
+template <typename T>
+struct hash <T* const> {
+    size_t operator () (const T* const & obj) const {
+        size_t _ret = 0;
+
+        std::hash <const T*> hashfnc;
+
+        _ret = hashfnc (obj);
+
+        return _ret;
+    }
+};
+
+}
+
 namespace {
 // Suppress compiler preprocessor 'visibiity ignored' in anonymous namespace
 #define _PROXYGBM_PRIVATE /*PROXYGBM_PRIVATE*/
@@ -76,42 +103,53 @@ namespace {
 #define _PROXYGBM_UNUSED PROXYGBM_UNUSED
 
 class Platform : public Singleton <Platform> {
-    // This (These) friend(s) has (have) access to all memebers!
+    using sync_t = MutexRecursive;
 
+    using gbm_bo_t      = struct gbm_bo*;
+    using gbm_surface_t = struct gbm_surface*;
+    using gbm_device_t  = struct gbm_device*;
+
+    // This (These) friend(s) has (have) access to all members!
     friend Singleton <Platform>;
 
     public :
+        // The hash can be specificied explicitly but it is not required as it is part of 'std' namespace
+        using map_buf_t = std::unordered_map <gbm_bo_t const, uint32_t>;
 
-        _PROXYGBM_PRIVATE bool Add (const gbm_surface* surface, const struct gbm_bo* bo);
-        _PROXYGBM_PRIVATE bool Remove (const gbm_surface* surface, const struct gbm_bo* bo = nullptr);
+        _PROXYGBM_PRIVATE bool Add (gbm_surface_t const & surface, gbm_bo_t const & bo);
+        // The second parameter does not have to exist or explicitly provided
+        _PROXYGBM_PRIVATE bool Remove (gbm_surface_t const & surface, gbm_bo_t const bo = nullptr);
 
-        _PROXYGBM_PRIVATE bool Add (const gbm_device* device, const struct gbm_surface* surface);
-        _PROXYGBM_PRIVATE bool Remove (const gbm_device* device, const struct gbm_surface* surface = nullptr);
+        _PROXYGBM_PRIVATE bool Add (gbm_device_t const & device, gbm_surface_t const & surface);
+        // The second parameter does not have to exist or explicitly provided
+        _PROXYGBM_PRIVATE bool Remove (gbm_device_t const & device, gbm_surface_t const surface = nullptr);
 
-        // All tracked buffers
-        _PROXYGBM_PRIVATE const std::unordered_map <const struct gbm_bo*, uint32_t> Buffers (const struct gbm_surface* surface) const;
+        // 'Educated' guess of the (next0 buffer
+        gbm_bo_t PredictedBuffer (gbm_surface_t const & surface) const;
 
-        struct gbm_bo* PredictedBuffer (std::unordered_map <const struct gbm_bo*, uint32_t> buffers) const;
+        _PROXYGBM_PRIVATE bool Exist (gbm_device_t const & device) const;
+        _PROXYGBM_PRIVATE bool Exist (gbm_surface_t const & surface) const;
 
-        _PROXYGBM_PRIVATE bool Exist (const struct gbm_device*) const;
-        _PROXYGBM_PRIVATE bool Exist (const struct gbm_surface*) const;
-
-        _PROXYGBM_PRIVATE void Lock (void) const;
-        _PROXYGBM_PRIVATE void Unlock (void) const;
+        _PROXYGBM_PRIVATE static constexpr sync_t& SyncObject () {
+            return _syncobject;
+        }
 
     protected :
 
-        //  Nothing
+    //  Nothing
 
     private :
 
-        pthread_once_t _mutex_initialized;
-        mutable pthread_mutex_t _mutex;
+        _PROXYGBM_PRIVATE static sync_t _syncobject;
 
-        std::unordered_map < const struct gbm_surface*, std::unordered_map <const struct gbm_bo*, uint32_t> > _map_surf;
-        std::unordered_map < const struct gbm_device*, std::unordered_set <const struct gbm_surface*> > _map_dev;
+        // The hash can be specificied explicitly but it is not required as it is part of 'std' namespace
+        using map_surf_t = std::unordered_map <gbm_surface_t const, map_buf_t>;
+        // The const is not allowed for the second element in unordered_map
+        using set_surf_t = std::unordered_set <gbm_surface_t /*const*/>;
+        using map_dev_t  = std::unordered_map <gbm_device_t const, set_surf_t>;
 
-        // Previous frame
+        map_surf_t _map_surf;
+        map_dev_t _map_dev;
 
         Platform () {
             /*void*/ _map_surf.clear ();
@@ -128,8 +166,6 @@ class Platform : public Singleton <Platform> {
             return static_cast <uint16_t> (value & static_cast <uint32_t> (CountBitmask ()));
         }
 
-        // Implementation possibly have no more than SequenceMaxValue internal buffers for use with 'lock' and 'release'
-        // Per surface!
 
         _PROXYGBM_PRIVATE static constexpr uint16_t SequenceInitialValue (void) {
             return 0;
@@ -147,78 +183,41 @@ class Platform : public Singleton <Platform> {
             return 4;
         }
 
-        // Extract part of the struct gbm_bo* paired value, here reference count
+        // Extract part of the gbm_bo_t paired value, here reference count
         _PROXYGBM_PRIVATE static constexpr uint16_t CountBitmask () {
             return 0x00FF;
         }
 
-        // Extract part of the struct gbm_bo* paired value, here sequence number
+        // Extract part of the gbm_bo_t paired value, here sequence number
         _PROXYGBM_PRIVATE static constexpr uint16_t SequenceBitmask () {
             return 0xFF00;
         }
 
-        _PROXYGBM_PRIVATE uint32_t Convert (uint16_t count, uint16_t sequence) {
+        _PROXYGBM_PRIVATE uint32_t Convert (uint16_t count, uint16_t sequence) const {
             return count + (sequence << 16);
         }
 
-        _PROXYGBM_PRIVATE bool Age (std::unordered_map <const struct gbm_bo*, uint32_t>& buffers);
-        _PROXYGBM_PRIVATE bool Rejuvenate (std::unordered_map <const struct gbm_bo*, uint32_t>& buffers);
+        _PROXYGBM_PRIVATE bool Age (map_buf_t& buffers) const;
+        _PROXYGBM_PRIVATE bool Rejuvenate (map_buf_t& buffers) const;
 
 // TODO: probably misused at places
         _PROXYGBM_PRIVATE static constexpr uint32_t NonEmptySizeInitialValue (void) {
             return 1;
         }
 
-       _PROXYGBM_PRIVATE bool InitLock (void);
+        _PROXYGBM_PRIVATE gbm_bo_t PredictedBuffer (map_buf_t const & buffers) const;
+        _PROXYGBM_PRIVATE map_buf_t const & Buffers (gbm_surface_t const & surface) const;
 };
 
-void Platform::Lock (void) const {
-    if (Instance ().InitLock () != false && pthread_mutex_lock (&_mutex) != 0) {
-        // Error
-        assert (false);
-    }
-}
+/*_PROXYGBM_PRIVATE*/ Platform::sync_t Platform::_syncobject;
 
-void Platform::Unlock (void) const {
-    if (Platform::Instance ().InitLock () != false && pthread_mutex_unlock (&_mutex) !=0) {
-        // Error
-        assert (false);
-    }
-}
+Platform::map_buf_t const & Platform::Buffers (gbm_surface_t const & surface) const {
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-bool Platform::InitLock (void) {
-    // Non-capturing positive lambda's can be cast to regular function pointers with the same signature
-    // Strictly speaking c++ linkage and not C linkage
-    auto init_once = +[] ()/* -> void*/ {
-        pthread_mutexattr_t _attr;
+    // Empty well-defined placeholder
+    static map_buf_t _map;
 
-        // Set the defaults used by the implementation
-        if (pthread_mutexattr_init (&_attr) != 0 || \
-            pthread_mutexattr_settype (&_attr, PTHREAD_MUTEX_RECURSIVE/*PTHREAD_MUTEX_ERRORCHECK*/) != 0 || \
-            pthread_mutex_init (&Platform::Instance ()._mutex, &_attr) ) {
-
-            // Error
-            assert (false);
-        }
-    };
-
-    bool ret = false;
-
-    if (pthread_once (&_mutex_initialized, init_once) != 0) {
-        LOG (_2CSTR ("Unable to initialize required mutex"));
-        assert (false);
-    }
-    else {
-        ret = true;
-    }
-
-    return ret;
-}
-
-const std::unordered_map <const struct gbm_bo*, uint32_t> Platform::Buffers (const struct gbm_surface* surface) const {
-    Lock ();
-
-    std::unordered_map <const struct gbm_bo*, uint32_t> result;
+    map_buf_t& result = _map;
 
     if (surface != nullptr) {
         auto _it = _map_surf.find (surface);
@@ -228,15 +227,29 @@ const std::unordered_map <const struct gbm_bo*, uint32_t> Platform::Buffers (con
         }
     }
 
-    Unlock ();
-
     return result;
 }
 
-struct gbm_bo* Platform::PredictedBuffer (std::unordered_map <const struct gbm_bo*, uint32_t> buffers) const {
-    Lock ();
+Platform::gbm_bo_t Platform::PredictedBuffer (gbm_surface_t const & surface) const {
+    struct gbm_bo* bo = nullptr;
 
-    struct gbm_bo* ret = nullptr;
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
+
+    auto _buffers = Platform::Instance ().Buffers (surface);
+
+    if (_buffers.empty () != true) {
+        // Decision time, without any (prior) knowledge select one of the recorded bo's
+        bo = PredictedBuffer (_buffers);
+    }
+    else {
+        // No recorded bo's, and failure, hand over the result
+    }
+
+    return bo;
+}
+
+Platform::gbm_bo_t Platform::PredictedBuffer (map_buf_t const & buffers) const {
+    gbm_bo_t ret = nullptr;
 
     decltype (CountInitialValue ()) _count = CountInitialValue ();
     decltype (SequenceInitialValue ()) _sequence = SequenceInitialValue ();
@@ -249,18 +262,16 @@ struct gbm_bo* Platform::PredictedBuffer (std::unordered_map <const struct gbm_b
         if (Sequence (_it->second) >= _sequence) {
             if (Count (_it->second) <= _count) {
                 _count = Count (_it->second);
-                ret = const_cast <struct gbm_bo*> (_it->first);
+                ret = _it->first;
                 _sequence = Sequence (_it->second);
             }
         }
     }
 
-    Unlock ();
-
     return ret;
 }
 
-bool Platform::Age (std::unordered_map <const struct gbm_bo*, uint32_t>& buffers) {
+bool Platform::Age (map_buf_t& buffers) const {
     bool ret = buffers.size () >= NonEmptySizeInitialValue ();
 
     for (auto _it_buf = buffers.begin (), _end = buffers.end (); _it_buf != _end; _it_buf++) {
@@ -269,7 +280,7 @@ bool Platform::Age (std::unordered_map <const struct gbm_bo*, uint32_t>& buffers
 
         assert (_sequence < SequenceMaxValue ());
 
-        _sequence++;
+        ++_sequence;
 
         _it_buf->second = Convert (_count, _sequence);
     }
@@ -277,7 +288,7 @@ bool Platform::Age (std::unordered_map <const struct gbm_bo*, uint32_t>& buffers
     return ret;
 }
 
-bool Platform::Rejuvenate (std::unordered_map <const struct gbm_bo*, uint32_t>& buffers) {
+bool Platform::Rejuvenate (map_buf_t& buffers) const {
     bool ret = buffers.size () >= NonEmptySizeInitialValue ();
 
     for (auto _it_buf = buffers.begin (), _end = buffers.end (); _it_buf != _end; _it_buf++) {
@@ -294,12 +305,12 @@ bool Platform::Rejuvenate (std::unordered_map <const struct gbm_bo*, uint32_t>& 
     return ret;
 }
 
-bool Platform::Add (const struct gbm_surface* surface, const struct gbm_bo* bo) {
-    Lock ();
+bool Platform::Add (gbm_surface_t const & surface, gbm_bo_t const & bo) {
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
     auto _it_surf = _map_surf.find (surface);
 
-    std::unordered_map <const struct gbm_bo*, uint32_t> _buffers;
+    map_buf_t _buffers;
 
     if (_it_surf != _map_surf.end ()) {
         // Surface buffers entry exists
@@ -309,7 +320,7 @@ bool Platform::Add (const struct gbm_surface* surface, const struct gbm_bo* bo) 
     else {
         // No known surface
         if (surface != nullptr) {
-            auto __it_surf = _map_surf.insert (std::pair < const struct gbm_surface*, std::unordered_map <const struct gbm_bo*, uint32_t> > (surface, _buffers));
+            auto __it_surf = _map_surf.insert (std::pair < gbm_surface_t const, map_buf_t > (surface, _buffers));
 
             // The iterator may have become singular
 
@@ -343,7 +354,7 @@ bool Platform::Add (const struct gbm_surface* surface, const struct gbm_bo* bo) 
         //  bo does not exist or bo equals nullptr
 
         if (bo != nullptr) {
-            auto __it_buf = _buffers.insert (std::pair <const struct gbm_bo*, uint32_t> (bo, Convert (CountInitialValue (), SequenceInitialValue ())));
+            auto __it_buf = _buffers.insert (std::pair < gbm_bo_t const, uint32_t> (bo, Convert (CountInitialValue (), SequenceInitialValue ())));
 
             // The iterator may have become singular
 
@@ -379,19 +390,17 @@ bool Platform::Add (const struct gbm_surface* surface, const struct gbm_bo* bo) 
         assert (false);
     }
 
-    Unlock ();
-
     return ret;
 }
 
-bool Platform::Remove (const struct gbm_surface* surface, const struct gbm_bo* bo) {
-    Lock ();
+bool Platform::Remove (gbm_surface_t const & surface, gbm_bo_t bo) {
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
     bool ret = false;
 
     auto _it_surf = _map_surf.find (surface);
 
-    std::unordered_map <const struct gbm_bo*, uint32_t> _buffers;
+    map_buf_t _buffers;
 
     if (_it_surf != _map_surf.end ()) {
         // Surface buffers entry exists
@@ -446,7 +455,7 @@ bool Platform::Remove (const struct gbm_surface* surface, const struct gbm_bo* b
 
                         assert (_count > CountInitialValue ());
 
-                        _count--;
+                        --_count;
 
                         _it_buf->second = Convert (_count, _sequence);
 
@@ -488,17 +497,15 @@ bool Platform::Remove (const struct gbm_surface* surface, const struct gbm_bo* b
         assert (ret != false);
     }
 
-    Unlock ();
-
     return ret;
 }
 
-bool Platform::Add (const gbm_device* device, const struct gbm_surface* surface) {
-    Lock ();
+bool Platform::Add (gbm_device_t const & device, gbm_surface_t const & surface) {
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
     auto _it_dev = _map_dev.find (device);
 
-    std::unordered_set <const struct gbm_surface*> _surfaces;
+    set_surf_t _surfaces;
 
     if (_it_dev != _map_dev.end ()) {
         // Device surfaces entry exist
@@ -508,7 +515,7 @@ bool Platform::Add (const gbm_device* device, const struct gbm_surface* surface)
     else {
         // No known device
         if (device != nullptr) {
-            auto __it_dev = _map_dev.insert (std::pair < const struct gbm_device*, std::unordered_set <const struct gbm_surface*> > (device, _surfaces));
+            auto __it_dev = _map_dev.insert (std::pair < gbm_device_t const, set_surf_t> (device, _surfaces));
 
             // The iterator may have become singular
 
@@ -581,19 +588,17 @@ bool Platform::Add (const gbm_device* device, const struct gbm_surface* surface)
         assert (false);
     }
 
-    Unlock ();
-
     return ret;
 }
 
-bool Platform::Remove (const gbm_device* device, const struct gbm_surface* surface) {
-    Lock ();
+bool Platform::Remove (gbm_device_t const & device, gbm_surface_t surface) {
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
     bool ret = false;
 
     auto _it_dev = _map_dev.find (device);
 
-    std::unordered_set <const struct gbm_surface*> _surfaces;
+    set_surf_t _surfaces;
 
     if (_it_dev != _map_dev.end ()) {
         // Device surfaces entry exist
@@ -673,15 +678,13 @@ bool Platform::Remove (const gbm_device* device, const struct gbm_surface* surfa
         assert (ret);
     }
 
-    Unlock ();
-
     return ret;
 }
 
-bool Platform::Exist (const struct gbm_surface* surface) const {
-    bool ret = false;
+bool Platform::Exist (gbm_surface_t const & surface) const {
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    Lock ();
+    bool ret = false;
 
     if (surface != nullptr) {
         const auto _it_surf = _map_surf.find (surface);
@@ -694,15 +697,13 @@ bool Platform::Exist (const struct gbm_surface* surface) const {
         assert (false);
     }
 
-    Unlock ();
-
     return ret;
 }
 
-bool Platform::Exist (const struct gbm_device* device) const {
-    bool ret = false;
+bool Platform::Exist (gbm_device_t const & device) const {
+    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    Lock ();
+    bool ret = false;
 
     if (device != nullptr) {
         auto _it_dev = _map_dev.find (device);
@@ -715,8 +716,6 @@ bool Platform::Exist (const struct gbm_device* device) const {
         assert (false);
     }
 
-    Unlock ();
-
     return ret;
 }
 
@@ -726,24 +725,14 @@ bool Platform::Exist (const struct gbm_device* device) const {
 } // Anonymous namespace
 
 struct gbm_bo* gbm_surface_lock_front_buffer (struct gbm_surface* surface) {
-/**/    Platform::Instance ().Lock ();
+    static struct gbm_bo* (*_gbm_surface_lock_front_buffer) (struct gbm_surface*) = nullptr;
 
-//    static thread_local struct gbm_bo* (*_gbm_surface_lock_front_buffer) (struct gbm_surface*) = nullptr;
-/**/    static struct gbm_bo* (*_gbm_surface_lock_front_buffer) (struct gbm_surface*) = nullptr;
-
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("gbm_surface_lock_front_buffer", reinterpret_cast <uintptr_t&> (_gbm_surface_lock_front_buffer));
-    }
-
-/**/    Platform::Instance ().Unlock ();
-
-    Platform::Instance ().Lock ();
+    static bool resolved = lookup ("gbm_surface_lock_front_buffer", reinterpret_cast <uintptr_t&> (_gbm_surface_lock_front_buffer));
 
     struct gbm_bo* bo = nullptr;
 
     if (resolved != false) {
+        std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
 
         bool _flag = false;
 
@@ -764,23 +753,11 @@ struct gbm_bo* gbm_surface_lock_front_buffer (struct gbm_surface* surface) {
             // gbm_surface_lock_front_buffer (also) fails if eglSwapBuffers has not been called (yet)
 
             if (_flag != false) {
-                // Free buffers so assume a second successive call has just happened without a prior call to eglSwapBuffers
+                bo = Platform::Instance ().PredictedBuffer (surface);
 
-                auto _buffers = Platform::Instance ().Buffers (surface);
-
-                if (_buffers.empty () != true) {
-
-                    // Decision time, without any (prior) knowledge select one of the recorded bo's
-
-                    bo = Platform::Instance ().PredictedBuffer (_buffers);
-
-                    // Existing bo's can be updated by increasing the count
-                    if (Platform::Instance (). Add (surface, bo) != true) {
-                        LOG (_2CSTR ("Unable to update existing bo"));
-                    }
-                }
-                else {
-                    // No recorded bo's, and failure, hand over the result
+                // Existing bo's can be updated by increasing the count
+                if (Platform::Instance (). Add (surface, bo) != true) {
+                    LOG (_2CSTR ("Unable to update existing bo"));
                 }
             }
             else {
@@ -809,27 +786,16 @@ struct gbm_bo* gbm_surface_lock_front_buffer (struct gbm_surface* surface) {
         assert (false);
     }
 
-    Platform::Instance ().Unlock ();
-
     return bo;
 }
 
 void gbm_surface_release_buffer (struct gbm_surface* surface, struct gbm_bo* bo) {
-/**/    Platform::Instance () .Lock ();
+    static void (*_gbm_surface_release_buffer) (struct gbm_surface*, struct gbm_bo*) = nullptr;
 
-//    static thread_local void (*_gbm_surface_release_buffer) (struct gbm_surface*, struct gbm_bo*) = nullptr;
-/**/    static void (*_gbm_surface_release_buffer) (struct gbm_surface*, struct gbm_bo*) = nullptr;
-
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("gbm_surface_release_buffer", reinterpret_cast <uintptr_t&> (_gbm_surface_release_buffer));
-    }
-
-/**/     Platform::Instance () .Unlock ();
+    static bool resolved = lookup ("gbm_surface_release_buffer", reinterpret_cast <uintptr_t&> (_gbm_surface_release_buffer));
 
     if (resolved != false) {
-        Platform::Instance () .Lock ();
+        std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
 
         if (Platform::Instance (). Remove (surface, bo) != true) {
 #ifdef _NO_RESTART_APPLICATION
@@ -852,8 +818,6 @@ void gbm_surface_release_buffer (struct gbm_surface* surface, struct gbm_bo* bo)
             // Error
             assert (false);
         }
-
-        Platform::Instance ().Unlock ();
     }
     else {
         LOG (_2CSTR ("Real gbm_surface_release_buffer not found"));
@@ -862,25 +826,16 @@ void gbm_surface_release_buffer (struct gbm_surface* surface, struct gbm_bo* bo)
 }
 
 int gbm_surface_has_free_buffers(struct gbm_surface* surface) {
-/**/    Platform::Instance ().Lock ();
+    static int (*_gbm_surface_has_free_buffers) (struct gbm_surface*) = nullptr;
 
-//    static thread_local int (*_gbm_surface_has_free_buffers) (struct gbm_surface*) = nullptr;
-/**/    static int (*_gbm_surface_has_free_buffers) (struct gbm_surface*) = nullptr;
-
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("gbm_surface_has_free_buffers", reinterpret_cast <uintptr_t&> (_gbm_surface_has_free_buffers));
-    }
-
-/**/    Platform::Instance ().Unlock ();
-
-    Platform::Instance ().Lock ();
+    static bool resolved = lookup ("gbm_surface_has_free_buffers", reinterpret_cast <uintptr_t&> (_gbm_surface_has_free_buffers));
 
     // GBM uses only values 0 and 1; the latter indicates free buffers are available
     int ret = 0;
 
     if (resolved != false) {
+        std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
+
         LOG (_2CSTR ("Calling Real gbm_surface_has_buffers"));
 
         ret = _gbm_surface_has_free_buffers (surface);
@@ -890,30 +845,19 @@ int gbm_surface_has_free_buffers(struct gbm_surface* surface) {
         assert (false);
     }
 
-    Platform::Instance ().Unlock ();
-
     return ret;
 }
 
 struct gbm_surface* gbm_surface_create (struct gbm_device* gbm, uint32_t width, uint32_t height, uint32_t format, uint32_t flags) {
-/**/    Platform::Instance ().Lock ();
+    static struct gbm_surface* (*_gbm_surface_create) (struct gbm_device*, uint32_t, uint32_t, uint32_t, uint32_t) = nullptr;
 
-//    static thread_local struct gbm_surface* (*_gbm_surface_create) (struct gbm_device*, uint32_t, uint32_t, uint32_t, uint32_t) = nullptr;
-/**/    static struct gbm_surface* (*_gbm_surface_create) (struct gbm_device*, uint32_t, uint32_t, uint32_t, uint32_t) = nullptr;
-
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("gbm_surface_create", reinterpret_cast <uintptr_t&> (_gbm_surface_create));
-    }
-
-/**/    Platform::Instance ().Unlock ();
-
-    Platform::Instance ().Lock ();
+    static bool resolved = lookup ("gbm_surface_create", reinterpret_cast <uintptr_t&> (_gbm_surface_create));
 
     struct gbm_surface* ret = nullptr;
 
     if (resolved != false) {
+        std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
+
         LOG (_2CSTR ("Calling Real gbm_surface_create"));
 
         ret = _gbm_surface_create (gbm, width, height, format, flags);
@@ -939,31 +883,20 @@ struct gbm_surface* gbm_surface_create (struct gbm_device* gbm, uint32_t width, 
         assert (false);
     }
 
-    Platform::Instance ().Unlock ();
-
     return ret;
 }
 
 struct gbm_surface* gbm_surface_create_with_modifiers (struct gbm_device* gbm, uint32_t width, uint32_t height, uint32_t format, const uint64_t* modifiers, const unsigned int count) {
-/**/    Platform::Instance ().Lock ();
+    static struct gbm_surface* (*_gbm_surface_create_with_modifiers) (struct gbm_device*, uint32_t, uint32_t, uint32_t, const uint64_t*, const unsigned int) = nullptr;
 
-//    static thread_local struct gbm_surface* (*_gbm_surface_create_with_modifiers) (struct gbm_device*, uint32_t, uint32_t, uint32_t, const uint64_t*, const unsigned int) = nullptr;
-/**/    static struct gbm_surface* (*_gbm_surface_create_with_modifiers) (struct gbm_device*, uint32_t, uint32_t, uint32_t, const uint64_t*, const unsigned int) = nullptr;
-
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("gbm_surface_create_with_modifiers", reinterpret_cast <uintptr_t&> (_gbm_surface_create_with_modifiers));
-    }
-
-/**/    Platform::Instance ().Unlock ();
-
-    Platform::Instance ().Lock ();
+    static bool resolved = lookup ("gbm_surface_create_with_modifiers", reinterpret_cast <uintptr_t&> (_gbm_surface_create_with_modifiers));
 
     // GBM uses only values 0 and 1; the latter indicates free buffers are available
     struct gbm_surface* ret = nullptr;
 
     if (resolved != false) {
+        std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
+
         LOG (_2CSTR ("Calling Real gbm_surface_create_with_modifiers"));
 
         ret = _gbm_surface_create_with_modifiers (gbm, width, height, format, modifiers, count);
@@ -989,27 +922,16 @@ struct gbm_surface* gbm_surface_create_with_modifiers (struct gbm_device* gbm, u
         assert (false);
     }
 
-    Platform::Instance ().Unlock ();
-
     return ret;
 }
 
 void gbm_surface_destroy (struct gbm_surface* surface) {
-/**/    Platform::Instance ().Lock ();
+    static void (*_gbm_surface_destroy) (struct gbm_surface*) = nullptr;
 
-//    static thread_local void (*_gbm_surface_destroy) (struct gbm_surface*) = nullptr;
-/**/    static void (*_gbm_surface_destroy) (struct gbm_surface*) = nullptr;
-
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("gbm_surface_destroy", reinterpret_cast <uintptr_t&> (_gbm_surface_destroy));
-    }
-
-/**/    Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("gbm_surface_destroy", reinterpret_cast <uintptr_t&> (_gbm_surface_destroy));
 
     if (resolved != false) {
-        Platform::Instance ().Lock ();
+        std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
 
         // Remove all references
         if (Platform::Instance ().Remove (surface, nullptr) != false) {
@@ -1020,8 +942,6 @@ void gbm_surface_destroy (struct gbm_surface* surface) {
             // Error
             assert (false);
         }
-
-        Platform::Instance ().Unlock ();
     }
     else {
         LOG (_2CSTR ("Real gbm_surface_destroy not found"));
@@ -1030,21 +950,12 @@ void gbm_surface_destroy (struct gbm_surface* surface) {
 }
 
 void gbm_device_destroy (struct gbm_device* device) {
-/**/     Platform::Instance ().Lock ();
+    static void (*_gbm_device_destroy) (struct gbm_device*) = nullptr;
 
-//    static thread_local void (*_gbm_device_destroy) (struct gbm_device*) = nullptr;
-/**/    static void (*_gbm_device_destroy) (struct gbm_device*) = nullptr;
-
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("gbm_device_destroy", reinterpret_cast <uintptr_t&> (_gbm_device_destroy));
-    }
-
-/**/     Platform::Instance ().Unlock ();
+    static bool resolved = lookup ("gbm_device_destroy", reinterpret_cast <uintptr_t&> (_gbm_device_destroy));
 
     if (resolved != false) {
-        Platform::Instance ().Lock ();
+        std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
 
         // Remove all references
         if (Platform::Instance ().Remove (device, nullptr) != false) {
@@ -1055,8 +966,6 @@ void gbm_device_destroy (struct gbm_device* device) {
             // Error
             assert (false);
         }
-
-        Platform::Instance ().Unlock ();
     }
     else {
         LOG (_2CSTR ("Real gbm_device_destroy not found"));
@@ -1065,24 +974,15 @@ void gbm_device_destroy (struct gbm_device* device) {
 }
 
 struct gbm_device* gbm_create_device (int fd) {
-/**/    Platform::Instance ().Lock ();
+    static struct gbm_device* (*_gbm_create_device) (int) = nullptr;
 
-//    static thread_local struct gbm_device* (*_gbm_create_device) (int) = nullptr;
-/**/    static struct gbm_device* (*_gbm_create_device) (int) = nullptr;
-
-    static bool resolved = false;
-
-    if (resolved != true) {
-        resolved = lookup ("gbm_create_device", reinterpret_cast <uintptr_t&> (_gbm_create_device));
-    }
-
-/**/    Platform::Instance ().Unlock ();
-
-    Platform::Instance ().Lock ();
+    static bool resolved = lookup ("gbm_create_device", reinterpret_cast <uintptr_t&> (_gbm_create_device));
 
     struct gbm_device* ret = nullptr;
 
     if (resolved != false) {
+        std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
+
         LOG (_2CSTR ("Calling Real gbm_create_device"));
 
         ret = _gbm_create_device (fd);
@@ -1107,8 +1007,6 @@ struct gbm_device* gbm_create_device (int fd) {
         LOG (_2CSTR ("Real gbm_create_device not found"));
         assert (false);
     }
-
-    Platform::Instance ().Unlock ();
 
     return ret;
 }
