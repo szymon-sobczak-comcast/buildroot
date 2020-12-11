@@ -18,7 +18,7 @@ LIBYXOPE_DEPENDENCIES = libdrm mesa3d
 # The target flags
 LIBYXOPE_CPPFLAGS = $(TARGET_CPPFLAGS)
 LIBYXOPE_CFLAGS = $(TARGET_CFLAGS)
-LIBYXOPE_CXXFLAGS = $(TARGET_CXXFLAGS) -std=c++11
+LIBYXOPE_CXXFLAGS = $(TARGET_CXXFLAGS) -Wall
 LIBYXOPE_LDFLAGS = $(TARGET_LDFLAGS)
 
 override LIBYXOPE_CFLAGS += $(shell $(PKG_CONFIG_HOST_BINARY) --cflags libdrm)
@@ -27,6 +27,12 @@ override LIBYXOPE_LDFLAGS += $(shell $(PKG_CONFIG_HOST_BINARY) --libs libdrm)
 override LIBYXOPE_CFLAGS += $(shell $(PKG_CONFIG_HOST_BINARY) --cflags gbm)
 override LIBYXOPE_CXXFLAGS += $(shell $(PKG_CONFIG_HOST_BINARY) --cflags gbm)
 override LIBYXOPE_LDFLAGS += $(shell $(PKG_CONFIG_HOST_BINARY) --libs gbm)
+
+ifeq ($(BR2_ENABLE_DEBUG)x,yx)
+    LIBYXOPE_CPPFLAGS += -DDEBUG
+else
+    LIBYXOPE_CPPFLAGS += -DNDEBUG
+endif
 
 define LIBYXOPE_CONFIGURE_CMDS
 @echo "Nothing to be done"
@@ -44,6 +50,7 @@ define LIBYXOPE_INSTALLER =
 $(INSTALL) -D -m 755 $(realpath $(2)/usr/lib/lib$(1).so) $(subst $(1),Real$(1),$(realpath $(2)/usr/lib/lib$(1).so)) && \
 $(INSTALL) -D -m 755 $(@D)/.bin/lib$(1).so $(realpath $(2)/usr/lib/lib$(1).so) && \
 pushd $(2)/usr/lib/ && \
+[ -L libReal$(1).so ] && rm libReal$(1).so || true && \
 ln -s $(subst $(1),Real$(1),$(notdir $(wildcard $(realpath $(2)/usr/lib/lib$(1).so)))) libReal$(1).so && \
 popd
 endef
