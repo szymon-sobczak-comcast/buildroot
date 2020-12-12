@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-COBALT_VERSION = e28eef8fc6f72a18c67ab1a89efa7738bf0b49f2
+COBALT_VERSION = 295cd1f4288ae227c7fe7bb836ac8b2f08465028
 COBALT_SITE_METHOD = git
 COBALT_SITE = git@github.com:Metrological/cobalt
 COBALT_INSTALL_STAGING = YES
