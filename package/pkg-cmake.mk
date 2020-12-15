@@ -64,9 +64,9 @@ $(3)_SUPPORTS_IN_SOURCE_BUILD ?= YES
 
 
 ifeq ($$($(3)_SUPPORTS_IN_SOURCE_BUILD),YES)
-$(2)_BUILDDIR			= $$($(2)_SRCDIR)
+$(2)_BUILDDIR			?= $$($(2)_SRCDIR)
 else
-$(2)_BUILDDIR			= $$($(2)_SRCDIR)/buildroot-build
+$(2)_BUILDDIR			?= $$($(2)_SRCDIR)/buildroot-build
 endif
 
 #
@@ -231,7 +231,11 @@ else ifeq ($(BR2_ARM_CPU_ARMV6),y)
 CMAKE_SYSTEM_PROCESSOR_ARM_VARIANT = armv6
 else ifeq ($(BR2_ARM_CPU_ARMV7A),y)
 CMAKE_SYSTEM_PROCESSOR_ARM_VARIANT = armv7
+<<<<<<< HEAD
 else ifeq ($(BR2_ARM_CPU_ARMV8A),y)
+=======
+else ifeq ($(BR2_ARM_CPU_ARMV8),y)
+>>>>>>> origin/master
 CMAKE_SYSTEM_PROCESSOR_ARM_VARIANT = armv8
 endif
 

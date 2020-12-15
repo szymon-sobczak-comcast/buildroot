@@ -55,10 +55,15 @@ ifeq ($(4),target)
 $(2)_DEPENDENCIES += $$(call qstrip,$$(BR2_PACKAGE_PROVIDES_$(2)))
 else
 ifeq ($$(call qstrip,$$(BR2_PACKAGE_PROVIDES_$(2))),)
+<<<<<<< HEAD
 # Inherit from target package BR2_PACKAGE_PROVIDES_FOO
 $(2)_DEPENDENCIES += host-$$(call qstrip,$$(BR2_PACKAGE_PROVIDES_$(3)))
 else
 # BR2_PACKAGE_PROVIDES_HOST_<pkg> is explicitly defined
+=======
+$(2)_DEPENDENCIES += host-$$(call qstrip,$$(BR2_PACKAGE_PROVIDES_$(3)))
+else
+>>>>>>> origin/master
 $(2)_DEPENDENCIES += $$(call qstrip,$$(BR2_PACKAGE_PROVIDES_$(2)))
 endif
 endif

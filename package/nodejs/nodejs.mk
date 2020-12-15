@@ -4,7 +4,11 @@
 #
 ################################################################################
 
+<<<<<<< HEAD
 NODEJS_VERSION = 12.18.0
+=======
+NODEJS_VERSION = 8.0.0
+>>>>>>> origin/master
 NODEJS_SOURCE = node-v$(NODEJS_VERSION).tar.xz
 NODEJS_SITE = http://nodejs.org/dist/v$(NODEJS_VERSION)
 NODEJS_DEPENDENCIES = host-python host-nodejs c-ares \

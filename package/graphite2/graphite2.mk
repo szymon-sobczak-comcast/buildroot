@@ -4,7 +4,14 @@
 #
 ################################################################################
 
+<<<<<<< HEAD
 GRAPHITE2_VERSION = 1.3.10
+=======
+GRAPHITE2_VERSION = 1.3.9
+ifeq ($(BR2_PACKAGE_NETFLIX),y)
+GRAPHITE2_VERSION = 1.2.4
+endif
+>>>>>>> origin/master
 GRAPHITE2_SOURCE = graphite2-$(GRAPHITE2_VERSION).tgz
 GRAPHITE2_SITE = http://downloads.sourceforge.net/project/silgraphite/graphite2
 GRAPHITE2_INSTALL_STAGING = YES

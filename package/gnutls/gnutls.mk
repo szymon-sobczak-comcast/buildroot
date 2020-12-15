@@ -4,6 +4,7 @@
 #
 ################################################################################
 
+<<<<<<< HEAD
 GNUTLS_VERSION_MAJOR = 3.6
 GNUTLS_VERSION = $(GNUTLS_VERSION_MAJOR).10
 GNUTLS_SOURCE = gnutls-$(GNUTLS_VERSION).tar.xz
@@ -17,13 +18,27 @@ GNUTLS_LICENSE_FILES += doc/COPYING
 endif
 
 GNUTLS_DEPENDENCIES = host-pkgconf libtasn1 nettle pcre
+=======
+GNUTLS_VERSION_MAJOR = 3.3
+GNUTLS_VERSION = $(GNUTLS_VERSION_MAJOR).30
+GNUTLS_DEPENDENCIES = host-pkgconf libtasn1 nettle pcre
+GNUTLS_SOURCE = gnutls-$(GNUTLS_VERSION).tar.xz
+GNUTLS_SITE = ftp://ftp.gnutls.org/gcrypt/gnutls/v$(GNUTLS_VERSION_MAJOR)
+GNUTLS_LICENSE = LGPLv2.1+ (core library), GPLv3+ (gnutls-openssl library)
+GNUTLS_LICENSE_FILES = doc/COPYING doc/COPYING.LESSER
+>>>>>>> origin/master
 GNUTLS_CONF_OPTS = \
 	--disable-doc \
 	--disable-guile \
 	--disable-libdane \
 	--disable-rpath \
+	--disable-openssl-compatibility \
 	--enable-local-libopts \
+<<<<<<< HEAD
 	--enable-openssl-compatibility \
+=======
+	--with-libnettle-prefix=$(STAGING_DIR)/usr \
+>>>>>>> origin/master
 	--with-librt-prefix=$(STAGING_DIR) \
 	--without-tpm \
 	$(if $(BR2_PACKAGE_GNUTLS_OPENSSL),--enable,--disable)-openssl-compatibility \

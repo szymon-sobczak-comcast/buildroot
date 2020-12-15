@@ -61,10 +61,13 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
 config BR2_PACKAGE_MESA3D_DRI_DRIVER
 	bool
 	select BR2_PACKAGE_MESA3D_DRIVER
+<<<<<<< HEAD
 	select BR2_PACKAGE_MESA3D_GBM if \
 		!BR2_PACKAGE_MESA3D_OPENGL_GLX && \
 		!BR2_PACKAGE_MESA3D_OPENGL_EGL && \
 		!BR2_PACKAGE_MESA3D_OSMESA_CLASSIC
+=======
+>>>>>>> origin/master
 	select BR2_PACKAGE_XLIB_LIBXSHMFENCE if \
 		(BR2_PACKAGE_XORG7 && BR2_TOOLCHAIN_HAS_SYNC_4)
 
@@ -106,17 +109,25 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_ETNAVIV
 	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
 	select BR2_PACKAGE_LIBDRM_ETNAVIV
 	select BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
+<<<<<<< HEAD
+=======
+	select BR2_PACKAGE_MESA3D_OPENGL_EGL
+>>>>>>> origin/master
 	help
 	  Mesa driver for Vivante GPUs.
 
 config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_FREEDRENO
 	bool "Gallium freedreno driver"
 	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
+<<<<<<< HEAD
 	select BR2_PACKAGE_LIBDRM_FREEDRENO
+=======
+>>>>>>> origin/master
 	select BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
 	help
 	  Mesa driver for Freedreno GPUs.
 
+<<<<<<< HEAD
 config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_I915
 	bool "Gallium i915 driver"
 	depends on BR2_i386 || BR2_x86_64
@@ -137,6 +148,8 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_IRIS
 	help
 	  Mesa driver for iris-based Intel GPUs.
 
+=======
+>>>>>>> origin/master
 config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_KMSRO
 	bool "Gallium KMSRO driver"
 	depends on BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
@@ -170,6 +183,7 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_PANFROST
 	help
 	  Mesa driver for ARM Mali Midgard and Bifrost GPUs.
 
+<<<<<<< HEAD
 config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_R300
 	bool "Gallium Radeon R300 driver"
 	depends on BR2_i386 || BR2_x86_64
@@ -183,6 +197,8 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_R300
 	help
 	  Driver for ATI/AMD Radeon R300/R400/R500 GPUs.
 
+=======
+>>>>>>> origin/master
 config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_R600
 	bool "Gallium Radeon R600 driver"
 	depends on BR2_i386 || BR2_x86_64
@@ -254,6 +270,7 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_TEGRA
 	help
 	  Adds support for Nvidia Tegra GPUs, requires nouveau.
 
+<<<<<<< HEAD
 config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_V3D
 	bool "Gallium v3d driver"
 	depends on (BR2_arm && BR2_ARM_CPU_HAS_NEON) || BR2_aarch64
@@ -269,6 +286,8 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_V3D
 	  - CONFIG_DRM_V3D
 	  - CONFIG_DRM_VC4
 
+=======
+>>>>>>> origin/master
 config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_VC4
 	bool "Gallium vc4 driver"
 	depends on BR2_arm || BR2_aarch64
@@ -279,6 +298,13 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_VC4
 	help
 	  Driver for Broadcom VC4 (rpi2/3) GPUs.
 	  It requires a vanilla 4.5+ kernel with drm vc4 (open) support.
+
+config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_V3D
+	bool "Gallium v3d driver"
+	depends on BR2_arm || BR2_aarch64
+	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_VC4
+	help
+	  Driver for Broadcom VI (rpi4) GPUs.
 
 config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_VIRGL
 	bool "Gallium virgl driver"
@@ -292,12 +318,16 @@ config BR2_PACKAGE_MESA3D_VDPAU
 	bool "Gallium VDPAU state tracker"
 	depends on BR2_PACKAGE_XORG7
 	depends on BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_NOUVEAU \
+<<<<<<< HEAD
 		|| BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_R300 \
+=======
+>>>>>>> origin/master
 		|| BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_R600 \
 		|| BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_RADEONSI
 	select BR2_PACKAGE_MESA3D_NEEDS_X11
 	select BR2_PACKAGE_LIBVDPAU
 	help
+<<<<<<< HEAD
 	  VDPAU state tracker (needs r300, r600, radeonsi or nouveau
 	  gallium drivers).
 
@@ -305,6 +335,14 @@ comment "Gallium VDPAU state tracker needs X.org and gallium drivers r300, r600,
 	depends on !BR2_PACKAGE_XORG7 || \
 		!(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_NOUVEAU \
 		|| BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_R300 \
+=======
+	  VDPAU state tracker (needs r600, radeonsi or nouveau gallium
+	  drivers).
+
+comment "Gallium VDPAU state tracker needs X.org and gallium drivers r600, radeonsi or nouveau"
+	depends on !BR2_PACKAGE_XORG7 || \
+		!(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_NOUVEAU \
+>>>>>>> origin/master
 		|| BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_R600 \
 		|| BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_RADEONSI)
 
@@ -402,6 +440,7 @@ if BR2_PACKAGE_MESA3D_DRIVER
 
 comment "OpenGL API Support"
 
+<<<<<<< HEAD
 config BR2_PACKAGE_MESA3D_GBM
 	bool "gbm"
 	depends on BR2_PACKAGE_MESA3D_DRI_DRIVER \
@@ -413,6 +452,8 @@ comment "gbm support needs a dri driver or a gallium driver w/ EGL support."
 	depends on !BR2_PACKAGE_MESA3D_DRI_DRIVER \
 		&& !(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER && BR2_PACKAGE_MESA3D_OPENGL_EGL)
 
+=======
+>>>>>>> origin/master
 config BR2_PACKAGE_MESA3D_OPENGL_GLX
 	bool "OpenGL GLX"
 	depends on BR2_PACKAGE_XORG7
@@ -451,8 +492,13 @@ config BR2_PACKAGE_PROVIDES_LIBEGL
 config BR2_PACKAGE_PROVIDES_LIBGLES
 	default "mesa3d" if BR2_PACKAGE_MESA3D_OPENGL_ES
 
+<<<<<<< HEAD
 config BR2_PACKAGE_PROVIDES_LIBOPENCL
 	default "mesa3d" if BR2_PACKAGE_MESA3D_OPENCL
+=======
+#config BR2_PACKAGE_PROVIDES_LIBOPENCL
+#	default "mesa3d" if BR2_PACKAGE_MESA3D_OPENCL
+>>>>>>> origin/master
 
 endif # BR2_PACKAGE_MESA3D
 

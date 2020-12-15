@@ -28,7 +28,11 @@ define HOST_LIBHTTPPARSER_BUILD_CMDS
 endef
 
 define HOST_LIBHTTPPARSER_INSTALL_CMDS
+<<<<<<< HEAD
 	$(MAKE) $(HOST_CONFIGURE_OPTS) -C $(@D) PREFIX=$(HOST_DIR) install
+=======
+	$(MAKE) $(HOST_CONFIGURE_OPTS) -C $(@D) PREFIX=$(HOST_DIR)/usr install
+>>>>>>> origin/master
 endef
 
 $(eval $(generic-package))

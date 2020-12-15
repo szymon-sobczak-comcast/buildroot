@@ -6,7 +6,11 @@ config BR2_PACKAGE_HOST_LINUX_HEADERS
 choice
 	prompt "Kernel Headers"
 	default BR2_KERNEL_HEADERS_AS_KERNEL if BR2_LINUX_KERNEL
+<<<<<<< HEAD
 	default BR2_KERNEL_HEADERS_5_4
+=======
+	default BR2_KERNEL_HEADERS_5_3
+>>>>>>> origin/master
 	help
 	  Select the kernel version to get headers from.
 
@@ -16,6 +20,7 @@ choice
 	  If you use Buildroot to build a kernel, then you can use
 	  the sources from that kernel as source for the headers.
 
+<<<<<<< HEAD
 	  If you choose a custom version of the kernel headers, or
 	  choose to use the same sources as the kernel, you'll have to
 	  select (below) the series of that kernel, so that Buildroot
@@ -83,6 +88,76 @@ config BR2_KERNEL_HEADERS_CUSTOM_GIT
 	  This option allows Buildroot to get the Linux kernel source
 	  code from a Git repository.
 
+=======
+	  If you choose a custom version of the kernel headers, or choose
+	  to use the same sources as the kernel, you'll have to select
+	  (below) the series of that kernel, so that Buildroot can show
+	  or hide packages that have strong requirements on the kernel
+	  headers.
+
+	config BR2_KERNEL_HEADERS_AS_KERNEL
+		bool "Same as kernel being built"
+		depends on BR2_LINUX_KERNEL
+
+	config BR2_KERNEL_HEADERS_3_2
+		bool "Linux 3.2.x kernel headers"
+		depends on !BR2_arc && !BR2_nios2
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_2
+
+	config BR2_KERNEL_HEADERS_3_4
+		bool "Linux 3.4.x kernel headers"
+		depends on !BR2_arc && !BR2_nios2
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_4
+
+	config BR2_KERNEL_HEADERS_3_10
+		bool "Linux 3.10.x kernel headers"
+		depends on !BR2_nios2
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_10
+
+	config BR2_KERNEL_HEADERS_3_12
+		bool "Linux 3.12.x kernel headers"
+		depends on !BR2_nios2
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_12
+
+	config BR2_KERNEL_HEADERS_4_1
+		bool "Linux 4.1.x kernel headers"
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_1
+
+	config BR2_KERNEL_HEADERS_4_4
+		bool "Linux 4.4.x kernel headers"
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_4
+
+	config BR2_KERNEL_HEADERS_4_9
+		bool "Linux 4.9.x kernel headers"
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_9
+
+	config BR2_KERNEL_HEADERS_4_10
+		bool "Linux 4.10.x kernel headers"
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_10
+
+	config BR2_KERNEL_HEADERS_4_11
+		bool "Linux 4.11.x kernel headers"
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_11
+
+	config BR2_KERNEL_HEADERS_4_12
+		bool "Linux 4.12.x kernel headers"
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_12
+
+	config BR2_KERNEL_HEADERS_4_13
+		bool "Linux 4.13.x kernel headers"
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_13
+
+	config BR2_KERNEL_HEADERS_4_14
+		bool "Linux 4.14.x kernel headers"
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14
+
+	config BR2_KERNEL_HEADERS_5_3
+		bool "Linux 5.3.x kernel headers"
+		select BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3
+
+	config BR2_KERNEL_HEADERS_VERSION
+		bool "Manually specified Linux version"
+>>>>>>> origin/master
 endchoice
 
 # Select this for the latest kernel headers version (for license hashes)
@@ -124,6 +199,7 @@ choice
 	  This is used to hide/show some packages that have strict
 	  requirements on the version of kernel headers.
 
+<<<<<<< HEAD
 	  If your kernel headers are more recent than the latest version
 	  in the choice, then select the latest version.
 
@@ -131,10 +207,13 @@ config BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_5_4
 	bool "5.4.x or later"
 	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_4
 
+=======
+>>>>>>> origin/master
 config BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_5_3
 	bool "5.3.x"
 	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3
 
+<<<<<<< HEAD
 config BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_5_2
 	bool "5.2.x"
 	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_2
@@ -171,6 +250,8 @@ config BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_4_15
 	bool "4.15.x"
 	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_15
 
+=======
+>>>>>>> origin/master
 config BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_4_14
 	bool "4.14.x"
 	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14
@@ -318,11 +399,23 @@ endchoice
 
 config BR2_DEFAULT_KERNEL_HEADERS
 	string
+<<<<<<< HEAD
 	default "4.4.215"	if BR2_KERNEL_HEADERS_4_4
 	default "4.9.215"	if BR2_KERNEL_HEADERS_4_9
 	default "4.14.172"	if BR2_KERNEL_HEADERS_4_14
 	default "4.19.107"	if BR2_KERNEL_HEADERS_4_19
 	default "5.4.23"	if BR2_KERNEL_HEADERS_5_4
+=======
+	default "3.2.86"	if BR2_KERNEL_HEADERS_3_2
+	default "3.4.113"	if BR2_KERNEL_HEADERS_3_4
+	default "3.10.105"	if BR2_KERNEL_HEADERS_3_10
+	default "3.12.71"	if BR2_KERNEL_HEADERS_3_12
+	default "4.1.38"	if BR2_KERNEL_HEADERS_4_1
+	default "4.4.54"	if BR2_KERNEL_HEADERS_4_4
+	default "4.9.15"	if BR2_KERNEL_HEADERS_4_9
+	default "4.10.3"	if BR2_KERNEL_HEADERS_4_10
+	default "5.3.11"	if BR2_KERNEL_HEADERS_5_3
+>>>>>>> origin/master
 	default BR2_DEFAULT_KERNEL_VERSION if BR2_KERNEL_HEADERS_VERSION
 	default "custom"	if BR2_KERNEL_HEADERS_CUSTOM_TARBALL
 	default BR2_KERNEL_HEADERS_CUSTOM_REPO_VERSION \

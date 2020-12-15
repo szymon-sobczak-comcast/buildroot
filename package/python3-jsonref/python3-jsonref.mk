@@ -5,7 +5,11 @@
 ################################################################################
 
 PYTHON3_JSONREF_VERSION = 0.2
+<<<<<<< HEAD
 PYTHON3_JSONREF_SOURCE = jsonref-$(PYTHON3_JSONREF_VERSION).tar.gz
+=======
+PYTHON3_JSONREF_SOURCE = jsonref-$(PYTHON_JSONREF_VERSION).tar.gz
+>>>>>>> origin/master
 PYTHON3_JSONREF_SITE = https://pypi.python.org/packages/b3/cf/93d4f34d76863d4fb995cb8e3e4f29908304065ce6381e0349700c44ad0c
 PYTHON3_JSONREF_LICENSE = MIT
 PYTHON3_JSONREF_LICENSE_FILES = COPYING json/LICENSE

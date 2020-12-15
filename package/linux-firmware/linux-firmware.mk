@@ -541,6 +541,7 @@ LINUX_FIRMWARE_FILES += \
 LINUX_FIRMWARE_ALL_LICENSE_FILES += LICENCE.broadcom_bcm43xx
 endif
 
+<<<<<<< HEAD
 # ql2xxx
 ifeq ($(BR2_PACKAGE_LINUX_FIRMWARE_QLOGIC_2XXX),y)
 LINUX_FIRMWARE_FILES += \
@@ -554,10 +555,16 @@ LINUX_FIRMWARE_FILES += \
 	rsi/rs9113_ap_bt_dual_mode.rps \
 	rsi/rs9113_wlan_bt_dual_mode.rps \
 	rsi/rs9113_wlan_qspi.rps
+=======
+# gk20a
+ifeq ($(BR2_PACKAGE_LINUX_FIRMWARE_NVIDIA_GK20A),y)
+LINUX_FIRMWARE_DIRS += nvidia
+>>>>>>> origin/master
 # No license file; the license is in the file WHENCE
 # which is installed unconditionally
 endif
 
+<<<<<<< HEAD
 ifeq ($(BR2_PACKAGE_LINUX_FIRMWARE_QAT_DH895XCC),y)
 # qat_mmp.bin is a symlink to qat_895xcc_mmp.bin
 LINUX_FIRMWARE_FILES += qat_895xcc.bin qat_895xcc_mmp.bin qat_mmp.bin
@@ -574,6 +581,8 @@ LINUX_FIRMWARE_FILES += qat_c62x.bin qat_c62x_mmp.bin
 LINUX_FIRMWARE_ALL_LICENSE_FILES += LICENCE.qat_firmware
 endif
 
+=======
+>>>>>>> origin/master
 ifneq ($(LINUX_FIRMWARE_FILES),)
 define LINUX_FIRMWARE_INSTALL_FILES
 	cd $(@D) && \

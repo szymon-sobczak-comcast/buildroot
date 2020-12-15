@@ -5,21 +5,66 @@
 ################################################################################
 
 GST_OMX_VERSION = 1.16.2
+<<<<<<< HEAD
 GST_OMX_SOURCE = gst-omx-$(GST_OMX_VERSION).tar.xz
 GST_OMX_SITE = https://gstreamer.freedesktop.org/src/gst-omx
 
 GST_OMX_LICENSE = LGPL-2.1
+=======
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_10),y)
+GST_OMX_VERSION = 1.10.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_14),y)
+GST_OMX_VERSION = 1.14.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST_OMX_VERSION = 1.16.2
+endif
+
+GST_OMX_SOURCE = gst-omx-$(GST_OMX_VERSION).tar.xz
+GST_OMX_SITE = https://gstreamer.freedesktop.org/src/gst-omx
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_GIT),y)
+GST_OMX_SOURCE = gst-omx-$(GST_OMX_VERSION).tar.xz
+GST_OMX_SITE = http://cgit.freedesktop.org/gstreamer/gst-omx/snapshot
+BR_NO_CHECK_HASH_FOR += $(GST_OMX_SOURCE)
+GST_OMX_POST_DOWNLOAD_HOOKS += GSTREAMER1_COMMON_DOWNLOAD
+GST_OMX_POST_EXTRACT_HOOKS += GSTREAMER1_COMMON_EXTRACT
+GST_OMX_POST_INSTALL_TARGET_HOOKS += GSTREAMER1_REMOVE_LA_FILES
+GST_OMX_AUTORECONF = YES
+GST_OMX_AUTORECONF_OPTS = -I $(@D)/common/m4
+endif
+
+GST_OMX_LICENSE = LGPLv2.1
+>>>>>>> origin/master
 GST_OMX_LICENSE_FILES = COPYING
+
+GST_OMX_DEPENDENCIES = gstreamer1 gst1-plugins-base libopenmax
 
 ifeq ($(BR2_PACKAGE_RPI_USERLAND),y)
 GST_OMX_VARIANT = rpi
 GST_OMX_CONF_ENV = \
 	CFLAGS="$(TARGET_CFLAGS) \
+		-D_VIDEOCORE -DRASPBERRY_PI \
 		-I$(STAGING_DIR)/usr/include/IL \
 		-I$(STAGING_DIR)/usr/include/interface/vcos/pthreads \
+<<<<<<< HEAD
 		-I$(STAGING_DIR)/usr/include/interface/vmcs_host/linux"
 else ifeq ($(BR2_PACKAGE_BELLAGIO),y)
 GST_OMX_VARIANT = bellagio
+=======
+		-I$(STAGING_DIR)/usr/include/interface/vmcs_host/linux \
+                $(GSTREAMER1_EXTRA_COMPILER_OPTIONS)"
+GST_OMX_DEPENDENCIES += gst1-plugins-bad
+endif
+
+ifeq ($(BR2_PACKAGE_BELLAGIO),y)
+GST_OMX_CONF_OPTS = \
+	--with-omx-target=bellagio
+>>>>>>> origin/master
 GST_OMX_CONF_ENV = \
 	CFLAGS="$(TARGET_CFLAGS) \
 		-DOMX_VERSION_MAJOR=1 \
@@ -30,9 +75,14 @@ else
 GST_OMX_VARIANT = generic
 endif
 
+<<<<<<< HEAD
 GST_OMX_CONF_OPTS += --with-omx-target=$(GST_OMX_VARIANT)
 
 GST_OMX_DEPENDENCIES = gstreamer1 gst1-plugins-base libopenmax
+=======
+GST_OMX_CONF_OPTS += \
+	--disable-examples
+>>>>>>> origin/master
 
 # adjust library paths to where buildroot installs them
 define GST_OMX_FIXUP_CONFIG_PATHS
@@ -41,5 +91,6 @@ define GST_OMX_FIXUP_CONFIG_PATHS
 endef
 
 GST_OMX_POST_PATCH_HOOKS += GST_OMX_FIXUP_CONFIG_PATHS
+GST_OMX_POST_RSYNC_HOOKS += GST_OMX_FIXUP_CONFIG_PATHS
 
 $(eval $(autotools-package))

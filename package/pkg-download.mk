@@ -72,11 +72,136 @@ export BR_NO_CHECK_HASH_FOR =
 #
 ################################################################################
 
+<<<<<<< HEAD
 ifneq ($(call qstrip,$(BR2_PRIMARY_SITE)),)
 DOWNLOAD_URIS += \
 	$(call getschemeplusuri,$(call qstrip,$(BR2_PRIMARY_SITE)/$($(2)_DL_SUBDIR)),urlencode) \
 	$(call getschemeplusuri,$(call qstrip,$(BR2_PRIMARY_SITE)),urlencode)
 endif
+=======
+define DOWNLOAD_GIT
+	$(EXTRA_ENV) $(DL_WRAPPER) -b git \
+		-o $(DL_DIR)/$($(PKG)_SOURCE) \
+		$(if $($(PKG)_GIT_SUBMODULES),-r) \
+		$(QUIET) \
+		-- \
+		$($(PKG)_SITE) \
+		$($(PKG)_DL_VERSION) \
+		$($(PKG)_RAW_BASE_NAME) \
+		$($(PKG)_DL_OPTS)
+endef
+
+# TODO: improve to check that the given PKG_DL_VERSION exists on the remote
+# repository
+define SOURCE_CHECK_GIT
+	$(GIT) ls-remote --heads $($(PKG)_SITE) > /dev/null
+endef
+
+define DOWNLOAD_BZR
+	$(EXTRA_ENV) $(DL_WRAPPER) -b bzr \
+		-o $(DL_DIR)/$($(PKG)_SOURCE) \
+		$(QUIET) \
+		-- \
+		$($(PKG)_SITE) \
+		$($(PKG)_DL_VERSION) \
+		$($(PKG)_RAW_BASE_NAME) \
+		$($(PKG)_DL_OPTS)
+endef
+
+define SOURCE_CHECK_BZR
+	$(BZR) ls --quiet $($(PKG)_SITE) > /dev/null
+endef
+
+define DOWNLOAD_CVS
+	$(EXTRA_ENV) $(DL_WRAPPER) -b cvs \
+		-o $(DL_DIR)/$($(PKG)_SOURCE) \
+		$(QUIET) \
+		-- \
+		$(call stripurischeme,$(call qstrip,$($(PKG)_SITE))) \
+		$($(PKG)_DL_VERSION) \
+		$($(PKG)_RAWNAME) \
+		$($(PKG)_RAW_BASE_NAME) \
+		$($(PKG)_DL_OPTS)
+endef
+
+# Not all CVS servers support ls/rls, use login to see if we can connect
+define SOURCE_CHECK_CVS
+	$(CVS) -d:pserver:anonymous:@$(call stripurischeme,$(call qstrip,$($(PKG)_SITE))) login
+endef
+
+define DOWNLOAD_SVN
+	$(EXTRA_ENV) $(DL_WRAPPER) -b svn \
+		-o $(DL_DIR)/$($(PKG)_SOURCE) \
+		$(QUIET) \
+		-- \
+		$($(PKG)_SITE) \
+		$($(PKG)_DL_VERSION) \
+		$($(PKG)_RAW_BASE_NAME) \
+		$($(PKG)_DL_OPTS)
+endef
+
+define SOURCE_CHECK_SVN
+	$(SVN) ls $($(PKG)_SITE)@$($(PKG)_DL_VERSION) > /dev/null
+endef
+
+# SCP URIs should be of the form scp://[user@]host:filepath
+# Note that filepath is relative to the user's home directory, so you may want
+# to prepend the path with a slash: scp://[user@]host:/absolutepath
+define DOWNLOAD_SCP
+	$(EXTRA_ENV) $(DL_WRAPPER) -b scp \
+		-o $(DL_DIR)/$(2) \
+		-H '$($(PKG)_HASH_FILE)' \
+		$(QUIET) \
+		-- \
+		'$(call stripurischeme,$(call qstrip,$(1)))' \
+		$($(PKG)_DL_OPTS)
+endef
+
+define SOURCE_CHECK_SCP
+	$(SSH) $(call domain,$(1),:) ls '$(call notdomain,$(1),:)' > /dev/null
+endef
+
+define DOWNLOAD_HG
+	$(EXTRA_ENV) $(DL_WRAPPER) -b hg \
+		-o $(DL_DIR)/$($(PKG)_SOURCE) \
+		$(QUIET) \
+		-- \
+		$($(PKG)_SITE) \
+		$($(PKG)_DL_VERSION) \
+		$($(PKG)_RAW_BASE_NAME) \
+		$($(PKG)_DL_OPTS)
+endef
+
+# TODO: improve to check that the given PKG_DL_VERSION exists on the remote
+# repository
+define SOURCE_CHECK_HG
+	$(HG) incoming --force -l1 $($(PKG)_SITE) > /dev/null
+endef
+
+define DOWNLOAD_WGET
+	$(EXTRA_ENV) $(DL_WRAPPER) -b wget \
+		-o $(DL_DIR)/$(2) \
+		-H '$($(PKG)_HASH_FILE)' \
+		$(QUIET) \
+		-- \
+		'$(call qstrip,$(1))' \
+		$($(PKG)_DL_OPTS)
+endef
+
+define SOURCE_CHECK_WGET
+	$(WGET) --spider '$(call qstrip,$(1))'
+endef
+
+define DOWNLOAD_LOCALFILES
+	$(EXTRA_ENV) $(DL_WRAPPER) -b cp \
+		-o $(DL_DIR)/$(2) \
+		-H '$($(PKG)_HASH_FILE)' \
+		$(QUIET) \
+		-- \
+		$(call stripurischeme,$(call qstrip,$(1))) \
+		$($(PKG)_DL_OPTS)
+endef
+>>>>>>> origin/master
 
 ifeq ($(BR2_PRIMARY_SITE_ONLY),)
 DOWNLOAD_URIS += \

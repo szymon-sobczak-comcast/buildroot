@@ -4,8 +4,22 @@
 #
 ################################################################################
 
+<<<<<<< HEAD
 LIBCURL_VERSION = 7.68.0
 LIBCURL_SOURCE = curl-$(LIBCURL_VERSION).tar.xz
+=======
+LIBCURL_VERSION = 7.53.1
+ifeq ($(BR2_PACKAGE_NETFLIX),y)
+LIBCURL_VERSION = 7.32.0
+endif
+ifeq ($(BR2_PACKAGE_NETFLIX5),y)
+LIBCURL_VERSION = 7.53.0
+endif
+ifeq ($(BR2_PACKAGE_NETFLIX52),y)
+LIBCURL_VERSION = 7.53.0
+endif
+LIBCURL_SOURCE = curl-$(LIBCURL_VERSION).tar.bz2
+>>>>>>> origin/master
 LIBCURL_SITE = https://curl.haxx.se/download
 LIBCURL_DEPENDENCIES = host-pkgconf \
 	$(if $(BR2_PACKAGE_ZLIB),zlib) \
@@ -103,6 +117,7 @@ else
 LIBCURL_CONF_OPTS += --without-libssh2
 endif
 
+<<<<<<< HEAD
 ifeq ($(BR2_PACKAGE_BROTLI),y)
 LIBCURL_DEPENDENCIES += brotli
 LIBCURL_CONF_OPTS += --with-brotli
@@ -155,6 +170,11 @@ LIBCURL_CONF_OPTS += \
 	--disable-smtp \
 	--disable-telnet \
 	--disable-tftp
+=======
+ifeq ($(BR2_PACKAGE_LIBCURL_ENABLE_HTTP2),y)
+LIBCURL_CONF_OPTS += --with-nghttp2
+LIBCURL_DEPENDENCIES += nghttp2
+>>>>>>> origin/master
 endif
 
 define LIBCURL_FIX_DOT_PC
@@ -170,6 +190,7 @@ LIBCURL_POST_INSTALL_TARGET_HOOKS += LIBCURL_TARGET_CLEANUP
 endif
 
 HOST_LIBCURL_DEPENDENCIES = host-openssl
+<<<<<<< HEAD
 HOST_LIBCURL_CONF_OPTS = \
 	--disable-manual \
 	--disable-ntlm-wb \
@@ -181,6 +202,8 @@ HOST_LIBCURL_CONF_OPTS = \
 	--without-nss
 
 HOST_LIBCURL_POST_PATCH_HOOKS += LIBCURL_FIX_DOT_PC
+=======
+>>>>>>> origin/master
 
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

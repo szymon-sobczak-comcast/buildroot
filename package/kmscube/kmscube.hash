@@ -1,2 +1,7 @@
 # Locally computed
+<<<<<<< HEAD
 sha256  ec135069d8bee7f4fe38cb9dc96fbbd56e0057290fa25eff8b5b314ee473c502  kmscube-4660a7dca6512b6e658759d00cff7d4ad2a2059d.tar.gz
+=======
+sha256 dbd3eedd7fa518e3fc8bbcd424e408846a67c2c57661db30b3f5adb25f7e1513  kmscube-db8c6fc0f625e3a3d36731363276c459661d4149.tar.gz
+sha256 5436ac158547e763390674ca171125c18a271a024d4dc0424c2c94a4a34a817f  kmscube-76bb57d539cb43d267e561024c34e031bf351e04.tar.gz
+>>>>>>> origin/master

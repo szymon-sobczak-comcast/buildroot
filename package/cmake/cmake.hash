@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 # From https://cmake.org/files/v3.15/cmake-3.15.5-SHA-256.txt
 sha256 fbdd7cef15c0ced06bb13024bfda0ecc0dedbcaaaa6b8a5d368c75255243beb4  cmake-3.15.5.tar.gz
 
 # Locally calculated
 sha256 dc628fb936a5d229296d42083f9a8218aa32204c016919e784404c9ec58776e9  Copyright.txt
+=======
+# From http://www.cmake.org/files/v3.7/cmake-3.7.2-SHA-256.txt
+sha256 dc1246c4e6d168ea4d6e042cfba577c1acd65feea27e56f5ff37df920c30cae0  cmake-3.7.2.tar.gz
+sha256 9bcc8c114d9da603af9512083ed7d4a39911d16105466beba165ba8fe939ac2c  cmake-3.16.4.tar.gz
+>>>>>>> origin/master

@@ -54,6 +54,17 @@ config BR2_TARGET_GENERIC_ISSUE
 	  Leave empty to not create /etc/issue, or to keep the
 	  one from a custom skeleton.
 
+config BR2_TARGET_GENERIC_CABUNDLE
+	bool "Install CA bundle"
+	help
+	  Install CA bundle from curl.
+
+config BR2_TARGET_GENERIC_NETWORK
+	bool "Set network"
+	default y
+	help
+	  Install network scripts and config.
+
 endif
 
 choice

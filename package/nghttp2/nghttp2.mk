@@ -4,6 +4,7 @@
 #
 ################################################################################
 
+<<<<<<< HEAD
 NGHTTP2_VERSION = 1.39.2
 NGHTTP2_SITE = https://github.com/nghttp2/nghttp2/releases/download/v$(NGHTTP2_VERSION)
 NGHTTP2_LICENSE = MIT
@@ -20,3 +21,13 @@ endef
 NGHTTP2_POST_INSTALL_TARGET_HOOKS += NGHTTP2_INSTALL_CLEAN_HOOK
 
 $(eval $(autotools-package))
+=======
+NGHTTP2_VERSION = 939ad5ddbeeb153c6df23ddfb33b0e9b299708a5
+NGHTTP2_SITE = git@github.com:nghttp2/nghttp2.git
+NGHTTP2_SITE_METHOD = git
+NGHTTP2_LICENSE = MIT
+NGHTTP2_INSTALL_STAGING = YES
+
+$(eval $(cmake-package))
+
+>>>>>>> origin/master

@@ -4,9 +4,26 @@
 #
 ################################################################################
 
+<<<<<<< HEAD
 DBUS_VERSION = 1.12.16
 DBUS_SITE = https://dbus.freedesktop.org/releases/dbus
 DBUS_LICENSE = AFL-2.1 or GPL-2.0+ (library, tools), GPL-2.0+ (tools)
+=======
+DBUS_SITE = http://dbus.freedesktop.org/releases/dbus
+
+ifeq ($(BR2_PACKAGE_PARODUS2CCSP),y)
+
+DBUS_VERSION = 1.6.18
+DBUS_AUTORECONF = YES
+export ACLOCAL = aclocal-1.15
+export AUTOMAKE = automake-1.15
+else
+
+DBUS_VERSION = 1.10.16
+endif
+
+DBUS_LICENSE = AFLv2.1 or GPLv2+ (library, tools), GPLv2+ (tools)
+>>>>>>> origin/master
 DBUS_LICENSE_FILES = COPYING
 DBUS_INSTALL_STAGING = YES
 
@@ -18,7 +35,7 @@ define DBUS_USERS
 	dbus -1 dbus -1 * /var/run/dbus - dbus DBus messagebus user
 endef
 
-DBUS_DEPENDENCIES = host-pkgconf expat
+DBUS_DEPENDENCIES = host-pkgconf expat host-python
 
 DBUS_CONF_OPTS = \
 	--with-dbus-user=dbus \
@@ -30,6 +47,12 @@ DBUS_CONF_OPTS = \
 	--with-system-socket=/var/run/dbus/system_bus_socket \
 	--with-system-pid-file=/var/run/messagebus.pid
 
+ifeq ($(BR2_PACKAGE_PARODUS2CCSP),y)
+DBUS_CONF_OPTS += \
+        --disable-checks \
+        --enable-verbose-mode \
+        --with-x=no
+endif
 ifeq ($(BR2_STATIC_LIBS),y)
 DBUS_CONF_OPTS += LIBS='-pthread'
 endif

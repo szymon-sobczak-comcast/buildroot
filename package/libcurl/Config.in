@@ -19,6 +19,7 @@ config BR2_PACKAGE_LIBCURL_VERBOSE
 	help
 	  Enable verbose text strings
 
+<<<<<<< HEAD
 config BR2_PACKAGE_LIBCURL_PROXY_SUPPORT
 	bool "proxy support"
 	default y
@@ -72,5 +73,12 @@ config BR2_PACKAGE_LIBCURL_TLS_NONE
 	bool "None"
 
 endchoice
+=======
+config BR2_PACKAGE_LIBCURL_ENABLE_HTTP2
+	bool "enable HTTP2 support"
+	select BR2_PACKAGE_NGHTTP2
+	help
+		Enable HTTP2 support
+>>>>>>> origin/master
 
 endif

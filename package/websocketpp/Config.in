@@ -1,4 +1,5 @@
 config BR2_PACKAGE_WEBSOCKETPP
+<<<<<<< HEAD
 	bool "websocketpp"
 	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_8 # C++11
 	depends on BR2_INSTALL_LIBSTDCPP
@@ -13,3 +14,8 @@ config BR2_PACKAGE_WEBSOCKETPP
 
 comment "websocketpp needs a toolchain w/ C++ and gcc >= 4.8"
 	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_GCC_AT_LEAST_4_8
+=======
+    bool "websocketpp"
+    help
+        C++ websocket client/server library http://www.zaphoyd.com/websocketpp
+>>>>>>> origin/master

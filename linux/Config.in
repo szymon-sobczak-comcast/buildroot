@@ -27,6 +27,7 @@ choice
 	prompt "Kernel version"
 
 config BR2_LINUX_KERNEL_LATEST_VERSION
+<<<<<<< HEAD
 	bool "Latest version (5.4)"
 
 config BR2_LINUX_KERNEL_LATEST_CIP_VERSION
@@ -58,6 +59,9 @@ config BR2_LINUX_KERNEL_LATEST_CIP_RT_VERSION
 	  bug fixes for more than 10 years.
 
 	  https://www.cip-project.org
+=======
+	bool "Latest version (5.3)"
+>>>>>>> origin/master
 
 config BR2_LINUX_KERNEL_CUSTOM_VERSION
 	bool "Custom version"
@@ -128,9 +132,13 @@ endif
 
 config BR2_LINUX_KERNEL_VERSION
 	string
+<<<<<<< HEAD
 	default "5.4.23" if BR2_LINUX_KERNEL_LATEST_VERSION
 	default "4.19.98-cip19" if BR2_LINUX_KERNEL_LATEST_CIP_VERSION
 	default "4.19.98-cip19-rt7" if BR2_LINUX_KERNEL_LATEST_CIP_RT_VERSION
+=======
+	default "5.3.11" if BR2_LINUX_KERNEL_LATEST_VERSION
+>>>>>>> origin/master
 	default BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE \
 		if BR2_LINUX_KERNEL_CUSTOM_VERSION
 	default "custom" if BR2_LINUX_KERNEL_CUSTOM_TARBALL
@@ -416,6 +424,13 @@ config BR2_LINUX_KERNEL_DTB_OVERLAY_SUPPORT
 	  on the target system.
 
 endif
+
+config BR2_LINUX_KERNEL_DTS_OVERLAYS_SUPPORT
+	bool "Build Device Tree Overlays"
+	depends on BR2_LINUX_KERNEL_DTS_SUPPORT
+	help
+	  Build in-tree device tree overlays.
+	  Currently supports Raspberry Pi kernels.
 
 config BR2_LINUX_KERNEL_INSTALL_TARGET
 	bool "Install kernel image to /boot in target"

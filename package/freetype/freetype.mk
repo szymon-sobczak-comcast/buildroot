@@ -4,8 +4,19 @@
 #
 ################################################################################
 
+<<<<<<< HEAD
 FREETYPE_VERSION = 2.10.1
 FREETYPE_SOURCE = freetype-$(FREETYPE_VERSION).tar.xz
+=======
+FREETYPE_VERSION = 2.7.1
+ifeq ($(BR2_PACKAGE_NETFLIX),y)
+FREETYPE_VERSION = 2.4.6
+endif
+ifeq ($(BR2_PACKAGE_NETFLIX52),y)
+FREETYPE_VERSION = 2.8
+endif
+FREETYPE_SOURCE = freetype-$(FREETYPE_VERSION).tar.bz2
+>>>>>>> origin/master
 FREETYPE_SITE = http://download.savannah.gnu.org/releases/freetype
 FREETYPE_INSTALL_STAGING = YES
 FREETYPE_MAKE_OPTS = CCexe="$(HOSTCC)"
@@ -17,9 +28,26 @@ FREETYPE_CONFIG_SCRIPTS = freetype-config
 HOST_FREETYPE_DEPENDENCIES = host-pkgconf
 HOST_FREETYPE_CONF_OPTS = --without-zlib --without-bzip2 --without-png
 
+<<<<<<< HEAD
 # since 2.9.1 needed for freetype-config install
 FREETYPE_CONF_OPTS += --enable-freetype-config
 HOST_FREETYPE_CONF_OPTS += --enable-freetype-config
+=======
+# Regen required because the tarball ships with an experimental ltmain.sh
+# that can't be patched by our infra.
+# autogen.sh is because autotools stuff lives in other directories and
+# even AUTORECONF with _OPTS doesn't do it properly.
+# POST_PATCH is because we still need to patch libtool after the regen.
+define FREETYPE_RUN_AUTOGEN
+	cd $(@D) && PATH=$(BR_PATH) ./autogen.sh
+endef
+ifeq ($(BR2_PACKAGE_NETFLIX),)
+FREETYPE_POST_PATCH_HOOKS += FREETYPE_RUN_AUTOGEN
+HOST_FREETYPE_POST_PATCH_HOOKS += FREETYPE_RUN_AUTOGEN
+endif
+FREETYPE_DEPENDENCIES += host-automake host-autoconf host-libtool
+HOST_FREETYPE_DEPENDENCIES += host-automake host-autoconf host-libtool
+>>>>>>> origin/master
 
 ifeq ($(BR2_PACKAGE_ZLIB),y)
 FREETYPE_DEPENDENCIES += zlib

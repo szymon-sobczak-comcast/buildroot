@@ -5,6 +5,22 @@
 ################################################################################
 
 GST1_PLUGINS_BAD_VERSION = 1.16.2
+<<<<<<< HEAD
+=======
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_10),y)
+GST1_PLUGINS_BAD_VERSION = 1.10.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_14),y)
+GST1_PLUGINS_BAD_VERSION = 1.14.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_PLUGINS_BAD_VERSION = 1.16.2
+endif
+
+>>>>>>> origin/master
 GST1_PLUGINS_BAD_SOURCE = gst-plugins-bad-$(GST1_PLUGINS_BAD_VERSION).tar.xz
 GST1_PLUGINS_BAD_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-bad
 GST1_PLUGINS_BAD_INSTALL_STAGING = YES
@@ -15,7 +31,21 @@ GST1_PLUGINS_BAD_LICENSE = LGPL-2.0+, LGPL-2.1+
 
 GST1_PLUGINS_BAD_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
 
+ifeq ($(BR2_PACKAGE_GSTREAMER1_GIT),y)
+GST1_PLUGINS_BAD_SITE = http://cgit.freedesktop.org/gstreamer/gst-plugins-bad/snapshot
+BR_NO_CHECK_HASH_FOR += $(GST1_PLUGINS_BAD_SOURCE)
+GST1_PLUGINS_BAD_POST_DOWNLOAD_HOOKS += GSTREAMER1_COMMON_DOWNLOAD
+GST1_PLUGINS_BAD_POST_EXTRACT_HOOKS += GSTREAMER1_COMMON_EXTRACT
+GST1_PLUGINS_BAD_PRE_CONFIGURE_HOOKS += GSTREAMER1_FIX_AUTOPOINT
+GST1_PLUGINS_BAD_POST_INSTALL_TARGET_HOOKS += GSTREAMER1_REMOVE_LA_FILES
+endif
+
+GST1_PLUGINS_BAD_AUTORECONF = YES
+GST1_PLUGINS_BAD_AUTORECONF_OPTS = -I $(@D)/common/m4
+GST1_PLUGINS_BAD_GETTEXTIZE = YES
+
 GST1_PLUGINS_BAD_CONF_OPTS = \
+<<<<<<< HEAD
 	-Dexamples=disabled \
 	-Dtests=disabled \
 	-Ddirectsound=disabled \
@@ -27,6 +57,19 @@ GST1_PLUGINS_BAD_CONF_OPTS = \
 	-Dgobject-cast-checks=disabled \
 	-Dglib-asserts=disabled \
 	-Dglib-checks=disabled
+=======
+	CFLAGS="$(TARGET_CFLAGS) $(GSTREAMER1_EXTRA_COMPILER_OPTIONS)" \
+	--disable-examples \
+	--disable-valgrind \
+	--disable-directsound \
+	--disable-direct3d \
+	--disable-winks \
+	--disable-android_media \
+	--disable-apple_media \
+	--disable-sdltest \
+	--disable-wininet \
+	--disable-acm
+>>>>>>> origin/master
 
 # Options which require currently unpackaged libraries
 GST1_PLUGINS_BAD_CONF_OPTS += \
@@ -63,9 +106,55 @@ GST1_PLUGINS_BAD_CONF_OPTS += \
 
 GST1_PLUGINS_BAD_DEPENDENCIES = gst1-plugins-base gstreamer1
 
+<<<<<<< HEAD
 ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_WAYLAND),y)
 GST1_PLUGINS_BAD_CONF_OPTS += -Dwayland=enabled
 GST1_PLUGINS_BAD_DEPENDENCIES += libdrm wayland wayland-protocols
+=======
+ifeq ($(BR2_PACKAGE_RPI_USERLAND),y)
+# RPI has odd locations for several required headers.
+GST1_PLUGINS_BAD_CONF_ENV += \
+	CFLAGS="$(TARGET_CFLAGS) -Wno-error \
+	-I$(STAGING_DIR)/usr/include/IL \
+	-I$(STAGING_DIR)/usr/include/interface/vcos/pthreads \
+	-I$(STAGING_DIR)/usr/include/interface/vmcs_host/linux"
+endif
+
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_LIB_OPENGL_OPENGL),y)
+GST1_PLUGINS_BAD_CONF_OPTS += --enable-opengl
+GST1_PLUGINS_BAD_DEPENDENCIES += libgl libglu
+else
+GST1_PLUGINS_BAD_CONF_OPTS += --disable-opengl
+endif
+
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_LIB_OPENGL_GLES2),y)
+GST1_PLUGINS_BAD_CONF_OPTS += --enable-gles2
+GST1_PLUGINS_BAD_DEPENDENCIES += libgles
+else
+GST1_PLUGINS_BAD_CONF_OPTS += --disable-gles2
+endif
+
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_LIB_OPENGL_GLX),y)
+GST1_PLUGINS_BAD_CONF_OPTS += --enable-glx
+GST1_PLUGINS_BAD_DEPENDENCIES += xproto_glproto xlib_libXrender
+else
+GST1_PLUGINS_BAD_CONF_OPTS += --disable-glx
+endif
+
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_LIB_OPENGL_EGL),y)
+GST1_PLUGINS_BAD_CONF_OPTS += --enable-egl
+GST1_PLUGINS_BAD_DEPENDENCIES += libegl
+GST1_PLUGINS_BAD_CONF_ENV += \
+	CPPFLAGS="$(TARGET_CPPFLAGS) `$(PKG_CONFIG_HOST_BINARY) --cflags egl`" \
+	LIBS="`$(PKG_CONFIG_HOST_BINARY) --libs egl`"
+else
+GST1_PLUGINS_BAD_CONF_OPTS += --disable-egl
+endif
+
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_LIB_OPENGL_X11),y)
+GST1_PLUGINS_BAD_CONF_OPTS += --enable-x11
+GST1_PLUGINS_BAD_DEPENDENCIES += xlib_libX11 xlib_libXext
+>>>>>>> origin/master
 else
 GST1_PLUGINS_BAD_CONF_OPTS += -Dwayland=disabled
 endif
@@ -657,6 +746,13 @@ else
 GST1_PLUGINS_BAD_CONF_OPTS += -Dsmoothstreaming=disabled
 endif
 
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_SMOOTHSTREAMING),y)
+GST1_PLUGINS_BAD_CONF_OPTS += --enable-smoothstreaming
+GST1_PLUGINS_BAD_DEPENDENCIES += libxml2
+else
+GST1_PLUGINS_BAD_CONF_OPTS += --disable-smoothstreaming
+endif
+
 ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_SHM),y)
 GST1_PLUGINS_BAD_CONF_OPTS += -Dshm=enabled
 else
@@ -746,4 +842,26 @@ endif
 # Use the following command to extract license info for plugins.
 # # find . -name 'plugin-*.xml' | xargs grep license
 
+<<<<<<< HEAD
 $(eval $(meson-package))
+=======
+ifeq ($(BR2_PACKAGE_VSS_SDK_MOVE_GSTREAMER),y)
+# this platform needs to run this gstreamer version parallel
+# to an older one.
+GST1_PLUGINS_BAD_AUTORECONF = YES
+GST1_PLUGINS_BAD_AUTORECONF_OPTS = -I $(@D)/common/m4
+GST1_PLUGINS_BAD_GETTEXTIZE = YES
+GST1_PLUGINS_BAD_CONF_OPTS += \
+	--datadir=/usr/share/gstreamer-wpe \
+	--datarootdir=/usr/share/gstreamer-wpe \
+	--sysconfdir=/etc/gstreamer-wpe \
+	--includedir=/usr/include/gstreamer-wpe \
+	--program-prefix wpe
+define GST1_PLUGINS_BAD_APPLY_VSS_FIX
+ package/vss-sdk/gst1/gst1.plugins.fix.sh ${@D}
+endef
+GST1_PLUGINS_BAD_POST_PATCH_HOOKS += GST1_PLUGINS_BAD_APPLY_VSS_FIX
+endif
+
+$(eval $(autotools-package))
+>>>>>>> origin/master

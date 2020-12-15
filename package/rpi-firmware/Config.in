@@ -11,6 +11,22 @@ config BR2_PACKAGE_RPI_FIRMWARE
 
 if BR2_PACKAGE_RPI_FIRMWARE
 
+choice 
+	prompt "Rasberrypi version"
+	config BR2_PACKAGE_RPI_VERSION_RPIO
+		bool "RPI 0"
+	config BR2_PACKAGE_RPI_VERSION_RPI1
+		bool "RPI 1"
+	config BR2_PACKAGE_RPI_VERSION_RPI2
+		bool "RPI 2"
+	config BR2_PACKAGE_RPI_VERSION_RPI3
+		bool "RPI 3"
+	config BR2_PACKAGE_RPI_VERSION_RPI3PLUS
+		bool "RPI 3+"
+	config BR2_PACKAGE_RPI_VERSION_RPI4
+		bool "RPI 4"
+endchoice
+
 choice
 	bool "rpi variant"
 	help
@@ -63,10 +79,17 @@ endchoice
 config BR2_PACKAGE_RPI_FIRMWARE_BOOT
 	string
 	default ""      if BR2_PACKAGE_RPI_FIRMWARE_DEFAULT
+<<<<<<< HEAD
 	default "_x"    if BR2_PACKAGE_RPI_FIRMWARE_X && BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI
 	default "x"     if BR2_PACKAGE_RPI_FIRMWARE_X && BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4
 	default "_cd"   if BR2_PACKAGE_RPI_FIRMWARE_CD && BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI
 	default "cd"    if BR2_PACKAGE_RPI_FIRMWARE_CD && BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4
+=======
+	default "_x"    if BR2_PACKAGE_RPI_FIRMWARE_X && !BR2_PACKAGE_RPI_VERSION_RPI4
+	default "x"     if BR2_PACKAGE_RPI_FIRMWARE_X && BR2_PACKAGE_RPI_VERSION_RPI4
+	default "_cd"   if BR2_PACKAGE_RPI_FIRMWARE_CD && !BR2_PACKAGE_RPI_VERSION_RPI4
+	default "cd"    if BR2_PACKAGE_RPI_FIRMWARE_CD && BR2_PACKAGE_RPI_VERSION_RPI4
+>>>>>>> origin/master
 
 config BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTBS
 	bool "Install Device Tree Blobs (DTBs)"
@@ -82,9 +105,16 @@ config BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTBS
 
 config BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTB_OVERLAYS
 	bool "Install DTB overlays"
+<<<<<<< HEAD
 	default y
 	depends on BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTBS \
 		|| BR2_LINUX_KERNEL_DTS_SUPPORT
+=======
+	depends on (BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTBS \
+		|| BR2_LINUX_KERNEL_DTS_SUPPORT) && \
+		!BR2_LINUX_KERNEL_DTS_OVERLAYS_SUPPORT
+	default y
+>>>>>>> origin/master
 	help
 	  Say 'y' here if you need to load one or more of the DTB
 	  overlays, to support HATs (Hardware Attached on Top, add-on

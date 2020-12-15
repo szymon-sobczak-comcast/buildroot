@@ -5,6 +5,22 @@
 ################################################################################
 
 GST1_VAAPI_VERSION = 1.16.2
+<<<<<<< HEAD
+=======
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_10),y)
+GST1_VAAPI_VERSION = 1.10.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_14),y)
+GST1_VAAPI_VERSION = 1.14.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_VAAPI_VERSION = 1.16.2
+endif
+
+>>>>>>> origin/master
 GST1_VAAPI_SITE = https://gstreamer.freedesktop.org/src/gstreamer-vaapi
 GST1_VAAPI_SOURCE = gstreamer-vaapi-$(GST1_VAAPI_VERSION).tar.xz
 GST1_VAAPI_LICENSE = LGPL-2.1+

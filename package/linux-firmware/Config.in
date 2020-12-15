@@ -34,6 +34,7 @@ config BR2_PACKAGE_LINUX_FIRMWARE_RADEON
 	help
 	  Firmware files for AMD Radeon video cards.
 
+<<<<<<< HEAD
 config BR2_PACKAGE_LINUX_FIRMWARE_QCOM_VENUS
 	bool "Qualcomm Venus video codec accelerator"
 	help
@@ -43,6 +44,12 @@ config BR2_PACKAGE_LINUX_FIRMWARE_QCOM_ADRENO
 	bool "Qualcomm Adreno GPU firmware"
 	help
 	  Firmware files for Qualcomm Adreno GPU firmware
+=======
+config BR2_PACKAGE_LINUX_FIRMWARE_NVIDIA_GK20A
+	bool "NVIDIA GK20A"
+	help
+	  Firmware files for NVIDIA GK20A driver
+>>>>>>> origin/master
 
 endmenu # Video
 

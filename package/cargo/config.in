@@ -1,2 +1,6 @@
+<<<<<<< HEAD
 [target.@RUSTC_TARGET_NAME@]
+=======
+[target.@RUST_TARGET_NAME@]
+>>>>>>> origin/master
 linker = "@CROSS_PREFIX@gcc"

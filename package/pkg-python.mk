@@ -86,6 +86,7 @@ HOST_PKG_PYTHON_SETUPTOOLS_ENV = \
 	$(HOST_CONFIGURE_OPTS)
 
 HOST_PKG_PYTHON_SETUPTOOLS_INSTALL_OPTS = \
+<<<<<<< HEAD
 	--prefix=$(HOST_DIR) \
 	--root=/ \
 	--single-version-externally-managed
@@ -97,6 +98,11 @@ define PKG_PYTHON_FIXUP_SYSCONFIGDATA
 		$(SED) "s:$(PER_PACKAGE_DIR)/[^/]\+/:$(PER_PACKAGE_DIR)/$($(PKG)_NAME)/:g"
 endef
 endif
+=======
+	--prefix=$(HOST_DIR)/usr \
+	--root=/ \
+	--single-version-externally-managed
+>>>>>>> origin/master
 
 ################################################################################
 # inner-python-package -- defines how the configuration, compilation

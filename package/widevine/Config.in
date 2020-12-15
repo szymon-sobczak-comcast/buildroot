@@ -1,4 +1,8 @@
 config BR2_PACKAGE_WIDEVINE
+<<<<<<< HEAD
+=======
+    depends on BR2_PACKAGE_WPEFRAMEWORK_CDMI_WIDEVINE
+>>>>>>> origin/master
 	select BR2_PACKAGE_HAS_WIDEVINE
 	select BR2_PACKAGE_WIDEVINE_SOC_WPE
         bool "Widevine"
@@ -6,6 +10,31 @@ config BR2_PACKAGE_WIDEVINE
            Widevine DRM solution provides the capability to license, securely distribute and protect
            playback of content on any consumer device.
 
+<<<<<<< HEAD
+=======
+if BR2_PACKAGE_WIDEVINE
+config BR2_PACKAGE_WIDEVINE_INSTALL_UT
+    bool "Unit tests"
+    help
+     Install a unit test binary "widevine_ce_cdm_unittest" on the target device.
+
+choice BR2_PACKAGE_WIDEVINE_BUILD_TYPE
+    prompt "Build type"
+    default BR2_PACKAGE_WIDEVINE_BUILD_TYPE_RELEASE
+    help
+      Select the type of build you want to use.
+
+config BR2_PACKAGE_WIDEVINE_BUILD_TYPE_DEBUG
+    bool "Debug"
+
+config BR2_PACKAGE_WIDEVINE_BUILD_TYPE_RELEASE
+    bool "Release"
+
+endchoice
+
+endif
+
+>>>>>>> origin/master
 config BR2_PACKAGE_HAS_WIDEVINE
         bool
 

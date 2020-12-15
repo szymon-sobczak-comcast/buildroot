@@ -1,3 +1,8 @@
 # Locally computed
+<<<<<<< HEAD
 sha256 31a84340be08be319570a9d1439f25c0e3513fed73065a56aa5dd61dd605d5d9 rpi-firmware-01ecfd2ba2b7cf3a2f4aa75ada895ee4a3e729f5.tar.gz
 sha256 c7283ff51f863d93a275c66e3b4cb08021a5dd4d8c1e7acc47d872fbe52d3d6b boot/LICENCE.broadcom
+=======
+sha256 4cb43c57e8fbfe81d27653d273a9f2f20f9ac497464770c3b06531de947ad3dc rpi-firmware-70c60c5c57d9d639fbd92276f18558ada51b7c53.tar.gz
+sha256 ec8cf82049351a581fdfb8c17a552078df0650aa35539ed8641f6097655d98ff rpi-firmware-e10b2880e26708afc0b32a485c1231207037fc45.tar.gz
+>>>>>>> origin/master

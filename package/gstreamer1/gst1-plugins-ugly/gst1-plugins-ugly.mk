@@ -5,12 +5,29 @@
 ################################################################################
 
 GST1_PLUGINS_UGLY_VERSION = 1.16.2
+<<<<<<< HEAD
+=======
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_10),y)
+GST1_PLUGINS_UGLY_VERSION = 1.10.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_14),y)
+GST1_PLUGINS_UGLY_VERSION = 1.14.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_PLUGINS_UGLY_VERSION = 1.16.2
+endif
+
+>>>>>>> origin/master
 GST1_PLUGINS_UGLY_SOURCE = gst-plugins-ugly-$(GST1_PLUGINS_UGLY_VERSION).tar.xz
 GST1_PLUGINS_UGLY_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-ugly
 GST1_PLUGINS_UGLY_LICENSE_FILES = COPYING
 # GPL licensed plugins will append to GST1_PLUGINS_UGLY_LICENSE if enabled.
 GST1_PLUGINS_UGLY_LICENSE = LGPL-2.1+
 
+<<<<<<< HEAD
 GST1_PLUGINS_UGLY_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
 
 GST1_PLUGINS_UGLY_CONF_OPTS += \
@@ -23,6 +40,30 @@ GST1_PLUGINS_UGLY_CONF_OPTS += \
 	-Damrwbdec=disabled \
 	-Dcdio=disabled \
 	-Dsidplay=disabled
+=======
+ifeq ($(BR2_PACKAGE_GSTREAMER1_GIT),y)
+GST1_PLUGINS_UGLY_SITE = http://cgit.freedesktop.org/gstreamer/gst-plugins-ugly/snapshot
+BR_NO_CHECK_HASH_FOR += $(GST1_PLUGINS_UGLY_SOURCE)
+GST1_PLUGINS_UGLY_AUTORECONF = YES
+GST1_PLUGINS_UGLY_AUTORECONF_OPTS = -I $(@D)/common/m4
+GST1_PLUGINS_UGLY_GETTEXTIZE = YES
+GST1_PLUGINS_UGLY_POST_DOWNLOAD_HOOKS += GSTREAMER1_COMMON_DOWNLOAD
+GST1_PLUGINS_UGLY_POST_EXTRACT_HOOKS += GSTREAMER1_COMMON_EXTRACT
+GST1_PLUGINS_UGLY_PRE_CONFIGURE_HOOKS += GSTREAMER1_FIX_AUTOPOINT
+GST1_PLUGINS_UGLY_POST_INSTALL_TARGET_HOOKS += GSTREAMER1_REMOVE_LA_FILES
+endif
+
+GST1_PLUGINS_UGLY_CONF_OPTS = --disable-examples --disable-valgrind
+
+GST1_PLUGINS_UGLY_CONF_OPTS += \
+	CFLAGS="$(GSTREAMER1_EXTRA_COMPILER_OPTIONS)" \
+	--disable-a52dec \
+	--disable-amrnb \
+	--disable-amrwb \
+	--disable-cdio \
+	--disable-sidplay \
+	--disable-twolame
+>>>>>>> origin/master
 
 GST1_PLUGINS_UGLY_DEPENDENCIES = gstreamer1 gst1-plugins-base
 
@@ -31,6 +72,13 @@ GST1_PLUGINS_UGLY_CONF_OPTS += -Dorc=enabled
 GST1_PLUGINS_UGLY_DEPENDENCIES += orc
 else
 GST1_PLUGINS_UGLY_CONF_OPTS += -Dorc=disabled
+endif
+
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_UGLY_PLUGIN_A52DEC),y)
+GST1_PLUGINS_UGLY_CONF_OPTS += --enable-a52dec
+GST1_PLUGINS_UGLY_DEPENDENCIES += liba52
+else
+GST1_PLUGINS_UGLY_CONF_OPTS += --disable-a52dec
 endif
 
 ifeq ($(BR2_PACKAGE_GST1_PLUGINS_UGLY_PLUGIN_ASFDEMUX),y)
@@ -99,4 +147,26 @@ endif
 # Use the following command to extract license info for plugins.
 # # find . -name 'plugin-*.xml' | xargs grep license
 
+<<<<<<< HEAD
 $(eval $(meson-package))
+=======
+ifeq ($(BR2_PACKAGE_VSS_SDK_MOVE_GSTREAMER),y)
+# this platform needs to run this gstreamer version parallel
+# to an older version.
+GST1_PLUGINS_UGLY_AUTORECONF = YES
+GST1_PLUGINS_UGLY_AUTORECONF_OPTS = -I $(@D)/common/m4
+GST1_PLUGINS_UGLY_GETTEXTIZE = YES
+GST1_PLUGINS_UGLY_CONF_OPTS += \
+	--datadir=/usr/share/gstreamer-wpe \
+	--datarootdir=/usr/share/gstreamer-wpe \
+	--sysconfdir=/etc/gstreamer-wpe \
+	--includedir=/usr/include/gstreamer-wpe \
+	--program-prefix wpe
+define GST1_PLUGINS_UGLY_APPLY_VSS_FIX
+ package/vss-sdk/gst1/gst1.plugins.fix.sh ${@D}
+endef
+GST1_PLUGINS_UGLY_POST_PATCH_HOOKS += GST1_PLUGINS_UGLY_APPLY_VSS_FIX
+endif
+
+$(eval $(autotools-package))
+>>>>>>> origin/master

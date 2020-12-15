@@ -40,7 +40,8 @@ HOST_LIBGLIB2_DEPENDENCIES = \
 	host-pcre \
 	host-pkgconf \
 	host-util-linux \
-	host-zlib
+	host-zlib \
+	host-python
 
 # We explicitly specify a giomodule-dir to avoid having a value
 # containing ${libdir} in gio-2.0.pc. Indeed, a value depending on

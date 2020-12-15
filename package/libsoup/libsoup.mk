@@ -4,8 +4,18 @@
 #
 ################################################################################
 
+<<<<<<< HEAD
 LIBSOUP_VERSION_MAJOR = 2.62
 LIBSOUP_VERSION = $(LIBSOUP_VERSION_MAJOR).3
+=======
+ifeq ($(BR2_PACKAGE_VSS_SDK),y)
+LIBSOUP_VERSION_MAJOR = 2.52
+LIBSOUP_VERSION = $(LIBSOUP_VERSION_MAJOR).2
+else
+LIBSOUP_VERSION_MAJOR = 2.56
+LIBSOUP_VERSION = $(LIBSOUP_VERSION_MAJOR).0
+endif
+>>>>>>> origin/master
 LIBSOUP_SOURCE = libsoup-$(LIBSOUP_VERSION).tar.xz
 LIBSOUP_SITE = http://ftp.gnome.org/pub/gnome/sources/libsoup/$(LIBSOUP_VERSION_MAJOR)
 LIBSOUP_LICENSE = LGPL-2.0+
@@ -26,6 +36,14 @@ ifeq ($(BR2_PACKAGE_LIBSOUP_SSL),y)
 LIBSOUP_DEPENDENCIES += glib-networking
 else
 LIBSOUP_CONF_OPTS += --disable-tls-check
+endif
+
+ifeq ($(BR2_PACKAGE_VSS_SDK),y)
+LIBSOUP_PKGDIR = "$(TOP_DIR)/package/libsoup"
+define LIBSOUP_APPLY_LOCAL_PATCHES
+ $(APPLY_PATCHES) $(@D) "$(LIBSOUP_PKGDIR)" 0003-soup-cookie-jar-add-symbol.patch.conditional
+endef
+LIBSOUP_POST_PATCH_HOOKS += LIBSOUP_APPLY_LOCAL_PATCHES
 endif
 
 $(eval $(autotools-package))

@@ -29,6 +29,7 @@ source "toolchain/toolchain-external/toolchain-external-andes-nds32/Config.in"
 # ARM (use ARM toolchain by default)
 source "toolchain/toolchain-external/toolchain-external-arm-arm/Config.in"
 source "toolchain/toolchain-external/toolchain-external-linaro-arm/Config.in"
+source "toolchain/toolchain-external/toolchain-external-linaro-arm-52/Config.in"
 source "toolchain/toolchain-external/toolchain-external-codesourcery-arm/Config.in"
 
 # ARM big-endian
@@ -136,6 +137,7 @@ source "toolchain/toolchain-external/toolchain-external-andes-nds32/Config.in.op
 # ARM
 source "toolchain/toolchain-external/toolchain-external-arm-arm/Config.in.options"
 source "toolchain/toolchain-external/toolchain-external-linaro-arm/Config.in.options"
+source "toolchain/toolchain-external/toolchain-external-linaro-arm-52/Config.in.options"
 source "toolchain/toolchain-external/toolchain-external-codesourcery-arm/Config.in.options"
 
 # ARM big-endian

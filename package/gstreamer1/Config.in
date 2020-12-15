@@ -2,7 +2,13 @@
 source "package/gstreamer1/gstreamer1/Config.in"
 
 if BR2_PACKAGE_GSTREAMER1
+<<<<<<< HEAD
 source "package/gstreamer1/gstreamer1-mm/Config.in"
+=======
+source "package/gstreamer1/gst1-aamp/Config.in"
+source "package/gstreamer1/gst1-bcm/Config.in"
+source "package/gstreamer1/gst1-common/Config.in"
+>>>>>>> origin/master
 source "package/gstreamer1/gst1-plugins-base/Config.in"
 source "package/gstreamer1/gst1-plugins-bayer2rgb-neon/Config.in"
 source "package/gstreamer1/gst1-plugins-good/Config.in"
@@ -11,10 +17,19 @@ source "package/gstreamer1/gst1-plugins-ugly/Config.in"
 source "package/gstreamer1/gst1-imx/Config.in"
 source "package/gstreamer1/gst1-interpipe/Config.in"
 source "package/gstreamer1/gst1-libav/Config.in"
+source "package/gstreamer1/gst1-rpicamsrc/Config.in"
 source "package/gstreamer1/gst1-rtsp-server/Config.in"
 source "package/gstreamer1/gst1-shark/Config.in"
 source "package/gstreamer1/gst1-validate/Config.in"
+source "package/gstreamer1/gst1-instruments/Config.in"
+source "package/gstreamer1/gst1-openwebrtc/Config.in"
 source "package/gstreamer1/gst1-vaapi/Config.in"
 source "package/gstreamer1/gst-omx/Config.in"
+<<<<<<< HEAD
 source "package/gstreamer1/gstreamer1-editing-services/Config.in"
+=======
+source "package/gstreamer1/gst1-fluendo-ismd/Config.in"
+source "package/gstreamer1/gst1-plugins-dorne/Config.in"
+source "package/gstreamer1/gst1-cencdecrypt/Config.in"
+>>>>>>> origin/master
 endif

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /output
 /dl
 /.auto.deps
@@ -14,3 +15,11 @@
 *~
 *.pyc
 local.mk
+=======
+local.mk
+dl/
+dl
+output*/
+.config*
+..config*
+>>>>>>> origin/master

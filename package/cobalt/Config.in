@@ -13,7 +13,11 @@ config BR2_PACKAGE_COBALT_IMAGE_AS_LIB
 
 choice BR2_PACKAGE_COBALT_BUILD_TYPE
     prompt "Build type"
+<<<<<<< HEAD
     default BR2_PACKAGE_COBALT_BUILD_TYPE_GOLD
+=======
+    default BR2_PACKAGE_COBALT_BUILD_TYPE_QA
+>>>>>>> origin/master
     help
         Select the type of build.
 

@@ -13,6 +13,7 @@ PYTHON_SETUPTOOLS_LICENSE = MIT
 PYTHON_SETUPTOOLS_LICENSE_FILES = LICENSE
 PYTHON_SETUPTOOLS_SETUP_TYPE = setuptools
 HOST_PYTHON_SETUPTOOLS_NEEDS_HOST_PYTHON = python2
+<<<<<<< HEAD
 
 define PYTHON_SETUPTOOLS_EXTRACT_CMDS
 	$(UNZIP) -d $(@D) $(PYTHON_SETUPTOOLS_DL_DIR)/$(PYTHON_SETUPTOOLS_SOURCE)
@@ -25,6 +26,8 @@ define HOST_PYTHON_SETUPTOOLS_EXTRACT_CMDS
 	mv $(@D)/setuptools-$(PYTHON_SETUPTOOLS_VERSION)/* $(@D)
 	$(RM) -r $(@D)/setuptools-$(PYTHON_SETUPTOOLS_VERSION)
 endef
+=======
+>>>>>>> origin/master
 
 $(eval $(python-package))
 $(eval $(host-python-package))

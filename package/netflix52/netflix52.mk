@@ -4,7 +4,11 @@
 #
 ################################################################################
 
+<<<<<<< HEAD
 NETFLIX52_VERSION = f4243391ef51e4269f03af2efab849ec5192f824
+=======
+NETFLIX52_VERSION = 0f367be669b3483cf6ec26b1cd1ded9a46917f89
+>>>>>>> origin/master
 NETFLIX52_SITE = git@github.com:Metrological/netflix.git
 NETFLIX52_SITE_METHOD = git
 NETFLIX52_LICENSE = PROPRIETARY
@@ -33,8 +37,12 @@ NETFLIX52_CONF_OPTS = \
 	-DBUILD_COMPILE_RESOURCES=OFF \
 	-DBUILD_SHARED_LIBS=OFF \
 	-DNRDP_HAS_IPV6=ON \
+<<<<<<< HEAD
 	-DGIBBON_GRAPHICS_GL_WSYS=egl \
 	-DNRDP_HAS_SOFTWAREPLAYER=OFF
+=======
+	-DGIBBON_GRAPHICS_GL_WSYS=egl
+>>>>>>> origin/master
 
 NETFLIX52_CONF_ENV += \
 	NODE="$(HOST_DIR)/usr/bin/node" \
@@ -157,7 +165,11 @@ ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_COMPOSITORCLIENT),y)
 NETFLIX52_CONF_OPTS += -DGIBBON_GRAPHICS=wpeframework
 NETFLIX52_CONF_OPTS += -DGIBBON_INPUT=wpeframework
 NETFLIX52_CONF_OPTS += -DGIBBON_PLATFORM=posix 
+<<<<<<< HEAD
 NETFLIX52_DEPENDENCIES += wpeframework
+=======
+NETFLIX52_DEPENDENCIES += wpeframework-clientlibraries
+>>>>>>> origin/master
 endif
 
 ifeq ($(BR2_PACKAGE_NETFLIX52_WESTEROS_SINK),y)
@@ -169,7 +181,11 @@ NETFLIX52_DEPENDENCIES += libgles libegl
 
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_PROVISIONPROXY), y)
     NETFLIX52_CONF_OPTS += -DNETFLIX_USE_PROVISION=ON
+<<<<<<< HEAD
     NETFLIX52_DEPENDENCIES += wpeframework
+=======
+    NETFLIX52_DEPENDENCIES += wpeframework-clientlibraries
+>>>>>>> origin/master
 endif
 
 ifneq ($(BR2_PACKAGE_NETFLIX52_KEYMAP),"")
@@ -200,7 +216,10 @@ define NETFLIX52_INSTALL_WPEFRAMEWORK_XML
 endef
 endif
 
+<<<<<<< HEAD
 ifeq ($(BR2_PACKAGE_NETFLIX52_BUILD_RELEASE),y)
+=======
+>>>>>>> origin/master
 define NETFLIX52_INSTALL_NETFLIX_DATA_CONFIGS
  	$(INSTALL) -d $(1)$(NETFLIX52_DATA_DIR)/resources
 	cp -a $(NETFLIX52_BUILD_DIR)/src/platform/gibbon/data/etc $(1)$(NETFLIX52_DATA_DIR)
@@ -212,7 +231,10 @@ define NETFLIX52_INSTALL_NETFLIX_DATA_CONFIGS
 	$(INSTALL) -d $(1)$(NETFLIX52_DATA_DIR)/etc/conf
 	$(call NETFLIX52_INSTALL_WPEFRAMEWORK_XML, $(1)$(NETFLIX52_DATA_DIR)/etc/conf)
 endef
+<<<<<<< HEAD
 endif
+=======
+>>>>>>> origin/master
 
 define NETFLIX52_INSTALL_TO_TARGET
 	$(INSTALL) -d $(1)/usr/lib

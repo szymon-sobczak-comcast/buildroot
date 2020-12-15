@@ -5,12 +5,29 @@
 ################################################################################
 
 GST1_PLUGINS_BASE_VERSION = 1.16.2
+<<<<<<< HEAD
+=======
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_10),y)
+GST1_PLUGINS_BASE_VERSION = 1.10.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_14),y)
+GST1_PLUGINS_BASE_VERSION = 1.14.4
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_PLUGINS_BASE_VERSION = 1.16.2
+endif
+
+>>>>>>> origin/master
 GST1_PLUGINS_BASE_SOURCE = gst-plugins-base-$(GST1_PLUGINS_BASE_VERSION).tar.xz
 GST1_PLUGINS_BASE_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-base
 GST1_PLUGINS_BASE_INSTALL_STAGING = YES
 GST1_PLUGINS_BASE_LICENSE_FILES = COPYING
 GST1_PLUGINS_BASE_LICENSE = LGPL-2.0+, LGPL-2.1+
 
+<<<<<<< HEAD
 GST1_PLUGINS_BASE_CONF_OPTS = \
 	-Dexamples=disabled \
 	-Dtests=disabled \
@@ -19,6 +36,35 @@ GST1_PLUGINS_BASE_CONF_OPTS = \
 	-Dglib-checks=disabled \
 	-Dgtk_doc=disabled \
 	-Dintrospection=disabled
+=======
+ifeq ($(BR2_PACKAGE_GSTREAMER1_GIT),y)
+GST1_PLUGINS_BASE_SITE = http://cgit.freedesktop.org/gstreamer/gst-plugins-base/snapshot
+BR_NO_CHECK_HASH_FOR += $(GST1_PLUGINS_BASE_SOURCE)
+GST1_PLUGINS_BASE_AUTORECONF = YES
+GST1_PLUGINS_BASE_AUTORECONF_OPTS = -I $(@D)/common/m4
+GST1_PLUGINS_BASE_GETTEXTIZE = YES
+GST1_PLUGINS_BASE_POST_EXTRACT_HOOKS += GSTREAMER1_COMMON_EXTRACT
+GST1_PLUGINS_BASE_PRE_CONFIGURE_HOOKS += GSTREAMER1_FIX_AUTOPOINT
+GST1_PLUGINS_BASE_POST_INSTALL_TARGET_HOOKS += GSTREAMER1_REMOVE_LA_FILES
+endif
+
+# freetype is only used by examples, but if it is not found
+# and the host has a freetype-config script, then the host
+# include dirs are added to the search path causing trouble
+GST1_PLUGINS_BASE_CONF_ENV =
+	FT2_CONFIG=/bin/false \
+	ac_cv_header_stdint_t="stdint.h"
+
+# gio_unix_2_0 is only used for tests
+GST1_PLUGINS_BASE_CONF_OPTS = \
+	CFLAGS="$(TARGET_CFLAGS) $(GSTREAMER1_EXTRA_COMPILER_OPTIONS)" \
+	--disable-examples \
+	--disable-oggtest \
+	--disable-vorbistest \
+	--disable-gio_unix_2_0 \
+	--disable-freetypetest \
+	--disable-valgrind
+>>>>>>> origin/master
 
 # Options which require currently unpackaged libraries
 GST1_PLUGINS_BASE_CONF_OPTS += \
@@ -278,4 +324,26 @@ else
 GST1_PLUGINS_BASE_CONF_OPTS += -Dvorbis=disabled
 endif
 
+<<<<<<< HEAD
 $(eval $(meson-package))
+=======
+ifeq ($(BR2_PACKAGE_VSS_SDK_MOVE_GSTREAMER),y)
+# this platform needs to run this gstreamer version parallel
+# to an older version.
+GST1_PLUGINS_BASE_AUTORECONF = YES
+GST1_PLUGINS_BASE_AUTORECONF_OPTS = -I $(@D)/common/m4
+GST1_PLUGINS_BASE_GETTEXTIZE = YES
+GST1_PLUGINS_BASE_CONF_OPTS += \
+	--datadir=/usr/share/gstreamer-wpe \
+	--datarootdir=/usr/share/gstreamer-wpe \
+	--sysconfdir=/etc/gstreamer-wpe \
+	--includedir=/usr/include/gstreamer-wpe \
+	--program-prefix wpe
+define GST1_PLUGINS_BASE_APPLY_VSS_FIX
+ package/vss-sdk/gst1/gst1.plugins.fix.sh ${@D}
+endef
+GST1_PLUGINS_BASE_POST_PATCH_HOOKS += GST1_PLUGINS_BASE_APPLY_VSS_FIX
+endif
+
+$(eval $(autotools-package))
+>>>>>>> origin/master

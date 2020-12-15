@@ -1,3 +1,7 @@
 # Locally calculated:
+<<<<<<< HEAD
 sha256  6459f70e47e70b4c04a85acf148381e6c8a2e86bd638aff21870afc6c14b85b0  bluez-alsa-2.1.0.tar.gz
 sha256  60253922a459245128c34eb379cbda7c76936636d4c10edc576663a0f560dd4d  LICENSE
+=======
+sha256  c2c3f5e3a904592fb5d804617d7a9f7c2c44bc8ede2b3b08c027758125bd1d80  bluez-alsa-11eb11d1b42eec1ec0956e7ab82864e3a61e422d.tar.gz
+>>>>>>> origin/master

@@ -5,7 +5,11 @@
 ################################################################################
 
 PYTHON3_VERSION_MAJOR = 3.8
+<<<<<<< HEAD
 PYTHON3_VERSION = $(PYTHON3_VERSION_MAJOR).2
+=======
+PYTHON3_VERSION = $(PYTHON3_VERSION_MAJOR).0
+>>>>>>> origin/master
 PYTHON3_SOURCE = Python-$(PYTHON3_VERSION).tar.xz
 PYTHON3_SITE = https://python.org/ftp/python/$(PYTHON3_VERSION)
 PYTHON3_LICENSE = Python-2.0, others
@@ -180,7 +184,11 @@ PYTHON3_CONF_OPTS += \
 #
 define HOST_PYTHON3_MAKE_REGEN_IMPORTLIB
 	$(HOST_MAKE_ENV) $(PYTHON3_CONF_ENV) $(MAKE) $(HOST_CONFIGURE_OPTS) -C $(@D) regen-importlib
+<<<<<<< HEAD
 	cp $(@D)/Programs/_freeze_importlib $(HOST_DIR)/bin/python-freeze-importlib
+=======
+	cp $(@D)/Programs/_freeze_importlib $(HOST_DIR)/usr/bin/python-freeze-importlib
+>>>>>>> origin/master
 endef
 
 HOST_PYTHON3_PRE_BUILD_HOOKS += HOST_PYTHON3_MAKE_REGEN_IMPORTLIB
@@ -253,7 +261,11 @@ HOST_PYTHON3_POST_INSTALL_HOOKS += HOST_PYTHON3_INSTALL_SYMLINK
 endif
 
 # Provided to other packages
+<<<<<<< HEAD
 PYTHON3_PATH = $(STAGING_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/
+=======
+PYTHON3_PATH = $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/
+>>>>>>> origin/master
 
 # Support for socket.AF_BLUETOOTH
 ifeq ($(BR2_PACKAGE_BLUEZ5_UTILS_HEADERS),y)
