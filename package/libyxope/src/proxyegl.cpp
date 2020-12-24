@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2020 Metrological
+Copyright (C) 2020-2021 Metrological
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,9 +46,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <limits>
 #include <vector>
+#include <array>
 #include <cstring>
 #include <unordered_map>
 #include <atomic>
+#include <queue>
+#include <tuple>
 
 #ifdef __cplusplus
 extern "C" {
@@ -222,6 +225,111 @@ class Platform : public Singleton <Platform> {
         map_dpy_t _map_dpy;
         map_surf_t _map_surf;
 
+        using queue_t = std::tuple <int, uint32_t, gbm_surface_t, gbm_bo_t>;
+
+        class Queue {
+            using modeset_t = struct { int fd; drmModeCrtc* crtc; uint32_t connector; };
+
+            public :
+
+                Queue () = delete;
+
+                Queue (int fd, uint32_t crtc, uint32_t connector) {
+                    static_assert (std::is_pointer <decltype (_modeset.crtc)>::value != false);
+
+                    decltype (_modeset.crtc) _crtc = nullptr;
+
+                    assert (fd > 0);
+
+                    if (fd > 0) {
+                        _crtc = drmModeGetCrtc (fd, crtc);
+                    }
+
+                    _modeset = { fd, _crtc, connector };
+                }
+
+                ~Queue () {
+                    auto _fd = _modeset.fd;
+                    auto _crtc = _modeset.crtc;
+                    auto _connector = _modeset.connector;
+
+                    if (_crtc == nullptr || _fd <= 0 || drmModeSetCrtc(_fd, _crtc->crtc_id, _crtc->buffer_id, _crtc->x, _crtc->y, &_connector, 1, &(_crtc->mode)) != 0) {
+                        // Error
+                        LOG (_2CSTR ("Unable to restore initial mode set, with crtc (id = "), _crtc->crtc_id, _2CSTR(") and framebuffer (id "), _crtc->buffer_id, _2CSTR(")"));
+
+                        assert (false);
+                    }
+                    else {
+                        LOG (_queue.size (), _2CSTR (" framebuffer(s) available to cleanup"));
+
+                        while (_queue.size () >= 1) {
+                            queue_t& _element = _queue.front ();
+
+                            auto _fd = std::get <0> (_element);
+                            auto _fb = std::get <1> (_element);
+
+                            if (_fd < 0 || _fb == 0 || drmModeRmFB (_fd, _fb) != 0) {
+                                LOG (_2CSTR ("Failed to destruct frame buffer (id = "), _fb, _2CSTR (")"));
+                            }
+                            else {
+                                auto _surf = std::get <2> (_element);
+                                auto _bo = std::get <3> (_element);
+
+                                if (_surf != nullptr && _bo != nullptr) {
+
+                                    {
+                                    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
+
+                                    auto it = Platform::Instance()._map_surf.find (_surf);
+
+                                    if (it != Platform::Instance()._map_surf.end ()) {
+                                        // Error, expect it to be removed already by proper destruction flow
+                                        // e.g., a call to gbm_surface_destroy or some other 'destroy' API
+                                        LOG (_2CSTR ("Tracked surface"));
+                                    }
+                                    }
+
+                                    // Platform is destructed later
+                                    /*void*/ Platform::Instance ().gbm_surface_release_buffer (_surf, _bo);
+                                }
+                                else {
+                                    LOG (_2CSTR ("Failed to release internal buffer at "), _bo);
+                                }
+                            }
+
+                            /* void */ _queue.pop ();
+                        }
+                    }
+
+                    if(_crtc != nullptr) {
+                        drmModeFreeCrtc (_crtc);
+                    }
+                }
+
+                void push (const queue_t& element) {
+                   /* void */  _queue.push (element);
+                }
+
+                queue_t pop () {
+                    queue_t& _element = _queue.front ();
+
+                    /* void */ _queue.pop ();
+
+                    return _element;
+                }
+
+                size_t size () {
+                    return _queue.size ();
+                }
+
+            private :
+// TODO: improve efficiency
+                std::queue <queue_t> _queue;
+
+                // Initial mode set
+                modeset_t _modeset;
+        };
+
         Platform () {
             /*void*/ _map_dpy.clear ();
             /*void*/ _map_surf.clear ();
@@ -232,7 +340,11 @@ class Platform : public Singleton <Platform> {
         template <typename Func>
         _PROXYEGL_PRIVATE bool hasGBMproperty(Func func) const;
 
-        _PROXYEGL_PRIVATE gbm_bo_t ScanOut (gbm_bo_t const & bo, uint8_t buffers = 2) const;
+        static constexpr uint32_t MinimumBufferCount () {
+            return 1;
+        }
+
+        _PROXYEGL_PRIVATE bool ScanOut (gbm_surface_t const & surface, uint8_t buffers = MinimumBufferCount ()) const;
 
         // Seconds
         _PROXYEGL_PRIVATE static constexpr time_t FrameDuration () {
@@ -597,37 +709,13 @@ bool Platform::ScanOut (EGLSurface const & surface) const {
         if (_native != EGL_DEFAULT_DISPLAY && _dpy != EGL_NO_DISPLAY) {
             gbm_surface_t _gbm_surf = reinterpret_cast <gbm_surface_t> (it->second);
 
-            gbm_bo_t _gbm_bo = nullptr;
+            EGLint _value;
 
-            if (_it_dpy != _map_dpy.end ()) {
-                _native = _it_dpy->second;
+            if (eglQuerySurface (_dpy, surface, EGL_RENDER_BUFFER, &_value) != EGL_FALSE) {
+                ret = ScanOut (_gbm_surf, _value != EGL_BACK_BUFFER ? MinimumBufferCount () : MinimumBufferCount () + 1);
             }
-
-            if (_gbm_surf != nullptr) {
-                _gbm_bo = gbm_surface_lock_front_buffer (_gbm_surf);
-            }
-
-            if (_gbm_bo != nullptr) {
-                // Signal that a lock has been taken
-                ret = true;
-                EGLint _value;
-
-                if (eglQuerySurface (_dpy, surface, EGL_RENDER_BUFFER, &_value) != EGL_FALSE) {
-// TODO: validate surface belongs to device
-                    gbm_bo_t _available = ScanOut (_gbm_bo, _value != EGL_BACK_BUFFER ? 1 : 2);
-
-                    if (_available != nullptr) {
-                        // Probably not required after removing the FB, but just be safe
-                        /*void*/ gbm_surface_release_buffer (_gbm_surf, _available);
-                    }
-                }
-                else {
-                    LOG (_2CSTR ("Unable to complete scan out"));
-                }
-            }
-
-            if (gbm_surface_has_free_buffers (_gbm_surf) <= 0) {
-                LOG (_2CSTR ("Insufficient free buffers left"));
+            else {
+                LOG (_2CSTR ("Unable to complete scan out"));
             }
         }
     }
@@ -640,7 +728,7 @@ bool Platform::ScanOut (EGLSurface const & surface) const {
 }
 
 // Never called directly, hence no guard
-Platform::gbm_bo_t Platform::ScanOut (gbm_bo_t const & _bo, uint8_t buffers) const {
+bool Platform::ScanOut (gbm_surface_t const & surface, uint8_t buffers) const {
     // Determine current CRTC; currently only considers just a single crtc-encoder-connector path
     auto func = [] (uint32_t fd, uint32_t& crtc, uint32_t& connectors) -> uint32_t {
         uint32_t ret = 0;
@@ -690,191 +778,213 @@ Platform::gbm_bo_t Platform::ScanOut (gbm_bo_t const & _bo, uint8_t buffers) con
         return ret;
     };
 
-    gbm_bo_t ret = nullptr;
+    // Buffer to queue and buffer to release
+    std::array <gbm_bo_t, 2> _bo = { nullptr, nullptr };
 
-    gbm_device_t _gbm_device = gbm_bo_get_device (_bo);
-
+    // Not all used  gbm / drm API here are well defined within this unit
     // This can be an expensive test, thus cache the result
     static bool _loaded = loaded (libGBMname ()) && loaded (libDRMname ());
 
-    if (_gbm_device != nullptr && _loaded != false) {
+    if (_loaded != false) {
+        if (surface != nullptr) {
+            _bo.back () = gbm_surface_lock_front_buffer (surface);
+        }
 
-        int _fd = gbm_device_get_fd (_gbm_device);
+        gbm_device_t _gbm_device = nullptr;
 
-        if (_fd >= 0 && drmAvailable () != 0 && drmIsMaster (_fd) != 0) {
-            uint32_t _format = gbm_bo_get_format (_bo);
-            uint32_t _bpp = gbm_bo_get_bpp (_bo);
-            uint32_t _stride = gbm_bo_get_stride (_bo);
-            uint32_t _height = gbm_bo_get_height (_bo);
-            uint32_t _width = gbm_bo_get_width (_bo);
-            uint32_t _handle = gbm_bo_get_handle (_bo).u32;
+        if (_bo.back () != nullptr) {
+            _gbm_device = gbm_bo_get_device (_bo.back ());
+        }
 
-            if (_bpp == 32 && gbm_device_is_format_supported (_gbm_device, _format, GBM_BO_USE_SCANOUT) != 0) {
-                // gbm_bo_format is any of 
-                // GBM_BO_FORMAT_XRGB8888 : RGB in 32 bit
-                // GBM_BO_FORMAT_ARGB8888 : ARGB in 32 bit
-                // and should be considered something internal
+        if (_gbm_device != nullptr) {
+            int _fd = gbm_device_get_fd (_gbm_device);
 
-                // Formats can be set using GBM_BO_FORMAT_XRGB8888, GBM_BO_FORMAT_ARGB8888, but also with DRM_FORMAT_XRGB8888 and DRM_FORMAT_ARGB8888
-                // The returned format is always one of the latter two, which is indicative for the native visual id. Do not support other format than available with gbm.
-                assert (_format == DRM_FORMAT_XRGB8888 || _format == DRM_FORMAT_ARGB8888);
+            if (_fd >= 0 && drmAvailable () != 0 && drmIsMaster (_fd) != 0) {
+                auto _element = _bo.back ();
 
-                uint32_t _fb = 0;
+                uint32_t _format = gbm_bo_get_format (_element);
+                uint32_t _bpp = gbm_bo_get_bpp (_element);
+                uint32_t _stride = gbm_bo_get_stride (_element);
+                uint32_t _height = gbm_bo_get_height (_element);
+                uint32_t _width = gbm_bo_get_width (_element);
+                uint32_t _handle = gbm_bo_get_handle (_element).u32;
 
-                // drm_fourcc.c illustrates that DRM_FORMAT_XRGB8888 has depth 24, and DRM_FORMAT_ARGB8888 has depth 32
-                if (drmModeAddFB (_fd, _width, _height, _format != DRM_FORMAT_ARGB8888 ? _bpp - 8 : _bpp, _bpp, _stride, _handle, &_fb) == 0) {
+                if (_bpp == 32 && gbm_device_is_format_supported (_gbm_device, _format, GBM_BO_USE_SCANOUT) != 0) {
+                    // gbm_bo_format is any of
+                    // GBM_BO_FORMAT_XRGB8888 : RGB in 32 bit
+                    // GBM_BO_FORMAT_ARGB8888 : ARGB in 32 bit
+                    // and should be considered something internal
 
-                    auto enqueue = [&buffers] (int fd, int fb, gbm_bo_t bo) -> gbm_bo_t {
-                        // Single, double or multibuffering
+                    // Formats can be set using GBM_BO_FORMAT_XRGB8888, GBM_BO_FORMAT_ARGB8888, but also with DRM_FORMAT_XRGB8888 and DRM_FORMAT_ARGB8888
+                    // The returned format is always one of the latter two, which is indicative for the native visual id. Do not support other format than available with gbm.
+                    assert (_format == DRM_FORMAT_XRGB8888 || _format == DRM_FORMAT_ARGB8888);
 
-                        if (buffers != 2) {
-                            LOG (_2CSTR ("Only double buffering is supported"));
-                            assert (false);
-                        }
+                    uint32_t _fb = 0;
 
-                        static int _fb [1] = { 0 };
-// TODO: 'dangerous', on a 'restart' in EGL context, eg, apllication 'never' ends
-                        static gbm_bo_t _bo [1] = { nullptr };
+                    // drm_fourcc.c illustrates that DRM_FORMAT_XRGB8888 has depth 24, and DRM_FORMAT_ARGB8888 has depth 32
+                    if (drmModeAddFB (_fd, _width, _height, _format != DRM_FORMAT_ARGB8888 ? _bpp - 8 : _bpp, _bpp, _stride, _handle, &_fb) == 0) {
+                        // Expensive operation thus best to cache the result assuming it will not change
+                        static uint32_t _crtc = 0;
+                        static uint32_t _connectors = 0;
+                        static uint32_t _count = func (_fd, _crtc, _connectors);
 
-                        gbm_bo_t ret = nullptr;
+                        // Enable multi buffering
+                        static Platform::Queue _queue (_fd, _crtc, _connectors);
 
-                        if (fd < 0 || _fb[0] == 0 || _bo[0] == nullptr || drmModeRmFB (fd, _fb [0]) != 0) {
-                            // Always true for the initial frame
-                            LOG (_2CSTR ("Unable to remove 'old' frame buffer"));
-                        }
-                        else {
-                            // Effectively implement double buffering
-                            ret = _bo [0];
-                        }
+                        auto enqueue = [&buffers, &surface, this] (int fd, uint32_t fb, gbm_bo_t bo) -> gbm_bo_t {
+                            gbm_bo_t ret = nullptr;
 
-                        // Unconditionally update
-                        _fb [0] = fb;
-                        _bo [0] = bo;
+                            /* void */ _queue.push (std::make_tuple(fd, fb, surface, bo));
 
-                        return ret;
-                    };
+                            if ( MinimumBufferCount () ==  buffers || _queue.size () >= buffers) {
+                                queue_t _element = _queue.pop ();
 
-                    // Expensive operation thus best to cache the result assuming it will not change
-                    static uint32_t _crtc = 0;
-                    static uint32_t _connectors = 0;
-                    static uint32_t _count = func (_fd, _crtc, _connectors);
+                                auto _fd = std::get <0> (_element);
+                                auto _fb = std::get <1> (_element);
 
-                    static Platform::drm_callback_data_t _callback_data = {_fd, _fb, _bo, true};
-                    // Guardian of the shared data presented one line earlier
-                    static Mutex _mutex;
+                                if (_fd < 0 || _fb == 0 || drmModeRmFB (_fd, _fb) != 0) {
+                                    // Always true for the initial frame
+                                    LOG (_2CSTR ("Unable to remove 'old' frame buffer"));
+                                }
+                                else {
+                                    auto _bo = std::get <3> (_element);
 
-                    _callback_data = {_fd, _fb, _bo, true};
+                                    static_assert (std::is_same <decltype (_bo), decltype (ret)>::value != false);
+                                    ret = _bo;
+                                }
+                            }
 
-                    int _err = drmModePageFlip (_fd, _crtc, _fb, DRM_MODE_PAGE_FLIP_EVENT, &_callback_data);
+                            return ret;
+                        };
 
-                    switch (0 - _err) {
-                        case 0      :   {   // No error
-                                            // Strictly speaking c++ linkage and not C linkage
-                                            // Asynchronous, but never called more than once, waiting in scope
-                                            auto handler = +[] (int fd, unsigned int frame, unsigned int sec, unsigned int usec, void* data) {
-                                                std::lock_guard < decltype (_mutex) > _lock (_mutex);
+                        static Platform::drm_callback_data_t _callback_data = {_fd, _fb, _bo.back (), true};
+                        // Guardian of the shared data presented one line earlier
+                        static Mutex _mutex;
 
-                                                if (data != nullptr) {
-                                                    Platform::drm_callback_data_t* _data = reinterpret_cast <Platform::drm_callback_data_t*> (data);
+                        _callback_data = {_fd, _fb, _bo.back (), true};
 
-                                                    assert (fd == _data->fd);
+                        int _err = drmModePageFlip (_fd, _crtc, _fb, DRM_MODE_PAGE_FLIP_EVENT, &_callback_data);
 
-                                                    // Encourages the loop to break
-                                                    _data->waiting = false;
-                                                }
-                                                else {
-                                                    LOG (_2CSTR ("Invalid callback data"));
-                                                }
-                                            };
+                        switch (0 - _err) {
+                            case 0      :   {   // No error
+                                                // Strictly speaking c++ linkage and not C linkage
+                                                // Asynchronous, but never called more than once, waiting in scope
+                                                auto handler = +[] (int fd, unsigned int frame, unsigned int sec, unsigned int usec, void* data) {
+                                                    std::lock_guard < decltype (_mutex) > _lock (_mutex);
 
-                                            // Use the magic constant here because the struct is versioned!
-                                            drmEventContext _context = { .version = 2, . vblank_handler = nullptr, .page_flip_handler = handler };
+                                                    if (data != nullptr) {
+                                                        Platform::drm_callback_data_t* _data = reinterpret_cast <Platform::drm_callback_data_t*> (data);
 
-                                            fd_set _fds;
+                                                        assert (fd == _data->fd);
 
-                                            struct timespec _timeout = { .tv_sec = Platform::FrameDuration (), .tv_nsec = 0 };
-
-                                            bool _waiting = true;
-
-                                            {
-                                                std::lock_guard < decltype (_mutex) > _lock (_mutex);
-                                                _waiting = _callback_data.waiting;
-                                            }
-
-                                            while (_waiting != false) {
-                                                FD_ZERO (&_fds);
-                                                FD_SET( _fd, &_fds);
-
-                                                // Race free
-                                                _err  = pselect(_fd + 1, &_fds, nullptr, nullptr, &_timeout, nullptr);
-
-                                                if (_err < 0) {
-                                                    // Error; break the loop
-                                                    break;
-                                                }
-                                                else {
-                                                    if (_err == 0) {
-                                                        // Timeout; retry
-// TODO: add an additional condition to break the loop to limit the number of retries, but then deal with the asynchronous nature of the callback
+                                                        // Encourages the loop to break
+                                                        _data->waiting = false;
                                                     }
-                                                    else { // ret > 0
-                                                        if (FD_ISSET (_fd, &_fds) != 0) {
-                                                            // Node is readable
-                                                            if (drmHandleEvent (_fd, &_context) != 0) {
-                                                                // Error; break the loop
-                                                                break;
-                                                            }
-
-                                                            // Flip probably occured already otherwise it loops again
-                                                            ret = enqueue (_fd, _fb, _bo);
-                                                        }
+                                                    else {
+                                                        LOG (_2CSTR ("Invalid callback data"));
                                                     }
-                                                }
+                                                };
+
+                                                // Use the magic constant here because the struct is versioned!
+                                                drmEventContext _context = { .version = 2, . vblank_handler = nullptr, .page_flip_handler = handler };
+
+                                                fd_set _fds;
+
+                                                struct timespec _timeout = { .tv_sec = Platform::FrameDuration (), .tv_nsec = 0 };
+
+                                                bool _waiting = true;
 
                                                 {
-                                                     std::lock_guard < decltype (_mutex) > _lock (_mutex);
+                                                    std::lock_guard < decltype (_mutex) > _lock (_mutex);
                                                     _waiting = _callback_data.waiting;
                                                 }
-                                            }
 
-                                            break;
-                                        }
-                        // Many causes, but the most obvious is a busy resource or a missing drmModeSetCrtc
-                        case EINVAL : {     // Probably a missing drmModeSetCrtc or an invalid _crtc
-                                            drmModeCrtcPtr _ptr = drmModeGetCrtc (_fd, _crtc);
+                                                while (_waiting != false) {
+                                                    FD_ZERO (&_fds);
+                                                    FD_SET( _fd, &_fds);
 
-                                            if (_ptr != nullptr) {
-                                                // Assume the dimensions of the buffer fit within this mode
-                                                if (drmModeSetCrtc (_fd, _crtc, _fb, _ptr->x, _ptr->y, &_connectors, _count, &_ptr->mode) != 0) {
-                                                    // Error
-                                                    // There is nothing to be done te recover
+                                                    // Race free
+                                                    _err  = pselect(_fd + 1, &_fds, nullptr, nullptr, &_timeout, nullptr);
+
+                                                    if (_err < 0) {
+                                                        // Error; break the loop
+                                                        break;
+                                                    }
+                                                    else {
+                                                        if (_err == 0) {
+                                                            // Timeout; retry
+// TODO: add an additional condition to break the loop to limit the number of retries, but then deal with the asynchronous nature of the callback
+                                                        }
+                                                        else { // ret > 0
+                                                            if (FD_ISSET (_fd, &_fds) != 0) {
+                                                                // Node is readable
+                                                                if (drmHandleEvent (_fd, &_context) != 0) {
+                                                                    // Error; break the loop
+                                                                    break;
+                                                                }
+
+                                                                // Flip probably occured already otherwise it loops again
+                                                                _bo.front () = enqueue (_fd, _fb, _bo.back ());
+                                                            }
+                                                        }
+                                                    }
+
+                                                    {
+                                                         std::lock_guard < decltype (_mutex) > _lock (_mutex);
+                                                        _waiting = _callback_data.waiting;
+                                                    }
                                                 }
-                                                else {
-                                                    ret = enqueue (_fd, _fb, _bo);
+
+                                                break;
+                                            }
+                            // Many causes, but the most obvious is a busy resource or a missing drmModeSetCrtc
+                            case EINVAL :   {     // Probably a missing drmModeSetCrtc or an invalid _crtc
+                                                drmModeCrtcPtr _ptr = drmModeGetCrtc (_fd, _crtc);
+
+                                                if (_ptr != nullptr) {
+                                                    // Assume the dimensions of the buffer fit within this mode
+                                                    if (drmModeSetCrtc (_fd, _crtc, _fb, _ptr->x, _ptr->y, &_connectors, _count, &_ptr->mode) != 0) {
+                                                        // Error
+                                                        // There is nothing to be done te recover
+                                                    }
+                                                    else {
+                                                        _bo.front () = enqueue (_fd, _fb, _bo.back ());
+                                                    }
+
+                                                    drmModeFreeCrtc (_ptr);
                                                 }
 
-                                                drmModeFreeCrtc (_ptr);
+                                                break;
                                             }
-
-                                            break;
-                                      }
-                        case EBUSY  :
-                        default     : {
-                                          // There is nothing to be done about it
-                                      }
+                            case EBUSY  :
+                            default     :   {
+                                            // There is nothing to be done about it
+                                            }
+                        }
                     }
                 }
             }
+            else {
+                LOG (_2CSTR ("Unable to complete the scan out due to insufficient privileges"));
+            }
+        }
 
-// TODO : Keep track of the previous framebuffer etc to delete it later
-
+        if (surface != nullptr && _bo.front () != nullptr) {
+            /*void*/ gbm_surface_release_buffer (surface, _bo.front ());
         }
         else {
-            LOG (_2CSTR ("Unable to complete the scan out due to insufficient privileges"));
+            LOG (_2CSTR ("Unable to release a buffer"));
+        }
+
+        if (surface != nullptr && gbm_surface_has_free_buffers (surface) <= 0) {
+            LOG (_2CSTR ("Insufficient free buffers left"));
         }
     }
+    else {
+        LOG (_2CSTR ( "Unable to complete the scan out due to missing support library"));
+    }
 
-    return ret;
+    return _bo.front () != nullptr;
 }
 
 // Helpers
