@@ -24,7 +24,7 @@ index 9c289ff7..93bda306 100644
 +  list(APPEND LIBRARIES gstgl-1.0 )
 +  add_definitions(-DGST_GL)
 +  include_directories($ENV{STAGING_DIR}/usr/lib/gstreamer-1.0/include/)
-+  if (GSTREAMER_VERSION STREQUAL "1.14.4")
++  if ((GSTREAMER_VERSION VERSION_EQUAL "1.14.4") OR (GSTREAMER_VERSION VERSION_GREATER "1.14.4"))
 +    add_definitions("-DGSTREAMER_VERSION_1_14")
 +  endif()
 +  if(NRDP_REFERENCE)
