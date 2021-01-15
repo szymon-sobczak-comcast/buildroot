@@ -22,8 +22,8 @@ GST_OMX_SOURCE = gst-omx-$(GST_OMX_VERSION).tar.xz
 GST_OMX_SITE = https://gstreamer.freedesktop.org/src/gst-omx
 
 ifeq ($(BR2_PACKAGE_GSTREAMER1_GIT),y)
-GST_OMX_SOURCE = gst-omx-$(GST_OMX_VERSION).tar.xz
-GST_OMX_SITE = http://cgit.freedesktop.org/gstreamer/gst-omx/snapshot
+GST_OMX_SOURCE = gst-omx-$(GST_OMX_VERSION).tar.bz2
+GST_OMX_SITE = "https://gitlab.freedesktop.org/gstreamer/gst-omx/repository/$(GST_OMX_VERSION)/archive.tar.bz2?filename="
 BR_NO_CHECK_HASH_FOR += $(GST_OMX_SOURCE)
 GST_OMX_POST_DOWNLOAD_HOOKS += GSTREAMER1_COMMON_DOWNLOAD
 GST_OMX_POST_EXTRACT_HOOKS += GSTREAMER1_COMMON_EXTRACT
