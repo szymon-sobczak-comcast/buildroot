@@ -25,7 +25,8 @@ GSTREAMER1_LICENSE_FILES = COPYING
 GSTREAMER1_LICENSE = LGPLv2+, LGPLv2.1+
 
 ifeq ($(BR2_PACKAGE_GSTREAMER1_GIT),y)
-GSTREAMER1_SITE = http://cgit.freedesktop.org/gstreamer/gstreamer/snapshot
+GSTREAMER1_SOURCE = gstreamer-$(GSTREAMER1_VERSION).tar.bz2
+GSTREAMER1_SITE = "https://gitlab.freedesktop.org/gstreamer/gstreamer/repository/$(GSTREAMER1_VERSION)/archive.tar.bz2?filename="
 BR_NO_CHECK_HASH_FOR += $(GSTREAMER1_SOURCE)
 GSTREAMER1_AUTORECONF = YES
 GSTREAMER1_AUTORECONF_OPTS = -I $(@D)/common/m4

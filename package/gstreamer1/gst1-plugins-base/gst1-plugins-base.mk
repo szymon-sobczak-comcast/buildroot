@@ -25,7 +25,8 @@ GST1_PLUGINS_BASE_LICENSE_FILES = COPYING.LIB
 GST1_PLUGINS_BASE_LICENSE = LGPLv2+, LGPLv2.1+
 
 ifeq ($(BR2_PACKAGE_GSTREAMER1_GIT),y)
-GST1_PLUGINS_BASE_SITE = http://cgit.freedesktop.org/gstreamer/gst-plugins-base/snapshot
+GST1_PLUGINS_BASE_SOURCE = gst-plugins-base-$(GST1_PLUGINS_BASE_VERSION).tar.bz2
+GST1_PLUGINS_BASE_SITE = "https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/repository/$(GST1_PLUGINS_BASE_VERSION)/archive.tar.bz2?filename="
 BR_NO_CHECK_HASH_FOR += $(GST1_PLUGINS_BASE_SOURCE)
 GST1_PLUGINS_BASE_AUTORECONF = YES
 GST1_PLUGINS_BASE_AUTORECONF_OPTS = -I $(@D)/common/m4

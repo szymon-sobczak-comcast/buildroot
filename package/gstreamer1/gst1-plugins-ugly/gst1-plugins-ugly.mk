@@ -25,7 +25,8 @@ GST1_PLUGINS_UGLY_LICENSE_FILES = COPYING
 GST1_PLUGINS_UGLY_LICENSE = LGPLv2.1+
 
 ifeq ($(BR2_PACKAGE_GSTREAMER1_GIT),y)
-GST1_PLUGINS_UGLY_SITE = http://cgit.freedesktop.org/gstreamer/gst-plugins-ugly/snapshot
+GST1_PLUGINS_UGLY_SOURCE = gst-plugins-ugly-$(GST1_PLUGINS_UGLY_VERSION).tar.bz2
+GST1_PLUGINS_UGLY_SITE = "https://gitlab.freedesktop.org/gstreamer/gst-plugins-ugly/repository/$(GST1_PLUGINS_UGLY_VERSION)/archive.tar.bz2?filename="
 BR_NO_CHECK_HASH_FOR += $(GST1_PLUGINS_UGLY_SOURCE)
 GST1_PLUGINS_UGLY_AUTORECONF = YES
 GST1_PLUGINS_UGLY_AUTORECONF_OPTS = -I $(@D)/common/m4

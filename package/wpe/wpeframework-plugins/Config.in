@@ -66,6 +66,35 @@ menuconfig BR2_PACKAGE_WPEFRAMEWORK_COBALT
 
 if BR2_PACKAGE_WPEFRAMEWORK_COBALT
 
+choice BR2_PACKAGE_WPEFRAMEWORK_COBALT_RESOLUTION
+    default BR2_PACKAGE_WPEFRAMEWORK_COBALT_RESOLUTION_720P
+    prompt "resolution"
+    help
+      Select cobalt output resolution
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_RESOLUTION_720P
+    bool "720p"
+    help
+      Set the resolution to 720p (HD Ready)
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_RESOLUTION_1080P
+    bool "1080p"
+    help
+      Set the resolution to 1080p (Full HD)
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_RESOLUTION_2160P
+    bool "2160p"
+    help
+      Set the resolution to 2160p (4k)
+
+endchoice
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_SINGLE_PLAYBACKRATE
+    bool "only 1x playback rate"
+    default n
+    help
+      Select this to enable only 1x playback rate.
+
 config BR2_PACKAGE_WPEFRAMEWORK_COBALT_AUTOSTART
     bool "Start Automatically"
     default n
@@ -118,6 +147,14 @@ config BR2_PACKAGE_WPEFRAMEWORK_COBALT_OPERATOR_NAME
 
 config BR2_PACKAGE_WPEFRAMEWORK_COBALT_FRIENDLY_NAME
     string "friendlyname"
+    default ""
+    
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_SCOPE
+    string "scope"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_COBALT_SECRET
+    string "secret"
     default ""
 
 endif
@@ -477,12 +514,22 @@ menuconfig BR2_PACKAGE_WPEFRAMEWORK_MONITOR
 
 if BR2_PACKAGE_WPEFRAMEWORK_MONITOR
 
-config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_WEBKIT
+config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_WEBKITBROWSER
     depends on BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER
     string "webkit-limit"
     default "614400"
 
-config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_YOUTUBE
+config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_WEBKITBROWSER_APPS
+    depends on BR2_PACKAGE_WPEFRAMEWORK_APPS
+    string "apps-limit"
+    default "614400"
+
+config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_WEBKITBROWSER_UX
+    depends on BR2_PACKAGE_WPEFRAMEWORK_UX
+    string "ux-limit"
+    default "614400"
+
+config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_WEBKITBROWSER_YOUTUBE
     depends on BR2_PACKAGE_WPEFRAMEWORK_YOUTUBE
     string "youtube-limit"
     default "614400"
@@ -497,20 +544,10 @@ config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_AMAZON
     string "amazon-limit"
     default "614400"
 
-config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_APPS
-    depends on BR2_PACKAGE_WPEFRAMEWORK_APPS
-    string "apps-limit"
-    default "614400"
-
-config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_UX
-    depends on BR2_PACKAGE_WPEFRAMEWORK_UX
-    string "ux-limit"
-    default "614400"
-
 config BR2_PACKAGE_WPEFRAMEWORK_MONITOR_NETFLIX
     depends on BR2_PACKAGE_WPEFRAMEWORK_NETFLIX
     string "netflix-limit"
-    default "409600"
+    default "614400"
 
 endif
 

@@ -24,7 +24,8 @@ GST1_PLUGINS_GOOD_LICENSE_FILES = COPYING
 GST1_PLUGINS_GOOD_LICENSE = LGPLv2.1+
 
 ifeq ($(BR2_PACKAGE_GSTREAMER1_GIT),y)
-GST1_PLUGINS_GOOD_SITE = http://cgit.freedesktop.org/gstreamer/gst-plugins-good/snapshot
+GST1_PLUGINS_GOOD_SOURCE = gst-plugins-good-$(GST1_PLUGINS_GOOD_VERSION).tar.bz2
+GST1_PLUGINS_GOOD_SITE = "https://gitlab.freedesktop.org/gstreamer/gst-plugins-good/repository/$(GST1_PLUGINS_GOOD_VERSION)/archive.tar.bz2?filename="
 BR_NO_CHECK_HASH_FOR += $(GST1_PLUGINS_GOOD_SOURCE)
 GST1_PLUGINS_GOOD_CONF_ENV += CFLAGS="$(TARGET_CFLAGS) -Wno-error"
 GST1_PLUGINS_GOOD_AUTORECONF = YES

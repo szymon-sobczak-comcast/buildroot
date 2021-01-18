@@ -36,7 +36,7 @@ config BR2_PACKAGE_GST1_VAAPI
 	  more suited to remote transcode scenarios, with faster
 	  throughput.
 
-	  https://cgit.freedesktop.org/gstreamer/gstreamer-vaapi
+	  https://gitlab.freedesktop.org/gstreamer/gstramer-vaapi
 
 if BR2_PACKAGE_GST1_VAAPI
 
