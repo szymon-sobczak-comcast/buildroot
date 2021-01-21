@@ -113,6 +113,7 @@ class Platform : public Singleton <Platform> {
     friend Singleton <Platform>;
 
     public :
+
         // The hash can be specificied explicitly but it is not required as it is part of 'std' namespace
         using map_buf_t = std::unordered_map <gbm_bo_t const, uint32_t>;
 
@@ -156,7 +157,10 @@ class Platform : public Singleton <Platform> {
             /*void*/ _map_dev.clear ();
         }
 
-        virtual ~Platform () = default;
+        virtual ~Platform () {
+            LOG (_2CSTR ("Warning: remaining (gbm) device entries: "), _map_dev.size ());
+            LOG (_2CSTR ("Warning: remaining (gbm) surface entries: "), _map_surf.size ());
+        }
 
         _PROXYGBM_PRIVATE uint16_t Sequence (uint32_t value) const {
             return static_cast <uint16_t> (value >> 16);

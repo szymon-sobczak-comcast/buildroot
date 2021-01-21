@@ -50,7 +50,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <unordered_map>
 #include <atomic>
-#include <queue>
+
+// Our implementation
+#include "queue.h"
+
 #include <tuple>
 
 #ifdef __cplusplus
@@ -227,7 +230,13 @@ class Platform : public Singleton <Platform> {
 
         using queue_t = std::tuple <int, uint32_t, gbm_surface_t, gbm_bo_t>;
 
-        class Queue {
+#ifdef _FIXEDSIZEDQUEUE
+        static constexpr uint32_t MaximumBufferCount = 2;
+
+        class Queue : public FixedSizedQueue <queue_t, MaximumBufferCount> {
+#else
+        class Queue : public DynamicSizedQueue <queue_t> {
+#endif
             using modeset_t = struct { int fd; drmModeCrtc* crtc; uint32_t connector; };
 
             public :
@@ -260,10 +269,10 @@ class Platform : public Singleton <Platform> {
                         assert (false);
                     }
                     else {
-                        LOG (_queue.size (), _2CSTR (" framebuffer(s) available to cleanup"));
+                        LOG (size (), _2CSTR (" framebuffer(s) available to cleanup"));
 
-                        while (_queue.size () >= 1) {
-                            queue_t& _element = _queue.front ();
+                        while (size () >= 1) {
+                            queue_t _element = pop ();
 
                             auto _fd = std::get <0> (_element);
                             auto _fb = std::get <1> (_element);
@@ -282,22 +291,22 @@ class Platform : public Singleton <Platform> {
 
                                     auto it = Platform::Instance()._map_surf.find (_surf);
 
-                                    if (it != Platform::Instance()._map_surf.end ()) {
+                                    if (it == Platform::Instance()._map_surf.end ()) {
                                         // Error, expect it to be removed already by proper destruction flow
                                         // e.g., a call to gbm_surface_destroy or some other 'destroy' API
-                                        LOG (_2CSTR ("Tracked surface"));
+                                        LOG (_2CSTR ("Tracked surface not found"));
+                                    }
+                                    else {
+                                        // Platform is destructed later
+// TODO remove from list?
+                                        /*void*/ Platform::Instance ().gbm_surface_release_buffer (_surf, _bo);
                                     }
                                     }
-
-                                    // Platform is destructed later
-                                    /*void*/ Platform::Instance ().gbm_surface_release_buffer (_surf, _bo);
                                 }
                                 else {
                                     LOG (_2CSTR ("Failed to release internal buffer at "), _bo);
                                 }
                             }
-
-                            /* void */ _queue.pop ();
                         }
                     }
 
@@ -306,25 +315,7 @@ class Platform : public Singleton <Platform> {
                     }
                 }
 
-                void push (const queue_t& element) {
-                   /* void */  _queue.push (element);
-                }
-
-                queue_t pop () {
-                    queue_t& _element = _queue.front ();
-
-                    /* void */ _queue.pop ();
-
-                    return _element;
-                }
-
-                size_t size () {
-                    return _queue.size ();
-                }
-
             private :
-// TODO: improve efficiency
-                std::queue <queue_t> _queue;
 
                 // Initial mode set
                 modeset_t _modeset;
@@ -335,7 +326,10 @@ class Platform : public Singleton <Platform> {
             /*void*/ _map_surf.clear ();
         }
 
-        virtual ~Platform () = default;
+        virtual ~Platform () {
+            LOG (_2CSTR ("Warning: remaining (EGL) display entries: "), _map_dpy.size ());
+            LOG (_2CSTR ("Warning: remaining (EGL) surface entries: "), _map_surf.size ());
+        }
 
         template <typename Func>
         _PROXYEGL_PRIVATE bool hasGBMproperty(Func func) const;
@@ -712,6 +706,9 @@ bool Platform::ScanOut (EGLSurface const & surface) const {
             EGLint _value;
 
             if (eglQuerySurface (_dpy, surface, EGL_RENDER_BUFFER, &_value) != EGL_FALSE) {
+#ifdef _FIXEDSIZEDQUEUE
+                static_assert (MinimumBufferCount () < MaximumBufferCount);
+#endif
                 ret = ScanOut (_gbm_surf, _value != EGL_BACK_BUFFER ? MinimumBufferCount () : MinimumBufferCount () + 1);
             }
             else {
@@ -858,6 +855,7 @@ bool Platform::ScanOut (gbm_surface_t const & surface, uint8_t buffers) const {
                         };
 
                         static Platform::drm_callback_data_t _callback_data = {_fd, _fb, _bo.back (), true};
+
                         // Guardian of the shared data presented one line earlier
                         static Mutex _mutex;
 
