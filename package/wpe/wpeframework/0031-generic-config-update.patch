@@ -1,0 +1,16 @@
+diff --git a/Source/WPEFramework/GenericConfig.cmake b/Source/WPEFramework/GenericConfig.cmake
+index 81898cfe..db14afb6 100644
+--- a/Source/WPEFramework/GenericConfig.cmake
++++ b/Source/WPEFramework/GenericConfig.cmake
+@@ -54,7 +54,11 @@ map_set(${CONFIG} systempath ${SYSTEM_PATH})
+ map_set(${CONFIG} proxystubpath ${PROXYSTUB_PATH})
+ map_set(${CONFIG} redirect "/Service/Controller/UI")
+ 
++map_set(${CONFIG} communicator ${COMMUNICATOR})
++
+ map()
++    kv(umask ${LINUXUMASK})
++    kv(group ${LINUXGROUP})
+     kv(priority ${PRIORITY})
+     kv(policy ${POLICY})
+     kv(oomadjust ${OOMADJUST})
