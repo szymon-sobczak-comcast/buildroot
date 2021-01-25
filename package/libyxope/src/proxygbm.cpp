@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2020 Metrological
+Copyright (C) 2020-2021 Metrological
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -158,8 +158,35 @@ class Platform : public Singleton <Platform> {
         }
 
         virtual ~Platform () {
-            LOG (_2CSTR ("Warning: remaining (gbm) device entries: "), _map_dev.size ());
-            LOG (_2CSTR ("Warning: remaining (gbm) surface entries: "), _map_surf.size ());
+            for (auto _it_surf = _map_surf.begin (), _end = _map_surf.end (); _it_surf != _end; _it_surf++) {
+                LOG (_2CSTR ("Warning: remaining (gbm) surface entry: "), _it_surf->first);
+
+                auto _buffers = _it_surf->second;
+
+                if (_buffers.size () > 0) {
+                    for (auto _it_buf = _buffers.begin (), _end = _buffers.end (); _it_buf != _end; _it_buf++) {
+                        LOG (_2CSTR ("   |--> with buffer: "), _it_buf->first);
+                    }
+                }
+                else {
+                    LOG (_2CSTR ("   |--> with NO buffers"));
+                }
+            }
+
+            for (auto _it_dev = _map_dev.begin (), _end = _map_dev.end (); _it_dev != _end; _it_dev++) {
+                LOG (_2CSTR ("Warning: remaining (gbm) device entry: "), _it_dev->first);
+
+                auto _surfaces = _it_dev->second;
+
+                if (_surfaces.size () > 0) {
+                    for (auto _it_surf = _surfaces.begin (), _end = _surfaces.end (); _it_surf != _end; _it_surf++) {
+                        LOG (_2CSTR ("   |--> with surface: "), *_it_surf);
+                    }
+                }
+                else {
+                    LOG (_2CSTR ("   |--> with NO surfaces"));
+                }
+            }
         }
 
         _PROXYGBM_PRIVATE uint16_t Sequence (uint32_t value) const {

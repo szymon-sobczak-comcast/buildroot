@@ -186,8 +186,6 @@ class Platform : public Singleton <Platform> {
 
         // Reminder: EGLDisplay handles remain valid after their creation (until the application ends)
 
-//        // The second parameters does not have to be (explicitly) specified
-//        _PROXYEGL_PRIVATE bool Remove (EGLDisplay const&, bool all = false);
         // The second parameters does not have to be (explicitly) specified
         _PROXYEGL_PRIVATE bool Remove (EGLSurface const & surface, bool all = false);
 
@@ -327,8 +325,13 @@ class Platform : public Singleton <Platform> {
         }
 
         virtual ~Platform () {
-            LOG (_2CSTR ("Warning: remaining (EGL) display entries: "), _map_dpy.size ());
-            LOG (_2CSTR ("Warning: remaining (EGL) surface entries: "), _map_surf.size ());
+            for (auto _it_surf = _map_surf.begin (), _end = _map_surf.end (); _it_surf != _end; _it_surf++) {
+                LOG (_2CSTR ("Warning: remaining (EGL) surface entry: "), _it_surf->first);
+            }
+
+            for (auto _it_dpy = _map_dpy.begin(), _end = _map_dpy.end (); _it_dpy != _end; _it_dpy++) {
+                LOG (_2CSTR ("Warning: remaining (EGL) display entry: "), _it_dpy->first);
+            }
         }
 
         template <typename Func>
@@ -355,6 +358,36 @@ class Platform : public Singleton <Platform> {
         _PROXYEGL_PRIVATE gbm_bo_t gbm_surface_lock_front_buffer (gbm_surface_t surface) const;
         _PROXYEGL_PRIVATE void gbm_surface_release_buffer (gbm_surface_t surface, gbm_bo_t bo) const;
         _PROXYEGL_PRIVATE int gbm_surface_has_free_buffers (gbm_surface_t surface) const;
+
+        // Allow access to this wrapper
+        friend EGLBoolean ::eglTerminate (EGLDisplay);
+
+        _PROXYEGL_PRIVATE bool Terminate (EGLDisplay const & display, bool all = false) {
+            bool ret = false;
+
+            std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
+
+            if (all != true) {
+                ret = _map_dpy.erase (display) ==  1;
+
+                // iterator has become singular
+            }
+            else {
+                /*void*/ _map_dpy.clear ();
+
+                // iterator has become singular
+
+                ret = _map_dpy.size () < NonEmptySizeInitialValue ();
+            }
+
+            assert (ret != false);
+
+            if (ret != true) {
+                LOG (_2CSTR ("Unable to remove "), all != false ? _2CSTR ("all EGLDisplays ") : _2CSTR ("EGLDisplay "), all != false ? _2CSTR ("") : display, _2CSTR ("from the associatve map"));
+            }
+
+            return ret;
+        }
 };
 
 /*_PROXYEGL_PRIVATE*/ Platform::sync_t Platform::_syncobject;
@@ -1222,16 +1255,17 @@ EGLBoolean eglTerminate (EGLDisplay dpy) {
     if (resolved != false) {
         LOG (_2CSTR ("Calling Real eglTerminate"));
 
+        std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
+
         ret = _eglTerminate (dpy);
 
         if (ret != EGL_FALSE) {
             // All resources are marked for deletion; EGLDisplay handles remain valid. Other handles are invalidated and once used may result in errors
             // eglReleaseThread and eglMakeCurrent can be called to complete deletion of resources
 
-            // Remove all EGLSurface from the list
-            if (Platform::Instance ().Remove (EGL_NO_SURFACE, true) != true) {
-                assert (false);
-            }
+            // Currently, there exist no knowlegde which surface belong to this display, thus, no surface clean up
+
+            ret = Platform::Instance ().Terminate (dpy);
         }
     }
     else {
