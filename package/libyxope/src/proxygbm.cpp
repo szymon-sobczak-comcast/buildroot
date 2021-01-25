@@ -237,36 +237,33 @@ class Platform : public Singleton <Platform> {
         }
 
         _PROXYGBM_PRIVATE gbm_bo_t PredictedBuffer (map_buf_t const & buffers) const;
-        _PROXYGBM_PRIVATE map_buf_t const & Buffers (gbm_surface_t const & surface) const;
 };
 
 /*_PROXYGBM_PRIVATE*/ Platform::sync_t Platform::_syncobject;
 
-Platform::map_buf_t const & Platform::Buffers (gbm_surface_t const & surface) const {
-    std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
-
-    // Empty well-defined placeholder
-    static map_buf_t _map;
-
-    map_buf_t& result = _map;
-
-    if (surface != nullptr) {
-        auto _it = _map_surf.find (surface);
-
-        if (_it != _map_surf.end ()) {
-            result = _it->second;
-        }
-    }
-
-    return result;
-}
-
 Platform::gbm_bo_t Platform::PredictedBuffer (gbm_surface_t const & surface) const {
+    auto Buffers = [this] (gbm_surface_t const & surface) -> map_buf_t const & {
+        // Empty well-defined placeholder
+        static map_buf_t _map;
+
+        map_buf_t& result = _map;
+
+        if (surface != nullptr) {
+            auto _it = _map_surf.find (surface);
+
+            if (_it != _map_surf.end ()) {
+                result = _it->second;
+            }
+        }
+
+        return result;
+    };
+
     struct gbm_bo* bo = nullptr;
 
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    auto _buffers = Platform::Instance ().Buffers (surface);
+    auto _buffers = Buffers (surface);
 
     if (_buffers.empty () != true) {
         // Decision time, without any (prior) knowledge select one of the recorded bo's
@@ -567,6 +564,23 @@ bool Platform::Add (gbm_device_t const & device, gbm_surface_t const & surface) 
         // Surface exist
 
         // Not an error if _map_surf has no associated bo's
+
+        auto Buffers = [this] (gbm_surface_t const & surface) -> map_buf_t const & {
+            // Empty well-defined placeholder
+            static map_buf_t _map;
+
+            map_buf_t& result = _map;
+
+            if (surface != nullptr) {
+                auto _it = _map_surf.find (surface);
+
+                if (_it != _map_surf.end ()) {
+                    result = _it->second;
+                }
+            }
+
+            return result;
+        };
 
         auto _buffers = Buffers (surface);
 
