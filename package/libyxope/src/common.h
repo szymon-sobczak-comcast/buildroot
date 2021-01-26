@@ -91,7 +91,7 @@ namespace {
 
 // Termination condition
 void _LOG () {
-    // Avoid the static initialization order fiasco by ensuring the (default) standard stream objects are constructed before their first use
+    // Ensure the (default) standard stream objects are constructed before their first use
     static std::ios_base::Init _base;
 
     // Unbuffered!
@@ -100,6 +100,9 @@ void _LOG () {
 
 template <typename Head, typename... Tail>
 void _LOG (const Head& head, const Tail&... tail) {
+    // Ensure the (default) standard stream objects are constructed before their first use
+    static std::ios_base::Init _base;
+
     // Unbuffered!
     std::cerr << head;
 
