@@ -5,7 +5,7 @@
 ################################################################################
 
 ifeq ($(BR2_PACKAGE_HAS_NEXUS_SAGE),y)
-VSS_SDK_VERSION = d1acc78ae17e4a285e782f7476f08607e2140ccc # SVP URSR 18.1
+VSS_SDK_VERSION = d3e0326e73ef443bcbc66049d4813ef8e3006497 # SVP URSR 18.1
 else
 VSS_SDK_VERSION = be1700584e7ebcf54276c432edd390dce118ebf8 # VDGRM URSR 18.1
 endif
