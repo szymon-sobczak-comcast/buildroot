@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AMAZON_BACKEND_VERSION = 4babcc88d96b10f6944b3f36f9417b342b25a788
+AMAZON_BACKEND_VERSION = e5ba76418193fd8aff2bbb4e4916d98bc8f8bf0b
 AMAZON_BACKEND_SITE = git@github.com:Metrological/amazon-backend.git
 AMAZON_BACKEND_SITE_METHOD = git
 AMAZON_BACKEND_DEPENDENCIES = wpeframework wpeframework-clientlibraries
