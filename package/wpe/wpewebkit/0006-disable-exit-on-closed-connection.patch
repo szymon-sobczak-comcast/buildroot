@@ -1,0 +1,11 @@
+--- a//Source/WebKit/Shared/ChildProcess.cpp
++++ b//Source/WebKit/Shared/ChildProcess.cpp
+@@ -60,7 +60,7 @@
+ 
+ NO_RETURN static void callExitNow(IPC::Connection*)
+ {
+-    _exit(EXIT_SUCCESS);
++//    _exit(EXIT_SUCCESS);
+ }
+ 
+ static void callExitSoon(IPC::Connection*)
