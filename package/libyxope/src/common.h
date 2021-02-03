@@ -157,7 +157,7 @@ class _Mutex : public T {
             bool _ret = false;
 #ifndef NDEBUG
             if (_mutex.try_lock () != false) {
-                if (_taken != false && _count > _maxlevel) {
+                if (_taken != false && _count >= _maxlevel) {
                     LOG (_2CSTR ("Error: The mutex is already locked (too many times, max["), std::to_string (_maxlevel), _2CSTR ("]!"));
 
                     assert (false);
@@ -169,13 +169,15 @@ class _Mutex : public T {
                     _taken = true;
                     ++_count;
                 }
-#endif
 
                 if (_ret != false) {
+#endif
+
                     T::lock ();
+                    _ret = true;
+#ifndef NDEBUG
                 }
 
-#ifndef NDEBUG
                 _mutex.unlock ();
             }
             else {
@@ -215,13 +217,14 @@ class _Mutex : public T {
                         _ret = false;
                     }
                 }
-#endif
 
                 if (_ret != false) {
+#endif
                     T::unlock ();
+                    _ret = true;
+#ifndef NDEBUG
                 }
 
-#ifndef NDEBUG
                 _mutex.unlock ();
             }
             else {
@@ -284,6 +287,7 @@ class Mutex : public _Mutex <std::mutex> {
 };
 #endif
 
+template <size_t N>
 #ifdef NDEBUG
 using MutexRecursive = std::recursive_mutex;
 #else
@@ -295,7 +299,8 @@ class MutexRecursive : public _Mutex <std::recursive_mutex> {
 
     private :
 
-        static constexpr uint8_t _depth = 2;
+        static_assert (N > 1, "Error: For N <= 1, use Mutex instead");
+        static constexpr uint8_t _depth = N;
 };
 #endif
 

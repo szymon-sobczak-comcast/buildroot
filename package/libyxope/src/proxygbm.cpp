@@ -103,7 +103,7 @@ namespace {
 #define _PROXYGBM_UNUSED PROXYGBM_UNUSED
 
 class Platform : public Singleton <Platform> {
-    using sync_t = MutexRecursive;
+    using sync_t = MutexRecursive <3>; // Three levels deep locking
 
     using gbm_bo_t      = struct gbm_bo*;
     using gbm_surface_t = struct gbm_surface*;

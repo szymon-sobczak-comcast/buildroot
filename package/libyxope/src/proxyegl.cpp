@@ -164,7 +164,7 @@ namespace {
 #define _PROXYEGL_PUBLIC PROXYEGL_PUBLIC
 
 class Platform : public Singleton <Platform> {
-    using sync_t = Mutex;
+    using sync_t = MutexRecursive <2>; // Two levels deep locking
 
     // This friend has access to all members!
     friend Singleton <Platform>;
