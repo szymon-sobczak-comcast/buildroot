@@ -252,7 +252,7 @@ index 83235825..0cea2657 100644
 +    endif()
 +endif()
 diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
-index c3de9953..ef843648 100644
+index c3de9953..c0cbe3db 100644
 --- a/DIALServer/DIALServer.cpp
 +++ b/DIALServer/DIALServer.cpp
 @@ -31,31 +31,22 @@ namespace Plugin {
@@ -387,7 +387,7 @@ index c3de9953..ef843648 100644
              _dialURL = Core::URL(service->Accessor());
              _dialURL.Host(selectedNode.HostAddress());
              _dialPath = '/' + _dialURL.Path().Value();
-+            _webServerPort = _dialURL.Port();
++            _webServerPort = _dialURL.Port().IsSet() ? _dialURL.Port().Value() : 80;
  
              // TODO: THis used to be the MAC, but I think  it is just a unique number, otherwise, we need the MAC
              //       that goes with the selectedNode !!!!
@@ -484,7 +484,7 @@ index c3de9953..ef843648 100644
 -            string parameters = (app.AppURL() + (app.HasQueryParameter()? _T("&") : _T("?")) + _T("additionalDataUrl=") + encodedDataUrl);
 +            // FIXME: At the moment part of additionalDataUrl parameter is hardcoded, localhost is obligatory by Netflix 
 +            // but rest of the path can be created dynamically or should be retrived from configuration    
-+            const string additionalDataUrl = (_T("http://localhost") + ((_webServerPort != 80)? _T("") : _T(":") + Core::NumberType<uint16_t>(_webServerPort).Text()) + _T("/Service/DIALServer/Apps/") + app.Name() + _T("/") + _DefaultDataExtension);
++            const string additionalDataUrl = (_T("http://localhost") + ((_webServerPort == 80)? _T("") : _T(":") + Core::NumberType<uint16_t>(_webServerPort).Text()) + _T("/Service/DIALServer/Apps/") + app.Name() + _T("/") + _DefaultDataExtension);
 +            const uint16_t maxEncodedSize = static_cast<uint16_t>(additionalDataUrl.length() * 3 * sizeof(TCHAR));
 +            TCHAR* encodedDataUrl = reinterpret_cast<TCHAR*>(ALLOCA(maxEncodedSize)); 
 +            uint16_t dialpayload = Core::URL::Encode(additionalDataUrl.c_str(), static_cast<uint16_t>(additionalDataUrl.length()), encodedDataUrl, maxEncodedSize);
@@ -495,12 +495,14 @@ index c3de9953..ef843648 100644
  
              // See if we can find the plugin..
              ASSERT(_service != NULL);
-@@ -425,43 +411,23 @@ namespace Plugin {
+@@ -424,44 +410,24 @@ namespace Plugin {
+                 // Make sure that there is connection between DIAL handler and application
                  if (app.IsConnected() == false && app.Connect() == false) {
                      
-                     TRACE_L1("Cannot connect DIAL handler to application %s", app.Name().c_str());
+-                    TRACE_L1("Cannot connect DIAL handler to application %s", app.Name().c_str());
 -                } else if (app.HasHideAndShow() == true && app.IsHidden() == true) {
 -                    uint32_t result = app.Show();
++                    TRACE(Trace::Information, (_T("Cannot connect DIAL handler to application %s"), app.Name().c_str()));
 +                } else if (app.HasHide() == true && app.IsHidden() == true) {
 +                    uint32_t result = (DeprecatedAPI() == true) ? app.Show() : app.Start(parameters, payload);
  
@@ -688,20 +690,18 @@ index c3de9953..ef843648 100644
      void DIALServer::Activated(Exchange::IWebServer* pluginInterface)
      {
          string remote(_dialURL.Host().Value() + ':' + (_dialURL.Port().IsSet() ? Core::NumberType<uint16_t>(_dialURL.Port().Value()).Text() : _T("80")));
-@@ -655,6 +646,11 @@ namespace Plugin {
+@@ -655,6 +646,9 @@ namespace Plugin {
          // Let's set the URL of the WebServer, as it is active :-)
          _dialServiceImpl->Locator(pluginInterface->Accessor() + _dialPath);
  
 +        Core::URL url = Core::URL(pluginInterface->Accessor());
-+        if (url.Port().IsSet() == true) {
-+            _webServerPort = Core::NumberType<uint16_t>(url.Port().Value());
-+        }
++        _webServerPort = url.Port().IsSet() ? url.Port().Value() : 80;
 +
          // Redirect all calls to the DIALServer, via a proxy.
          pluginInterface->AddProxy(_dialPath, _dialPath, remote);
  
 diff --git a/DIALServer/DIALServer.h b/DIALServer/DIALServer.h
-index be47a929..a715bd29 100644
+index be47a929..5dc06a83 100644
 --- a/DIALServer/DIALServer.h
 +++ b/DIALServer/DIALServer.h
 @@ -30,6 +30,10 @@ namespace Plugin {
@@ -976,8 +976,12 @@ index be47a929..a715bd29 100644
                  } else {
                      if (_switchBoard != nullptr) {
                          result = _switchBoard->Activate(_callsign);
-@@ -304,19 +296,19 @@ namespace Plugin {
-                             TRACE_L1("DIAL: Failed to attach to service");
+@@ -301,22 +293,22 @@ namespace Plugin {
+ 
+                     if (IsRunning() == true) {
+                         if (Connect() == false) {
+-                            TRACE_L1("DIAL: Failed to attach to service");
++                            TRACE(Trace::Error, (_T("DIAL: Failed to attach to service")));
                              result = Core::ERROR_UNAVAILABLE;
                          } else {
 -                            URL(data, payload);
@@ -1011,7 +1015,7 @@ index be47a929..a715bd29 100644
                          result = true;
                      }
                      else {
-@@ -367,7 +360,7 @@ namespace Plugin {
+@@ -367,16 +360,25 @@ namespace Plugin {
              {
                  return _additionalData;
              }
@@ -1020,7 +1024,9 @@ index be47a929..a715bd29 100644
              {
                  // This method is only for the Passive mode..
                  if (_passiveMode != true) {
-@@ -376,7 +369,16 @@ namespace Plugin {
+-                    TRACE_L1(_T("This app is not configured to be Passive !!!!%s"), "");
++                    TRACE(Trace::Information, (_T("This app is not configured to be Passive !!!!%s"), ""));
+                 }
  
                  _isRunning = isRunning;
              }
@@ -1029,7 +1035,7 @@ index be47a929..a715bd29 100644
 +            {
 +                // This method is only for the Passive mode..
 +                if (_passiveMode != true) {
-+                    TRACE_L1(_T("This app is not configured to be Passive !!!!%s"), "");
++                    TRACE(Trace::Information, (_T("This app is not configured to be Passive !!!!%s"), ""));
 +                }
 +
 +                _isHidden = isHidden;
@@ -1086,13 +1092,13 @@ index be47a929..a715bd29 100644
      private:
 -        DIALServer(const DIALServer&) = delete;
 -        DIALServer& operator=(const DIALServer&) = delete;
-+        static const uint32_t MaxDialQuerySize = 4096;
- 
+-
 -        struct Version {
 -            Version(uint8_t major, uint8_t minor, uint8_t patch)
 -                : Major(major), Minor(minor), Patch(patch) {}
 -            Version() : Version(0, 0, 0) {}
--
++        static const uint32_t MaxDialQuerySize = 4096;
+ 
 -            bool IsValid() const { return Major != 0 || Minor != 0 || Patch != 0; }
 +        class Version {
 +        public:
@@ -1309,8 +1315,8 @@ index be47a929..a715bd29 100644
                  : _lock()
                  , _name(info.Name.Value())
                  , _url(info.URL.Value())
-                 , _application(nullptr)
 +                , _origin(info.Origin.Value())
+                 , _application(nullptr)
              {
                  ASSERT(parent != nullptr);
  
