@@ -157,7 +157,7 @@ index 22670126..63e78edb 100644
  }
  } // namespace
 diff --git a/Cobalt/CobaltImplementation.cpp b/Cobalt/CobaltImplementation.cpp
-index 5474a9dc..99d20ab8 100644
+index 5474a9dc..d0943424 100644
 --- a/Cobalt/CobaltImplementation.cpp
 +++ b/Cobalt/CobaltImplementation.cpp
 @@ -20,8 +20,9 @@
@@ -360,6 +360,17 @@ index 5474a9dc..99d20ab8 100644
      };
  
  private:
+@@ -226,8 +336,8 @@ public:
+ 
+     virtual uint32_t Configure(PluginHost::IShell *service) {
+         uint32_t result = _window.Configure(service);
+-        _window.Suspend(true);
+-        _state = PluginHost::IStateControl::SUSPENDED;
++        _window.Suspend(!service->Resumed());
++        _state = (!service->Resumed()) ? PluginHost::IStateControl::SUSPENDED : PluginHost::IStateControl::RESUMED;
+ 
+         return (result);
+     }
 @@ -278,6 +388,12 @@ public:
          _adminLock.Unlock();
      }

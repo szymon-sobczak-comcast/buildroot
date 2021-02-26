@@ -1,0 +1,22 @@
+From 995d5f2622aa65155c6d18458f1e15f3c6cd90e0 Mon Sep 17 00:00:00 2001
+From: pwielders <pierre@wielders.net>
+Date: Tue, 23 Feb 2021 14:38:19 +0100
+Subject: [PATCH] Make the resume flag also report if it was *not* set
+
+---
+ Source/plugins/Service.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Source/plugins/Service.h b/Source/plugins/Service.h
+index 4acdb939..b8b8fafe 100644
+--- a/Source/plugins/Service.h
++++ b/Source/plugins/Service.h
+@@ -221,7 +221,7 @@ namespace PluginHost {
+         }
+         virtual bool Resumed() const
+         {
+-            return (_config.Configuration().Resumed.Value());
++            return (_config.Configuration().Resumed.IsSet() ? _config.Configuration().Resumed.Value() : (_config.Configuration().AutoStart.Value() == false));
+         }
+         virtual bool IsSupported(const uint8_t number) const
+         {
