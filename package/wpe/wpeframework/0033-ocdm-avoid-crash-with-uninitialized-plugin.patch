@@ -1,0 +1,28 @@
+diff --git a/Source/ocdm/open_cdm_impl.h b/Source/ocdm/open_cdm_impl.h
+index d523c6cf..028f6573 100644
+--- a/Source/ocdm/open_cdm_impl.h
++++ b/Source/ocdm/open_cdm_impl.h
+@@ -79,7 +79,9 @@ private:
+             ASSERT(_remote != nullptr);
+ 
+             if (_remote == nullptr) {
+-                _client.Release();
++                if (_client.IsValid()) {
++                    _client.Release();
++                }
+             }
+         }
+     }
+@@ -161,7 +163,11 @@ public:
+         // This is first call from WebKit when new session is started
+         // If ProxyStub return error for this call, there will be not next call from WebKit
+         Reconnect();
+-        return (_remote->IsTypeSupported(keySystem, mimeType));
++        bool result = false;
++        if (_remote != nullptr) {
++            result = _remote->IsTypeSupported(keySystem, mimeType);
++        }
++        return result;
+     }
+ 
+     virtual OCDM::OCDM_RESULT Metadata(const std::string& keySystem,
