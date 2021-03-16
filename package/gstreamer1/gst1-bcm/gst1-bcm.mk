@@ -34,7 +34,6 @@ else ifneq ($(filter y,$(BR2_PACKAGE_HOMECAST_SDK)),)
 GST1_BCM_VERSION = 961a36dcd30c91330b8a9503e12ec3ddb30b70b6
 else ifneq ($(filter y,$(BR2_PACKAGE_VSS_SDK)),)
 GST1_BCM_VERSION = 1b4dd52399826525be861b2add1b6471de01c060
-GST1_BCM_DEPENDENCIES += vss-sdk
 else ifneq ($(filter y,$(BR2_PACKAGE_EVASION_SDK)),)
 GST1_BCM_VERSION = 18.2-rdkv-20180727
 else ifneq ($(filter y,$(BR2_PACKAGE_VFTV_SDK)),)
@@ -48,7 +47,11 @@ endif
 GST1_BCM_SITE_METHOD = git
 GST1_BCM_LICENSE = PROPRIETARY
 GST1_BCM_INSTALL_STAGING = YES
-GST1_BCM_DEPENDENCIES += gstreamer1 gst1-plugins-base
+GST1_BCM_DEPENDENCIES = gstreamer1 gst1-plugins-base
+
+ifeq ($(BR2_PACKAGE_VSS_SDK),y)
+GST1_BCM_DEPENDENCIES += vss-sdk
+endif
 
 ifeq ($(BR2_PACKAGE_BCM_REFSW),y)
 GST1_BCM_DEPENDENCIES += bcm-refsw
