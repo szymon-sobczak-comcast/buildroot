@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2020 Metrological
+Copyright (C) 2020-2021 Metrological
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -139,7 +139,6 @@ class Singleton {
         // Nothing
 };
 
-// TODO: move asserts to consumer
 template <typename T>
 class _Mutex : public T {
     public :
@@ -150,7 +149,7 @@ class _Mutex : public T {
         explicit _Mutex (const uint8_t depth = 1) : _maxlevel (depth) {};
         virtual ~_Mutex () {};
 
-        // Currently, failure is not expressed by a return value, but it is handled via exception handling. This might chnages with (custom) implementations.
+        // Currently, failure is not expressed by a return value, but it is handled via exception handling. This might change with (custom) implementations.
         // https://en.cppreference.com/w/cpp/thread/lock
         static_assert (std::is_void < decltype ( std::declval <T> ().lock () ) >::value != false);
         bool lock () {

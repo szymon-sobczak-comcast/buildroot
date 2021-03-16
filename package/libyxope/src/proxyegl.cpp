@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "common.h"
+#include "set.h"
 
 #include <string>
 
@@ -48,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <array>
 #include <cstring>
-#include <unordered_map>
 #include <atomic>
 
 // Our implementation
@@ -140,41 +140,60 @@ PROXYEGL_PUBLIC EGLSurface eglCreatePlatformWindowSurface (EGLDisplay, EGLConfig
 }
 #endif
 
-namespace std {
-
-// hash specialization that works with constant pointers
-template <typename T>
-struct hash <T* const> {
-    size_t operator () (const T* const & obj) const {
-        size_t _ret = 0;
-
-        std::hash <const T*> hashfnc;
-
-        _ret = hashfnc (obj);
-
-        return _ret;
-    }
-};
-
-}
-
 namespace {
 // Suppress compiler preprocessor 'visibiity ignored' in anonymous namespace
 #define _PROXYEGL_PRIVATE /*PROXYEGL_PRIVATE*/
 #define _PROXYEGL_PUBLIC PROXYEGL_PUBLIC
 
 class Platform : public Singleton <Platform> {
-    using sync_t = MutexRecursive <2>; // Two levels deep locking
+        using sync_t = MutexRecursive <2>; // Two levels deep locking
 
-    // This friend has access to all members!
-    friend Singleton <Platform>;
+        using gbm_bo_t      = struct gbm_bo*;
+        using gbm_surface_t = struct gbm_surface*;
+        using gbm_device_t  = struct gbm_device*;
+ 
+        // This friend has access to all members!
+        friend Singleton <Platform>;
+
+    private :
+
+        class Queue;
 
     public :
-        // Not all EGL platforms use underlying pointers for these types, code might require (future) changesi / adaptations
+
+        _PROXYEGL_PRIVATE static constexpr gbm_device_t gbm_device_t_DEFAULT () {
+            return nullptr;
+        }
+
+        _PROXYEGL_PRIVATE static constexpr gbm_surface_t gbm_surface_t_DEFAULT () {
+            return nullptr;
+        }
+
+        _PROXYEGL_PRIVATE static constexpr gbm_bo_t gbm_bo_t_DEFAULT () {
+            return nullptr;
+        }
+
+        // Not all EGL platforms use underlying pointers for these types, code might require (future) changes / adaptations
         static_assert (std::is_pointer <EGLDisplay>::value != false);
         static_assert (std::is_pointer <EGLSurface>::value != false);
         static_assert (std::is_pointer <EGLNativeDisplayType>::value != false);
         static_assert (std::is_pointer <EGLNativeWindowType>::value != false);
+
+        _PROXYEGL_PRIVATE static constexpr EGLSurface EGLSurface_DEFAULT () {
+            return EGL_NO_SURFACE;
+        }
+
+        _PROXYEGL_PRIVATE static constexpr EGLDisplay EGLDisplay_DEFAULT () {
+            return EGL_NO_DISPLAY;
+        }
+
+        _PROXYEGL_PRIVATE static constexpr EGLNativeWindowType EGLNativeWindowType_DEFAULT () {
+            return nullptr;
+        }
+
+        _PROXYEGL_PRIVATE static constexpr EGLNativeDisplayType EGLNativeDisplayType_DEFAULT () {
+            return nullptr;
+        }
 
         _PROXYEGL_PRIVATE bool isGBMdevice (EGLNativeDisplayType const & display) const;
         _PROXYEGL_PRIVATE bool isGBMsurface (EGLNativeWindowType const & window) const;
@@ -182,12 +201,9 @@ class Platform : public Singleton <Platform> {
         _PROXYEGL_PRIVATE void FilterConfigs (EGLDisplay const & display, std::vector <EGLConfig> & configs) const;
 
         _PROXYEGL_PRIVATE bool Add (EGLDisplay const & display, EGLNativeDisplayType const & native);
-        _PROXYEGL_PRIVATE bool Add (EGLSurface const & surface, EGLNativeWindowType const & native);
+        _PROXYEGL_PRIVATE bool Add (EGLDisplay const & display, EGLSurface const & surface, EGLNativeWindowType const & native);
 
-        // Reminder: EGLDisplay handles remain valid after their creation (until the application ends)
-
-        // The second parameters does not have to be (explicitly) specified
-        _PROXYEGL_PRIVATE bool Remove (EGLSurface const & surface, bool all = false);
+        _PROXYEGL_PRIVATE bool Remove (EGLDisplay const & display, EGLSurface const & surface);
 
         _PROXYEGL_PRIVATE bool ScanOut (EGLSurface const & surface) const;
 
@@ -207,24 +223,247 @@ class Platform : public Singleton <Platform> {
 
     protected :
 
-        //  Nothing
+        // Nothing
 
     private :
 
-        using gbm_bo_t = struct gbm_bo*;
-        using gbm_surface_t = struct gbm_surface*;
-        using gbm_device_t = struct gbm_device*;
+        _PROXYEGL_PRIVATE bool Add (EGLSurface const & surface, EGLNativeWindowType const & native);
+        _PROXYEGL_PRIVATE bool Remove (EGLSurface const & surface);
+
+        class SurfaceOnion : public Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> {
+            public :
+
+                SurfaceOnion () = delete;
+
+                ~SurfaceOnion () = default;
+
+                SurfaceOnion (SurfaceOnion const &) = default;
+
+                SurfaceOnion (SurfaceOnion &&) = delete;
+
+                SurfaceOnion & operator = (SurfaceOnion const &) = default;
+
+                SurfaceOnion & operator = (SurfaceOnion &&) = delete;
+
+                static_assert (std::is_same <gbm_surface_t, EGLNativeWindowType>::value || (std::is_pointer <gbm_surface_t>::value && std::is_pointer <EGLNativeWindowType>::value));
+
+                EGLSurface const EGLType () const {
+                    return reinterpret_cast <EGLSurface> ( Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t>::WrappedObject () );
+                }
+
+                EGLNativeWindowType const NativeType () const {
+                    return reinterpret_cast <EGLNativeWindowType> ( Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t>::UnderlyingObject () );
+                }
+
+                bool HasNative (Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> const & surface) const {
+                    SurfaceOnion const & _onion = static_cast <SurfaceOnion const &> (surface);
+
+                    return _onion.NativeType () == NativeType ();
+                }
+
+                bool List () const {
+                    LOG (_2CSTR ("     |--> with (EGL) surface entry: "), EGLType ());
+                    LOG (_2CSTR ("          |--> with EGLNativeWindowType: "), NativeType ());
+
+                    return true;
+                }
+        };
+
+        class SurfaceSetOnion : public SurfaceSet <EGLSurface, EGLNativeWindowType, gbm_bo_t> {
+            public :
+
+                SurfaceSetOnion () = delete;
+
+                ~SurfaceSetOnion () = default;
+
+                SurfaceSetOnion (SurfaceSetOnion const &) = default;
+
+                SurfaceSetOnion (SurfaceSetOnion &&) = delete;
+
+                SurfaceSetOnion & operator = (SurfaceSetOnion const &) = default;
+
+                SurfaceSetOnion & operator = (SurfaceSetOnion &&) = delete;
+
+                bool HasNative (Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> const & surface) const {
+                    bool _ret = false;
+
+                    for (auto _it = begin (), _end = end (); _it != _end; _it++) {
+                        auto _e = static_cast <typename Set < Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> >::Onion const & > (* _it);
+
+                        auto _s = _e.Peel ();
+
+                        SurfaceOnion const & _onion = static_cast <SurfaceOnion const &> (_s);
+
+                       _ret = _onion.HasNative (surface);
+
+                       if (_ret != false) {
+                           break;
+                       }
+                    };
+
+                    return _ret;
+                }
+
+                auto Size () const -> decltype ( SurfaceSet <EGLSurface, EGLNativeWindowType, gbm_bo_t>::Size() ) {
+                    return SurfaceSet <EGLSurface, EGLNativeWindowType, gbm_bo_t>::Size ();
+                }
+
+                bool List () const {
+                    bool _ret = false;
+
+                    for (auto _it = begin (), _end = end (); _it != _end; _it++) {
+                        auto _e = static_cast <typename Set < Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> >::Onion const & > (*_it);
+
+                        auto _s = _e.Peel ();
+
+                        SurfaceOnion const & _so = static_cast <SurfaceOnion const &> (_s);
+
+                        _ret = _so.List ();
+
+                        if (_ret != false) {
+                            break;
+                        }
+                    }
+
+                    return _ret;
+                }
+        };
+
+        class DeviceOnion : public Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> {
+            public :
+
+                DeviceOnion () = delete;
+
+                ~DeviceOnion () = default;
+
+                DeviceOnion (DeviceOnion const &) = default;
+
+                DeviceOnion (DeviceOnion &&) = delete;
+
+                DeviceOnion & operator = (DeviceOnion const &) = default;
+
+                DeviceOnion & operator = (DeviceOnion &&) = delete;
+
+                static_assert (std::is_same <gbm_surface_t, EGLNativeWindowType>::value || (std::is_pointer <gbm_surface_t>::value && std::is_pointer <EGLNativeWindowType>::value));
+
+                EGLDisplay const EGLType () const {
+                    return reinterpret_cast <EGLDisplay> ( Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t>::WrappedObject () );
+                }
+
+                EGLNativeDisplayType const NativeType () const {
+                    return reinterpret_cast <EGLNativeDisplayType> ( Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t>::UnderlyingObject () );
+                }
+
+                bool HasNative (Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> const & surface) const {
+                    bool _ret = false;
+
+                        SurfaceSetOnion const & _s = static_cast <SurfaceSetOnion const & > (Set ());
+
+                       _ret = _s.HasNative (surface);
+
+                    return _ret;
+                }
+
+                bool List () const {
+                    LOG (_2CSTR ("Warning: remaining (EGL) display entry: "), EGLType ());
+                    LOG (_2CSTR ("     |--> with EGLNativeDisplayType: "), NativeType ());
+
+                    SurfaceSetOnion const & _s = static_cast <SurfaceSetOnion const & > (Set ());
+
+                    bool _ret = true;
+
+                    if (_s.Size () > 0) {
+                        _ret = _s.List ();
+                    }
+                    else {
+                        LOG (_2CSTR ("     |--> with NO (EGL) surface"));
+                    }
+
+                    return _ret;
+                }
+        };
+
+        class DeviceSetOnion : public DeviceSet <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> {
+            public :
+
+                DeviceSetOnion () = delete;
+
+                ~DeviceSetOnion () = default;
+
+                DeviceSetOnion (DeviceSetOnion const &) = default;
+
+                DeviceSetOnion (DeviceSetOnion &&) = delete;
+
+                DeviceSetOnion & operator = (DeviceSetOnion const &) = default;
+
+                DeviceSetOnion & operator = (DeviceSetOnion &&) = delete;
+
+                bool Has (Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> & surface) const {
+                    bool _ret = false;
+
+                    for (auto _it = begin (), _end = end (); _it != _end; _it++) {
+                        auto _e = static_cast <typename Set < Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> >::Onion const & > (* _it);
+
+                        auto _d = _e.Peel ();
+
+                       _ret = _d.Has (surface);
+
+                       if (_ret != false) {
+                           break;
+                       }
+                    };
+
+                    return _ret;
+                }
+
+                bool HasNative (Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> const & surface) const {
+                    bool _ret = false;
+
+                    for (auto _it = begin (), _end = end (); _it != _end; _it++) {
+                        auto _e = static_cast <typename Set < Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> >::Onion const & > (* _it);
+
+                        auto _d = _e.Peel ();
+
+                        DeviceOnion const & _do = static_cast <DeviceOnion const &> (_d);
+
+                       _ret = _do.HasNative (surface);
+
+                       if (_ret != false) {
+                           break;
+                       }
+                    }
+
+                    return _ret;
+                }
+
+                bool List () const {
+                    bool _ret = false;
+
+                    for (auto _it = begin (), _end = end (); _it != _end; _it++) {
+                        auto _e = static_cast <typename Set < Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> >::Onion const & > (* _it);
+
+                        auto _d = _e.Peel ();
+
+                        DeviceOnion const & _do = static_cast <DeviceOnion const &> (_d);
+
+                       _ret = _do.List ();
+
+                       if (_ret != false) {
+                           break;
+                       }
+                    }
+
+                    return _ret;
+                }
+        };
+
+    private :
 
         using drm_callback_data_t = struct { int fd; uint32_t fb; gbm_bo_t bo; bool waiting; };
 
         _PROXYEGL_PRIVATE static sync_t _syncobject;
 
-        // The custom hash does not have to be explicitly specified since it is injected into std namespace
-        using map_dpy_t  = std::unordered_map <EGLDisplay const, EGLNativeDisplayType const>;
-        using map_surf_t = std::unordered_map <EGLSurface const, EGLNativeWindowType const>;
-
-        map_dpy_t _map_dpy;
-        map_surf_t _map_surf;
+        DeviceSet <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> _set;
 
         using queue_t = std::tuple <int, uint32_t, gbm_surface_t, gbm_bo_t>;
 
@@ -282,21 +521,23 @@ class Platform : public Singleton <Platform> {
                                 auto _surf = std::get <2> (_element);
                                 auto _bo = std::get <3> (_element);
 
-                                if (_surf != nullptr && _bo != nullptr) {
+                                if (_surf != gbm_surface_t_DEFAULT () && _bo != gbm_bo_t_DEFAULT ()) {
 
                                     {
                                     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-                                    auto it = Platform::Instance()._map_surf.find (_surf);
+                                    DeviceSetOnion const & _onion = static_cast <DeviceSetOnion const &> (Platform::Instance ()._set);
 
-                                    if (it == Platform::Instance()._map_surf.end ()) {
+                                    Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> _surface (EGL_NO_SURFACE /* act as dummy */, _surf);
+
+                                    if (_onion.HasNative (_surface) != true) {
                                         // Error, expect it to be removed already by proper destruction flow
                                         // e.g., a call to gbm_surface_destroy or some other 'destroy' API
                                         LOG (_2CSTR ("Tracked surface not found"));
                                     }
                                     else {
                                         // Platform is destructed later
-// TODO remove from list?
+
                                         /*void*/ Platform::Instance ().gbm_surface_release_buffer (_surf, _bo);
                                     }
                                     }
@@ -319,19 +560,12 @@ class Platform : public Singleton <Platform> {
                 modeset_t _modeset;
         };
 
-        Platform () {
-            /*void*/ _map_dpy.clear ();
-            /*void*/ _map_surf.clear ();
-        }
+        Platform () = default;
 
         virtual ~Platform () {
-            for (auto _it_surf = _map_surf.begin (), _end = _map_surf.end (); _it_surf != _end; _it_surf++) {
-                LOG (_2CSTR ("Warning: remaining (EGL) surface entry: "), _it_surf->first);
-            }
+            DeviceSetOnion const & _s = static_cast <DeviceSetOnion const &> (_set);
 
-            for (auto _it_dpy = _map_dpy.begin(), _end = _map_dpy.end (); _it_dpy != _end; _it_dpy++) {
-                LOG (_2CSTR ("Warning: remaining (EGL) display entry: "), _it_dpy->first);
-            }
+            _s.List ();
         }
 
         template <typename Func>
@@ -341,14 +575,11 @@ class Platform : public Singleton <Platform> {
             return 1;
         }
 
+// TODO; class Surface, also see comment on 'friends'
         _PROXYEGL_PRIVATE bool ScanOut (gbm_surface_t const & surface, uint8_t buffers = MinimumBufferCount ()) const;
 
         // Seconds
         _PROXYEGL_PRIVATE static constexpr time_t FrameDuration () {
-            return 1;
-        }
-
-        _PROXYEGL_PRIVATE static constexpr uint32_t NonEmptySizeInitialValue (void) {
             return 1;
         }
 
@@ -361,29 +592,18 @@ class Platform : public Singleton <Platform> {
 
         // Allow access to this wrapper
         friend EGLBoolean ::eglTerminate (EGLDisplay);
-
-        _PROXYEGL_PRIVATE bool Terminate (EGLDisplay const & display, bool all = false) {
+        _PROXYEGL_PRIVATE bool Terminate (EGLDisplay const & display) {
             bool ret = false;
 
             std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-            if (all != true) {
-                ret = _map_dpy.erase (display) ==  1;
+            Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> _device (display, EGLNativeDisplayType_DEFAULT () /* act as dummy */);
 
-                // iterator has become singular
-            }
-            else {
-                /*void*/ _map_dpy.clear ();
-
-                // iterator has become singular
-
-                ret = _map_dpy.size () < NonEmptySizeInitialValue ();
-            }
-
-            assert (ret != false);
+// TODO: This removes all resources, but EGL allows those resources continue to be bound on other threads until their explcit release, hence scan out might be affected
+            ret = _set.Has (_device) && _set.Remove (_device);
 
             if (ret != true) {
-                LOG (_2CSTR ("Unable to remove "), all != false ? _2CSTR ("all EGLDisplays ") : _2CSTR ("EGLDisplay "), all != false ? _2CSTR ("") : display, _2CSTR ("from the associatve map"));
+                LOG (_2CSTR ("Unable to remove EGLDisplay "), display);
             }
 
             return ret;
@@ -605,10 +825,8 @@ bool Platform::isGBMsurface (EGLNativeWindowType const & window) const {
         return ret;
     };
 
-    bool ret = false;
-
     // Probe gbm surface
-    ret = hasGBMproperty (func);
+    bool ret = hasGBMproperty (func);
 
     LOG (_2CSTR ("Surface is "), ret != false ? _2CSTR ("") : _2CSTR ("NOT "), _2CSTR ("a GBM surface"));
 
@@ -618,10 +836,10 @@ bool Platform::isGBMsurface (EGLNativeWindowType const & window) const {
 void Platform::FilterConfigs (EGLDisplay const & display, std::vector <EGLConfig>& configs) const {
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    auto _it_dpy = _map_dpy.find (display);
+    Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> _device (display, EGLNativeDisplayType_DEFAULT () /* act as dummy */);
 
     // Filter only for GBM displays being tracked
-    if (_it_dpy != _map_dpy.end () && configs.empty() != true) {
+    if ( _set.Has (_device) != false && configs.empty() != true) {
         auto it = configs.begin();
 
         while (it != configs.end()) {
@@ -641,75 +859,47 @@ void Platform::FilterConfigs (EGLDisplay const & display, std::vector <EGLConfig
 }
 
 bool Platform::Add (EGLDisplay const & egl, EGLNativeDisplayType const & native) {
-    bool ret = false;
-
     //  An EGL display remains valid until an application ends, here until the library unloads
 
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    auto _it_dpy = _map_dpy.find (egl);
+    Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> _device (egl, native);
 
-    if (_it_dpy != _map_dpy.end ()) {
-        // EGLDisplay is constructed using a previous EGLNativeDisplayType
-        ret = _it_dpy->second == native;
-    }
-    else {
-        auto result = _map_dpy.insert (std::pair <EGLDisplay, EGLNativeDisplayType> (egl, native));
+    bool ret = _set.Add (_device);
 
-        // On failure, eg, key exists, false is returned
-        ret = result.second;
+    if (ret != true) {
+        LOG (_2CSTR ("Unable to add EGLDisplay "), egl, _2CSTR (" and native display "), native);
     }
 
     assert (ret != false);
-
-    if (ret != true) {
-        LOG (_2CSTR ("Unable to add EGLDisplay "), egl, _2CSTR (" and native display "), native, _2CSTR (" to the associative map"));
-    }
 
     return ret;
 }
 
-bool Platform::Add (EGLSurface const & egl, EGLNativeWindowType const & native) {
+bool Platform::Add (EGLDisplay const & display, EGLSurface const & egl, EGLNativeWindowType const & native) {
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    auto result = _map_surf.insert (std::pair <EGLSurface, EGLNativeWindowType> (egl, native));
+    Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> _device (display, EGLNativeDisplayType_DEFAULT () /* act as dummy */);
 
-    // On failure, eg, key exists, false is returned
-    bool ret = result.second;
+    Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> _surface (egl, native);
+
+    bool ret = _set.Has (_device) && _device.Add (_surface) && _set.Emplace (_device);
 
     assert (ret != false);
-
-    if (ret != true) {
-        LOG (_2CSTR ("Unable to add EGLSurface "), egl, _2CSTR (" and native window "), native, _2CSTR (" to the associative map"));
-    }
 
     return ret;
 }
 
-// EGLSurface is ignored if all equals true
-bool Platform::Remove (EGLSurface const & egl, bool all) {
-    bool ret = false;
-
+bool Platform::Remove (EGLDisplay const & display, EGLSurface const & egl) {
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    if (all != true) {
-        ret = _map_surf.erase (egl) ==  1;
+    Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> _device (display, EGLNativeDisplayType_DEFAULT () /* act as dummy */);
 
-        // iterator has become singular
-    }
-    else {
-        /*void*/ _map_surf.clear ();
+    Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> _surface (egl, EGLNativeWindowType_DEFAULT () /* act as dummy*/);
 
-        // iterator has become singular
-
-        ret = _map_surf.size () < NonEmptySizeInitialValue ();
-    }
+    bool ret = _set.Has (_device) && _device.Has (_surface) && _device.Remove (_surface) && _set.Emplace (_device);
 
     assert (ret != false);
-
-    if (ret != true) {
-        LOG (_2CSTR ("Unable to remove "), all != false ? _2CSTR ("all EGLSurfaces ") : _2CSTR ("EGLSurface "), all != false ? _2CSTR ("") : egl, _2CSTR ("from the associatve map"));
-    }
 
     return ret;
 }
@@ -719,39 +909,45 @@ bool Platform::ScanOut (EGLSurface const & surface) const {
 
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    auto it = _map_surf.find (surface);
+    // Check here and not in every helper
+    EGLDisplay _dpy = eglGetCurrentDisplay ();
 
-    if (it != _map_surf.end ()) {
-        // Check here and not in every helper
-        EGLDisplay _dpy = eglGetCurrentDisplay ();
+    if (_dpy != EGL_NO_DISPLAY) {
+        Device <EGLDisplay, EGLNativeDisplayType, EGLSurface, EGLNativeWindowType, gbm_bo_t> _device (_dpy, EGL_DEFAULT_DISPLAY /* act as dummy */);
 
-        auto _it_dpy = _map_dpy.find (_dpy);
+        Surface <EGLSurface, EGLNativeWindowType, gbm_bo_t> _surface (surface, EGLNativeWindowType_DEFAULT () /* act as dummy*/);
 
-        EGLNativeDisplayType _native = EGL_DEFAULT_DISPLAY;
+        if (_set.Has (_device) != false && _device.Has (_surface) != false)  {
+            DeviceOnion const & _do = static_cast <DeviceOnion const &> (_device);
 
-        if (_it_dpy != _map_dpy.end ()) {
-            _native = _it_dpy->second;
-        }
+            if (_do.NativeType () != EGL_DEFAULT_DISPLAY) {
+                EGLint _value;
 
-        if (_native != EGL_DEFAULT_DISPLAY && _dpy != EGL_NO_DISPLAY) {
-            gbm_surface_t _gbm_surf = reinterpret_cast <gbm_surface_t> (it->second);
+                if (eglQuerySurface (_dpy, surface, EGL_RENDER_BUFFER, &_value) != EGL_FALSE) {
+                    SurfaceOnion const & _so = static_cast <SurfaceOnion const &> (_surface);
 
-            EGLint _value;
+                    gbm_surface_t _gbm_surf = reinterpret_cast <gbm_surface_t> (_so.NativeType ());
 
-            if (eglQuerySurface (_dpy, surface, EGL_RENDER_BUFFER, &_value) != EGL_FALSE) {
 #ifdef _FIXEDSIZEDQUEUE
-                static_assert (MinimumBufferCount () < MaximumBufferCount);
+                    static_assert (MinimumBufferCount () < MaximumBufferCount);
 #endif
-                ret = ScanOut (_gbm_surf, _value != EGL_BACK_BUFFER ? MinimumBufferCount () : MinimumBufferCount () + 1);
+                    ret = ScanOut (_gbm_surf, _value != EGL_BACK_BUFFER ? MinimumBufferCount () : MinimumBufferCount () + 1);
+                }
+                else {
+                    LOG (_2CSTR ("Unable to complete scan out"));
+                }
             }
             else {
-                LOG (_2CSTR ("Unable to complete scan out"));
+                LOG (_2CSTR ("EGL display has wrong type"));
+                assert (false);
             }
         }
-    }
-    else {
-        LOG (_2CSTR ("Untracked EGLSurface"));
-        assert (false);
+        else {
+            LOG (_2CSTR ("Untracked EGLSurface"));
+            assert (false);
+        }
+    } else {
+        LOG (_2CSTR ("No valid EGL display available for scan out"));
     }
 
     return ret;
@@ -816,17 +1012,17 @@ bool Platform::ScanOut (gbm_surface_t const & surface, uint8_t buffers) const {
     static bool _loaded = loaded (libGBMname ()) && loaded (libDRMname ());
 
     if (_loaded != false) {
-        if (surface != nullptr) {
+        if (surface != gbm_surface_t_DEFAULT ()) {
             _bo.back () = gbm_surface_lock_front_buffer (surface);
         }
 
-        gbm_device_t _gbm_device = nullptr;
+        gbm_device_t _gbm_device = gbm_device_t_DEFAULT ();
 
-        if (_bo.back () != nullptr) {
+        if (_bo.back () != gbm_bo_t_DEFAULT ()) {
             _gbm_device = gbm_bo_get_device (_bo.back ());
         }
 
-        if (_gbm_device != nullptr) {
+        if (_gbm_device != gbm_device_t_DEFAULT ()) {
             int _fd = gbm_device_get_fd (_gbm_device);
 
             if (_fd >= 0 && drmAvailable () != 0 && drmIsMaster (_fd) != 0) {
@@ -862,7 +1058,7 @@ bool Platform::ScanOut (gbm_surface_t const & surface, uint8_t buffers) const {
                         static Platform::Queue _queue (_fd, _crtc, _connectors);
 
                         auto enqueue = [&buffers, &surface, this] (int fd, uint32_t fb, gbm_bo_t bo) -> gbm_bo_t {
-                            gbm_bo_t ret = nullptr;
+                            gbm_bo_t ret = gbm_bo_t_DEFAULT ();
 
                             /* void */ _queue.push (std::make_tuple(fd, fb, surface, bo));
 
@@ -1000,7 +1196,7 @@ bool Platform::ScanOut (gbm_surface_t const & surface, uint8_t buffers) const {
             }
         }
 
-        if (surface != nullptr && _bo.front () != nullptr) {
+        if (surface != gbm_surface_t_DEFAULT () && _bo.front () != gbm_bo_t_DEFAULT ()) {
             /*void*/ gbm_surface_release_buffer (surface, _bo.front ());
         }
         else {
@@ -1015,13 +1211,13 @@ bool Platform::ScanOut (gbm_surface_t const & surface, uint8_t buffers) const {
         LOG (_2CSTR ( "Unable to complete the scan out due to missing support library"));
     }
 
-    return _bo.front () != nullptr;
+    return _bo.front () != gbm_bo_t_DEFAULT ();
 }
 
 // Helpers
 
 Platform::gbm_bo_t Platform::gbm_surface_lock_front_buffer (gbm_surface_t surface) const {
-    gbm_bo_t ret = nullptr;
+    gbm_bo_t ret = gbm_bo_t_DEFAULT ();
 
     // This can be an expensive test thus cache the result
     static bool _loaded = loaded (libGBMname ());
@@ -1162,16 +1358,19 @@ EGLSurface eglCreatePlatformWindowSurfaceEXT (EGLDisplay dpy, EGLConfig config, 
 
         ret = _eglCreatePlatformWindowSurfaceEXT (dpy, config, native_window, attrib_list);
 
-//        static_assert (std::is_pointer <EGLNativeWindowType>::value != false);
         if (ret != EGL_NO_SURFACE && Platform::Instance ().isGBMsurface ( reinterpret_cast <EGLNativeWindowType> (native_window) ) != false) {
-            if (Platform::Instance ().Add (ret, reinterpret_cast <EGLNativeWindowType> (native_window)) != false) {
+
+            if (Platform::Instance ().Add (dpy, ret, reinterpret_cast <EGLNativeWindowType> (native_window)) != false) {
                 // Hand over the result
             }
             else {
                 // Probably already added but not / never removed
+                LOG (_2CSTR ("Surface already exists"));
+
                 assert (false);
             }
         }
+
     }
     else {
         LOG (_2CSTR ("Real egliCreatePlatformWindowSurfaceEXT not found"));
@@ -1202,6 +1401,8 @@ EGLDisplay eglGetDisplay (EGLNativeDisplayType display_id) {
             }
             else {
                 // Probably already added but not / never removed
+                LOG (_2CSTR ("Display already exists"));
+
                 assert (false);
             }
         }
@@ -1262,8 +1463,6 @@ EGLBoolean eglTerminate (EGLDisplay dpy) {
         if (ret != EGL_FALSE) {
             // All resources are marked for deletion; EGLDisplay handles remain valid. Other handles are invalidated and once used may result in errors
             // eglReleaseThread and eglMakeCurrent can be called to complete deletion of resources
-
-            // Currently, there exist no knowlegde which surface belong to this display, thus, no surface clean up
 
             ret = Platform::Instance ().Terminate (dpy);
         }
@@ -1326,7 +1525,6 @@ EGLBoolean eglChooseConfig (EGLDisplay dpy, const EGLint* attrib_list, EGLConfig
                 LOG (_2CSTR ("Off screen pbuffer support requested. Frame buffer configuration NOT filtered."));
             }
 
-
             if (ret != EGL_FALSE && configs != nullptr) {
                 *num_config = config_size > *num_config ? *num_config : config_size;
 
@@ -1356,7 +1554,7 @@ EGLSurface eglCreateWindowSurface (EGLDisplay dpy, EGLConfig config, EGLNativeWi
         ret = _eglCreateWindowSurface(dpy, config, win, attrib_list);
 
         if (ret != EGL_NO_SURFACE && Platform::Instance ().isGBMsurface (win) != false) {
-            if (Platform::Instance ().Add (ret, win) != false) {
+            if (Platform::Instance ().Add (dpy, ret, win) != false) {
                 // Hand over the result
             }
             else {
@@ -1412,7 +1610,7 @@ EGLBoolean eglDestroySurface (EGLDisplay dpy, EGLSurface surface) {
         ret = _eglDestroySurface(dpy, surface);
 
         if (ret != EGL_FALSE) {
-            if (Platform::Instance ().Remove (surface) != true) {
+            if (Platform::Instance ().Remove (dpy, surface) != true) {
                 assert (false);
             }
         }
@@ -1573,7 +1771,7 @@ EGLBoolean eglDestroyContext (EGLDisplay dpy, EGLContext ctx) {
 
     if (resolved != false) {
 
-        // The maps cannot be cleared just yet. EGL (resources) are only marked for deletion.
+        // EGL (resources) are only marked for deletion.
         // Shared context can still use them
 
         LOG (_2CSTR ("Calling Real eglDestroyContext"));
@@ -1648,7 +1846,6 @@ EGLDisplay eglGetPlatformDisplay (EGLenum platform, void* native_display, const 
 
         if (ret != EGL_NO_SURFACE && platform == EGL_PLATFORM_GBM_KHR) {
 
-            // Create a mapping; the caller is responsible for being truthful
             LOG (_2CSTR ("Detected GBM platform, hence, native_display is of gbm_device_t"));
 
 //            static_assert (std::is_pointer <EGLNativeDisplayType>::value != false);
@@ -1689,7 +1886,7 @@ EGLSurface eglCreatePlatformWindowSurface (EGLDisplay dpy, EGLConfig config, voi
             LOG (_2CSTR ("Detected GBM platform, hence, native_window is of gbm_surface_t"));
 
 //            static_assert (std::is_pointer <EGLNativeWindowType>::value != false);
-            if (Platform::Instance ().Add (ret, reinterpret_cast <EGLNativeWindowType> (native_window)) != false) {
+            if (Platform::Instance ().Add (dpy, ret, reinterpret_cast <EGLNativeWindowType> (native_window)) != false) {
                 // Hand over the result
             }
             else {

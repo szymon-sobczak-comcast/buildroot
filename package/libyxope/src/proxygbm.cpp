@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common.h"
 
+#define _USE_REFCOUNT
+#include "set.h"
+
 #include <string>
 
 // A little less code bloat
@@ -46,8 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define PROXYGBM_UNUSED __attribute__ ((unused))
 
-#include <unordered_map>
-#include <unordered_set>
 #include <functional>
 
 #ifdef __cplusplus
@@ -78,24 +79,6 @@ PROXYGBM_PUBLIC struct gbm_device* gbm_create_device (int fd);
 }
 #endif
 
-namespace std {
-
-// Hash specialization that works with constant pointers
-template <typename T>
-struct hash <T* const> {
-    size_t operator () (const T* const & obj) const {
-        size_t _ret = 0;
-
-        std::hash <const T*> hashfnc;
-
-        _ret = hashfnc (obj);
-
-        return _ret;
-    }
-};
-
-}
-
 namespace {
 // Suppress compiler preprocessor 'visibiity ignored' in anonymous namespace
 #define _PROXYGBM_PRIVATE /*PROXYGBM_PRIVATE*/
@@ -105,27 +88,34 @@ namespace {
 class Platform : public Singleton <Platform> {
     using sync_t = MutexRecursive <3>; // Three levels deep locking
 
-    using gbm_bo_t      = struct gbm_bo*;
-    using gbm_surface_t = struct gbm_surface*;
-    using gbm_device_t  = struct gbm_device*;
+    using gbm_bo_t      = struct gbm_bo *;
+    using gbm_surface_t = struct gbm_surface *;
+    using gbm_device_t  = struct gbm_device *;
 
     // This (These) friend(s) has (have) access to all members!
     friend Singleton <Platform>;
 
     public :
 
-        // The hash can be specificied explicitly but it is not required as it is part of 'std' namespace
-        using map_buf_t = std::unordered_map <gbm_bo_t const, uint32_t>;
+        _PROXYGBM_PRIVATE static constexpr gbm_device_t gbm_device_t_DEFAULT () {
+            return nullptr;
+        }
+
+        _PROXYGBM_PRIVATE static constexpr gbm_surface_t gbm_surface_t_DEFAULT () {
+            return nullptr;
+        }
+
+        _PROXYGBM_PRIVATE static constexpr gbm_bo_t gbm_bo_t_DEFAULT () {
+            return nullptr;
+        }
 
         _PROXYGBM_PRIVATE bool Add (gbm_surface_t const & surface, gbm_bo_t const & bo);
-        // The second parameter does not have to exist or explicitly provided
-        _PROXYGBM_PRIVATE bool Remove (gbm_surface_t const & surface, gbm_bo_t const bo = nullptr);
-
         _PROXYGBM_PRIVATE bool Add (gbm_device_t const & device, gbm_surface_t const & surface);
-        // The second parameter does not have to exist or explicitly provided
-        _PROXYGBM_PRIVATE bool Remove (gbm_device_t const & device, gbm_surface_t const surface = nullptr);
 
-        // 'Educated' guess of the (next0 buffer
+        _PROXYGBM_PRIVATE bool Remove (gbm_surface_t const & surface, gbm_bo_t const bo = gbm_bo_t_DEFAULT ());
+        _PROXYGBM_PRIVATE bool Remove (gbm_device_t const & device, gbm_surface_t const surface = gbm_surface_t_DEFAULT ());
+
+        // 'Educated' guess of the (next) buffer
         gbm_bo_t PredictedBuffer (gbm_surface_t const & surface) const;
 
         _PROXYGBM_PRIVATE bool Exist (gbm_device_t const & device) const;
@@ -137,631 +127,420 @@ class Platform : public Singleton <Platform> {
 
     protected :
 
-    //  Nothing
+    // Nothing
+
+    private:
+
+        class BufferOnion : public Buffer <gbm_bo_t> {
+            public :
+
+                BufferOnion () = delete;
+
+                ~BufferOnion () = default;
+
+                BufferOnion (BufferOnion const &) = default;
+
+                BufferOnion (BufferOnion &&) = delete;
+
+                BufferOnion & operator = (BufferOnion const &) = default;
+
+                BufferOnion & operator = (BufferOnion &&) = delete;
+
+                gbm_bo_t Type () const {
+                    return reinterpret_cast <gbm_bo_t> (Buffer <gbm_bo_t>::WrappedObject ());
+                }
+
+                bool List () const {
+                    LOG (_2CSTR ("          |--> with (native) buffer: "), Type () );
+
+                    return true;
+                }
+        };
+
+        class BufferSetOnion : public BufferSet <gbm_bo_t> {
+            public :
+
+                BufferSetOnion () = delete;
+
+                ~BufferSetOnion () = default;
+
+                BufferSetOnion (BufferSetOnion const &) = default;
+
+                BufferSetOnion (BufferSetOnion &&) = delete;
+
+                BufferSetOnion & operator = (BufferSetOnion const &) = default;
+
+                BufferSetOnion & operator = (BufferSetOnion &&) = delete;
+
+                bool List () const {
+                    bool _ret = false;
+
+                    for (auto _it = begin (), _end = end (); _it != _end; _it++) {
+                        auto _e = static_cast <typename Set < Buffer <gbm_bo_t> >::Onion const & > (*_it);
+
+                        auto _b = _e.Peel ();
+
+                        BufferOnion const & _bo = static_cast <BufferOnion const &> (_b);
+
+                        _ret = _bo.List ();
+
+                        if (_ret != false) {
+                            break;
+                        }
+                    }
+
+                    return _ret;
+                }
+        };
+
+        class SurfaceOnion : public Surface <gbm_surface_t, void, gbm_bo_t> {
+            public :
+
+                SurfaceOnion () = delete;
+
+                ~SurfaceOnion () = default;
+
+                SurfaceOnion (SurfaceOnion const &) = default;
+
+                SurfaceOnion (SurfaceOnion &&) = delete;
+
+                SurfaceOnion & operator = (SurfaceOnion const &) = default;
+
+                SurfaceOnion & operator = (SurfaceOnion &&) = delete;
+
+                BufferSet <gbm_bo_t> const &  Set () const {
+                    auto _set = Surface <gbm_surface_t, void, gbm_bo_t>::Set ();
+                    return Surface <gbm_surface_t, void, gbm_bo_t>::Set ();
+                }
+
+                bool List () const {
+                    LOG (_2CSTR ("     |--> with (native) surface entry: "), reinterpret_cast <gbm_surface_t> ( Surface <gbm_surface_t, void, gbm_bo_t>::WrappedObject () ));
+
+                    BufferSetOnion const & _b = static_cast <BufferSetOnion const & > (Set ());
+
+                    bool _ret = true;;
+
+                    if (_b.Size () > 0) {
+                        _ret = _b.List ();;
+                    }
+                    else {
+                        LOG (_2CSTR ("          |--> with NO (native) buffer"));
+                    }
+
+                    return _ret;
+                }
+        };
+
+        class SurfaceSetOnion : public SurfaceSet <gbm_surface_t, void, gbm_bo_t> {
+            public :
+
+                SurfaceSetOnion () = delete;
+
+                ~SurfaceSetOnion () = default;
+
+                SurfaceSetOnion (SurfaceSetOnion const &) = default;
+
+                SurfaceSetOnion (SurfaceSetOnion &&) = delete;
+
+                SurfaceSetOnion & operator = (SurfaceSetOnion const &) = default;
+
+                SurfaceSetOnion & operator = (SurfaceSetOnion &&) = delete;
+
+                auto Size () const -> decltype ( SurfaceSet <gbm_surface_t, void, gbm_bo_t>::Size () ) {
+                    return SurfaceSet <gbm_surface_t, void, gbm_bo_t>::Size ();
+                }
+
+                bool List () const {
+                    bool _ret = false;
+
+                    for (auto _it = begin (), _end = end (); _it != _end; _it++) {
+                        auto _e = static_cast <typename Set < Surface <gbm_surface_t, void, gbm_bo_t> >::Onion const & > (* _it);
+
+                        auto _s = _e.Peel ();
+
+                        SurfaceOnion const & _so = static_cast <SurfaceOnion const &> (_s);
+
+                        _ret = _so.List ();
+
+                        if (_ret != false) {
+                            break;
+                        }
+                    }
+
+                    return _ret;
+                }
+        };
+
+        class DeviceOnion : public Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> {
+            public :
+
+                DeviceOnion () = delete;
+
+                ~DeviceOnion () = default;
+
+                DeviceOnion (DeviceOnion const &) = default;
+
+                DeviceOnion (DeviceOnion &&) = delete;
+
+                DeviceOnion & operator = (DeviceOnion const &) = default;
+
+                DeviceOnion & operator = (DeviceOnion &&) = delete;
+
+                bool List () const {
+                    LOG (_2CSTR ("Warning: remaining (native) device entry: "), reinterpret_cast <gbm_device_t> ( Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t>::WrappedObject () ));
+
+                    SurfaceSetOnion const & _s = static_cast <SurfaceSetOnion const & > (Set ());
+
+                    bool _ret = true;;
+
+                    if (_s.Size () > 0) {
+                        _ret =  _s.List ();
+                    }
+                    else {
+                        LOG (_2CSTR ("     |--> with NO (native) surface"));
+                    }
+
+                    return _ret;
+                }
+        };
+
+
+        class DeviceSetOnion : public DeviceSet <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> {
+            public :
+
+                DeviceSetOnion () = delete;
+
+                ~DeviceSetOnion () = default;
+
+                DeviceSetOnion (DeviceSetOnion const &) = default;
+
+                DeviceSetOnion (DeviceSetOnion &&) = delete;
+
+                DeviceSetOnion & operator = (DeviceSetOnion const &) = default;
+
+                DeviceSetOnion & operator = (DeviceSetOnion &&) = delete;
+
+                bool Has (Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> & device, Surface <gbm_surface_t, void, gbm_bo_t> const & surface) const {
+                    bool _ret = false;
+
+                    Surface <gbm_surface_t, void, gbm_bo_t> _surface (surface);
+
+                    for (auto _it = begin (), _end = end (); _it != _end; _it++) {
+                        auto _e = static_cast <typename Set < Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> >::Onion const & > (* _it);
+
+                        auto _d = _e.Peel ();
+
+                       _ret = _d.Has (_surface);
+
+                       if (_ret != false) {
+                            device = _d;
+
+                            break;
+                       }
+                    };
+
+                    return _ret;
+                }
+
+                bool List () const {
+                    bool _ret = false;
+
+                    for (auto _it = begin (), _end = end (); _it != _end; _it++) {
+                        auto _e = static_cast <typename Set < Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> >::Onion const & > (* _it);
+
+                        auto _d = _e.Peel ();
+
+                        DeviceOnion const & _do = static_cast <DeviceOnion const &> (_d);
+
+                       _ret = _do.List ();
+
+                       if (_ret != false) {
+                           break;
+                       }
+                    }
+
+                    return _ret;
+                }
+        };
 
     private :
 
         _PROXYGBM_PRIVATE static sync_t _syncobject;
 
-        // The hash can be specificied explicitly but it is not required as it is part of 'std' namespace
-        using map_surf_t = std::unordered_map <gbm_surface_t const, map_buf_t>;
-        // The const is not allowed for the second element in unordered_map
-        using set_surf_t = std::unordered_set <gbm_surface_t /*const*/>;
-        using map_dev_t  = std::unordered_map <gbm_device_t const, set_surf_t>;
+        DeviceSet <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> _set;
 
-        map_surf_t _map_surf;
-        map_dev_t _map_dev;
-
-        Platform () {
-            /*void*/ _map_surf.clear ();
-            /*void*/ _map_dev.clear ();
-        }
+        Platform () = default;
 
         virtual ~Platform () {
-            for (auto _it_surf = _map_surf.begin (), _end = _map_surf.end (); _it_surf != _end; _it_surf++) {
-                LOG (_2CSTR ("Warning: remaining (gbm) surface entry: "), _it_surf->first);
+            DeviceSetOnion const & _s = static_cast <DeviceSetOnion const &> (_set);
 
-                auto _buffers = _it_surf->second;
-
-                if (_buffers.size () > 0) {
-                    for (auto _it_buf = _buffers.begin (), _end = _buffers.end (); _it_buf != _end; _it_buf++) {
-                        LOG (_2CSTR ("   |--> with buffer: "), _it_buf->first);
-                    }
-                }
-                else {
-                    LOG (_2CSTR ("   |--> with NO buffers"));
-                }
-            }
-
-            for (auto _it_dev = _map_dev.begin (), _end = _map_dev.end (); _it_dev != _end; _it_dev++) {
-                LOG (_2CSTR ("Warning: remaining (gbm) device entry: "), _it_dev->first);
-
-                auto _surfaces = _it_dev->second;
-
-                if (_surfaces.size () > 0) {
-                    for (auto _it_surf = _surfaces.begin (), _end = _surfaces.end (); _it_surf != _end; _it_surf++) {
-                        LOG (_2CSTR ("   |--> with surface: "), *_it_surf);
-                    }
-                }
-                else {
-                    LOG (_2CSTR ("   |--> with NO surfaces"));
-                }
-            }
+            _s.List ();
         }
-
-        _PROXYGBM_PRIVATE uint16_t Sequence (uint32_t value) const {
-            return static_cast <uint16_t> (value >> 16);
-        }
-
-        _PROXYGBM_PRIVATE uint16_t Count (uint32_t value) const {
-            return static_cast <uint16_t> (value & static_cast <uint32_t> (CountBitmask ()));
-        }
-
-
-        _PROXYGBM_PRIVATE static constexpr uint16_t SequenceInitialValue (void) {
-            return 0;
-        }
-
-        _PROXYGBM_PRIVATE static constexpr uint16_t SequenceMaxValue (void) {
-            return 4;
-        }
-
-        _PROXYGBM_PRIVATE static constexpr uint16_t CountInitialValue (void) {
-            return 1;
-        }
-
-        _PROXYGBM_PRIVATE static constexpr uint16_t CountMaxValue () {
-            return 4;
-        }
-
-        // Extract part of the gbm_bo_t paired value, here reference count
-        _PROXYGBM_PRIVATE static constexpr uint16_t CountBitmask () {
-            return 0x00FF;
-        }
-
-        // Extract part of the gbm_bo_t paired value, here sequence number
-        _PROXYGBM_PRIVATE static constexpr uint16_t SequenceBitmask () {
-            return 0xFF00;
-        }
-
-        _PROXYGBM_PRIVATE uint32_t Convert (uint16_t count, uint16_t sequence) const {
-            return count + (sequence << 16);
-        }
-
-        _PROXYGBM_PRIVATE bool Age (map_buf_t& buffers) const;
-        _PROXYGBM_PRIVATE bool Rejuvenate (map_buf_t& buffers) const;
-
-// TODO: probably misused at places
-        _PROXYGBM_PRIVATE static constexpr uint32_t NonEmptySizeInitialValue (void) {
-            return 1;
-        }
-
-        _PROXYGBM_PRIVATE gbm_bo_t PredictedBuffer (map_buf_t const & buffers) const;
 };
 
 /*_PROXYGBM_PRIVATE*/ Platform::sync_t Platform::_syncobject;
 
 Platform::gbm_bo_t Platform::PredictedBuffer (gbm_surface_t const & surface) const {
-    auto Buffers = [this] (gbm_surface_t const & surface) -> map_buf_t const & {
-        // Empty well-defined placeholder
-        static map_buf_t _map;
-
-        map_buf_t& result = _map;
-
-        if (surface != nullptr) {
-            auto _it = _map_surf.find (surface);
-
-            if (_it != _map_surf.end ()) {
-                result = _it->second;
-            }
-        }
-
-        return result;
-    };
-
-    struct gbm_bo* bo = nullptr;
-
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    auto _buffers = Buffers (surface);
+    DeviceSetOnion const & _dso = static_cast <DeviceSetOnion const &> (_set);
 
-    if (_buffers.empty () != true) {
-        // Decision time, without any (prior) knowledge select one of the recorded bo's
-        bo = PredictedBuffer (_buffers);
-    }
-    else {
-        // No recorded bo's, and failure, hand over the result
-    }
+    Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> _device (gbm_device_t_DEFAULT () /* act as dummy */);
 
-    return bo;
-}
+    Surface <gbm_surface_t, void, gbm_bo_t> _surface (surface);
 
-Platform::gbm_bo_t Platform::PredictedBuffer (map_buf_t const & buffers) const {
-    gbm_bo_t ret = nullptr;
+    gbm_bo_t _ret = gbm_bo_t_DEFAULT ();
 
-    decltype (CountInitialValue ()) _count = CountInitialValue ();
-    decltype (SequenceInitialValue ()) _sequence = SequenceInitialValue ();
+    if (_dso.Has (_device, _surface) != false && _device.Has (_surface) != false) {
 
-    for (auto _it = buffers.begin (), _end = buffers.end (); _it != _end; _it++) {
-        // The list should contain sane entries
-        assert (_it->first != nullptr && Count (_it->second) >= CountInitialValue ());
+        // _device has been updated if it exists, likewise _surface
 
-        // Oldest, with lowest count is most probably the one required by a successive call to gbm_surface_lock_front_buffer
-        if (Sequence (_it->second) >= _sequence) {
-            if (Count (_it->second) <= _count) {
-                _count = Count (_it->second);
-                ret = _it->first;
-                _sequence = Sequence (_it->second);
-            }
+        SurfaceOnion const & _so = static_cast <SurfaceOnion const &> (_surface);
+
+        auto & _bset = _so.Set ();
+
+        // Nothing to predict from an empty set
+
+        if (_bset.Size () > 0) {
+            Buffer <gbm_bo_t> const & _buffer = _bset.PredictedBuffer (false);
+
+            BufferOnion const & _bo = static_cast <BufferOnion const &> (_buffer);
+
+            _ret = _bo.Type ();
         }
     }
 
-    return ret;
-}
-
-bool Platform::Age (map_buf_t& buffers) const {
-    bool ret = buffers.size () >= NonEmptySizeInitialValue ();
-
-    for (auto _it_buf = buffers.begin (), _end = buffers.end (); _it_buf != _end; _it_buf++) {
-        decltype (_it_buf->second) _count = Count (_it_buf->second);
-        decltype (_it_buf->second) _sequence = Sequence (_it_buf->second);
-
-        assert (_sequence < SequenceMaxValue ());
-
-        ++_sequence;
-
-        _it_buf->second = Convert (_count, _sequence);
-    }
-
-    return ret;
-}
-
-bool Platform::Rejuvenate (map_buf_t& buffers) const {
-    bool ret = buffers.size () >= NonEmptySizeInitialValue ();
-
-    for (auto _it_buf = buffers.begin (), _end = buffers.end (); _it_buf != _end; _it_buf++) {
-        decltype (_it_buf->second) _count = Count (_it_buf->second);
-        decltype (_it_buf->second) _sequence = Sequence (_it_buf->second);
-
-        assert (_sequence > SequenceInitialValue ());
-
-        _sequence--;
-
-        _it_buf->second = Convert (_count, _sequence);
-    }
-
-    return ret;
+    return _ret;
 }
 
 bool Platform::Add (gbm_surface_t const & surface, gbm_bo_t const & bo) {
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    auto _it_surf = _map_surf.find (surface);
+    DeviceSetOnion const & _dso = static_cast <DeviceSetOnion const &> (_set);
 
-    map_buf_t _buffers;
+    Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> _device (gbm_device_t_DEFAULT () /* act as dummy */);
 
-    if (_it_surf != _map_surf.end ()) {
-        // Surface buffers entry exists
+    Surface <gbm_surface_t, void, gbm_bo_t> _surface (surface);
 
-        _buffers = _it_surf->second;
-    }
-    else {
-        // No known surface
-        if (surface != nullptr) {
-            auto __it_surf = _map_surf.insert (std::pair < gbm_surface_t const, map_buf_t > (surface, _buffers));
+    bool _ret = _dso.Has (_device, _surface);
 
-            // The iterator may have become singular
+    // _device has been updated if it exists, but _surface has not
 
-            if (__it_surf.second != false) {
-                assert (__it_surf.first != _map_surf.end ());
+    // Allowed to fail
+    /* bool */ _device.Has (_surface);
 
-                _it_surf = __it_surf.first;
-            }
-        }
-        else {
-            assert (false);
-        }
+    // _surface has been updated if it exists
+
+    if (bo != gbm_bo_t_DEFAULT ()) {
+        Buffer <gbm_bo_t> _buffer (bo);
+
+        _ret = _ret && _surface.Add (_buffer);
     }
 
-    auto _it_buf = _buffers.find (bo);
+    // Allowed to fail
+    /* bool */ _device.Remove (_surface);
 
-    if (_it_buf != _buffers.end ()) {
-        // bo exist
-        assert (Count (_it_buf->second) >= CountInitialValue ());
+    _ret = _ret && _device.Add (_surface) && _set.Emplace (_device);
 
-        decltype (_it_buf->second) _count = Count(_it_buf->second);
-        decltype (_it_buf->second) _sequence = Sequence(_it_buf->second);
+    assert (_ret != false);
 
-        assert (_count < CountMaxValue ());
-
-        _count++;
-
-        _it_buf->second = Convert (_count, _sequence);
-    }
-    else {
-        //  bo does not exist or bo equals nullptr
-
-        if (bo != nullptr) {
-            auto __it_buf = _buffers.insert (std::pair < gbm_bo_t const, uint32_t> (bo, Convert (CountInitialValue (), SequenceInitialValue ())));
-
-            // The iterator may have become singular
-
-            if ( __it_buf.second != false) {
-                assert (__it_buf.first != _buffers.end ());
-
-                _it_buf = __it_buf.first;
-
-                if (Age (_buffers) != true) {
-                    assert (false);
-                }
-            }
-        }
-        else {
-            // Empty set
-        }
-    }
-
-    bool ret = false;
-
-    if (_it_surf != _map_surf.end ()) {
-
-        // Successfully added or empty set
-        if ((bo != nullptr && _it_buf != _buffers.end ()) || (bo == nullptr && _buffers.empty () != false)) {
-            _it_surf->second = _buffers;
-
-            ret  = true;
-        }
-
-    }
-    else {
-        // Surface is a nullptr or could not be added, in debug mode, only, could not be added
-        assert (false);
-    }
-
-    return ret;
+    return _ret;
 }
 
 bool Platform::Remove (gbm_surface_t const & surface, gbm_bo_t bo) {
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    bool ret = false;
+    DeviceSetOnion const & _dso = static_cast <DeviceSetOnion const &> (_set);
 
-    auto _it_surf = _map_surf.find (surface);
+    Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> _device (gbm_device_t_DEFAULT () /* act as dummy */);
 
-    map_buf_t _buffers;
+    Surface <gbm_surface_t, void, gbm_bo_t> _surface (surface);
 
-    if (_it_surf != _map_surf.end ()) {
-        // Surface buffers entry exists
+    bool _ret = _dso.Has (_device, _surface) && _device.Has (_surface) && _device.Remove (_surface);
 
-        _buffers = _it_surf->second;
-    }
-    else {
-        // No known surface
-        if (surface != nullptr) {
-            assert (false);
-        }
-        else {
-            // Remove all surfaces and consequently all devices
-            /*void*/ _map_dev.clear ();
-            /*void*/ _map_surf.clear ();
+    // _device has been updated if it exists, likewise _surface
 
-            // iterator has become singular
-            _it_surf = _map_surf.end ();
+    if (bo != gbm_bo_t_DEFAULT ()) {
+        Buffer <gbm_bo_t> _buffer (bo);
 
-            assert (_map_dev.size () < NonEmptySizeInitialValue ());
-            assert (_map_surf.size () < NonEmptySizeInitialValue ());
-        }
+        _ret = _ret && _surface.Remove (_buffer) && _device.Add (_surface);
     }
 
-    auto _it_buf = _buffers.find (bo);
+    _ret = _ret && _set.Emplace (_device);
 
-    if (_it_buf != _buffers.end ()) {
-        assert (bo != nullptr);
+    assert (_ret != false);
 
-        // bo exist
-        assert (Count (_it_buf->second) >= CountInitialValue ());
-
-        switch (Count (_it_buf->second)) {
-            case 0  :   // Error, it should not happen, try to make the _map sane
-                        assert (false);
-            case 1  :  // Count reduces to 0
-
-                        switch (_buffers.erase (bo)) {
-                            case 1  :   // Expected, iterator has become singular
-                                        ret = Rejuvenate (_buffers);
-                                        break;
-                            case 0  :;
-                            default :   // Unexpected, iterator has become singular
-                                        _it_buf = _buffers.end ();
-                                        assert (false);
-                        }
-
-                        break;
-            default :   // > 1
-                        decltype (_it_buf->second) _count = Count (_it_buf->second);
-                        decltype (_it_buf->second) _sequence = SequenceInitialValue(); //Sequence (_it_buf->second);
-
-                        assert (_count > CountInitialValue ());
-
-                        --_count;
-
-                        _it_buf->second = Convert (_count, _sequence);
-
-                        ret = true;
-        }
-    }
-    else {
-        // Unknown bo or bo equals nullptr, nullptr is not an element in the map
-
-        if (bo == nullptr) {
-            // All associated bos have to be removed
-
-            /* void */ _buffers.clear ();
-
-            // iterator has become singular
-
-            ret = _buffers.size() < NonEmptySizeInitialValue ();
-
-            assert (ret != false);
-        }
-        else {
-            // Error, untracked bo
-#ifdef _NO_RESTART_APPLICATION
-            assert (false);
-#endif
-        }
-    }
-
-    if (_it_surf != _map_surf.end ()) {
-        if (ret != false /*|| bo == nullptr*/) {
-            // An empty set is still valid
-            _it_surf->second = _buffers;
-        }
-    }
-    else {
-        // Unknown surface or cleared map, in debug mode, only, a cleared map
-        ret = surface == nullptr && _map_surf.size () < NonEmptySizeInitialValue ();
-
-        assert (ret != false);
-    }
-
-    return ret;
+    return _ret;
 }
 
 bool Platform::Add (gbm_device_t const & device, gbm_surface_t const & surface) {
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    auto _it_dev = _map_dev.find (device);
+    Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> _device (device);
 
-    set_surf_t _surfaces;
+    bool _ret = false;
 
-    if (_it_dev != _map_dev.end ()) {
-        // Device surfaces entry exist
+    // Allowed to fail
+    /* bool */ _set.Has (_device);
 
-        _surfaces = _it_dev->second;
+    // _device has been updated if it exists
+
+    if (surface != gbm_surface_t_DEFAULT ()) {
+        Surface <gbm_surface_t, void, gbm_bo_t> _surface (surface);
+
+        _ret = _device.Add (_surface) && _set.Emplace (_device);
     }
     else {
-        // No known device
-        if (device != nullptr) {
-            auto __it_dev = _map_dev.insert (std::pair < gbm_device_t const, set_surf_t> (device, _surfaces));
-
-            // The iterator may have become singular
-
-            if (__it_dev.second != false) {
-                assert (__it_dev.first != _map_dev.end ());
-
-                _it_dev = __it_dev.first;
-            }
-        }
-        else {
-            assert (false);
-        }
+        _ret = _set.Add (_device);
     }
 
-    auto _it_surf = _surfaces.find (surface);
+    assert (_ret != false);
 
-    if (_it_surf != _surfaces.end ()) {
-        // Surface exist
-
-        // Not an error if _map_surf has no associated bo's
-
-        auto Buffers = [this] (gbm_surface_t const & surface) -> map_buf_t const & {
-            // Empty well-defined placeholder
-            static map_buf_t _map;
-
-            map_buf_t& result = _map;
-
-            if (surface != nullptr) {
-                auto _it = _map_surf.find (surface);
-
-                if (_it != _map_surf.end ()) {
-                    result = _it->second;
-                }
-            }
-
-            return result;
-        };
-
-        auto _buffers = Buffers (surface);
-
-        if (_buffers.size () >= NonEmptySizeInitialValue ()) {
-            _it_surf = _surfaces.end ();
-            assert (false);
-        }
-    }
-    else {
-        //  Surface does not exist or surface equals nullptr
-
-        if (surface != nullptr) {
-            auto __it_surf = _surfaces.insert (surface);
-
-            // The iterator may have become singular
-
-            if ( __it_surf.second != false) {
-                assert (__it_surf.first != _surfaces.end ());
-
-                _it_surf = __it_surf.first;
-            }
-        }
-        else {
-            // Empty set
-        }
-    }
-
-    bool ret = false;
-
-    if (_it_dev != _map_dev.end ()) {
-
-        // Successfully added or empty set
-        if ((surface != nullptr && _it_surf != _surfaces.end ()) || (surface == nullptr && _surfaces.empty () != false)) {
-
-            ret = true;
-
-            if (surface != nullptr) {
-                ret = Add (surface, nullptr);
-            }
-
-            if (ret != false) {
-                _it_dev->second = _surfaces;
-            }
-
-            assert (ret != false);
-        }
-    }
-    else {
-        // Device is a nullptr or could not be added, in debug mode, only, could not be added
-        assert (false);
-    }
-
-    return ret;
+    return _ret;
 }
 
 bool Platform::Remove (gbm_device_t const & device, gbm_surface_t surface) {
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    bool ret = false;
+    Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> _device (device);
 
-    auto _it_dev = _map_dev.find (device);
+    // Here DeviceSetOnion is not really required
+    bool _ret = _set.Has (_device);
 
-    set_surf_t _surfaces;
+    // _device has been updated if it exists
 
-    if (_it_dev != _map_dev.end ()) {
-        // Device surfaces entry exist
+    if (surface != gbm_surface_t_DEFAULT ()) {
+        Surface <gbm_surface_t, void, gbm_bo_t> _surface (surface);
 
-        _surfaces = _it_dev->second;
+        _ret = _ret && _device.Remove (_surface) && _set.Emplace (_device);
     }
     else {
-        // Failure or no known device, surfaces are not tracked for unknown devices
-        if (device != nullptr) {
-            assert (false);
-        }
-        else {
-            // Remove all devices and consequently all surfaces
-            /*void*/ _map_dev.clear ();
-            /*void*/ _map_surf.clear ();
-
-            // iterator has become singular
-            _it_dev = _map_dev.end ();
-
-            assert (_map_dev.size () < NonEmptySizeInitialValue ());
-            assert (_map_surf.size () < NonEmptySizeInitialValue ());
-        }
+        _ret = _ret && _set.Remove (_device);
     }
 
-    auto _it_surf = _surfaces.find (surface);
+    assert (_ret != false);
 
-    if (_it_surf != _surfaces.end ()) {
-        assert (surface != nullptr);
-
-        switch (_surfaces.erase (surface)) {
-            case 1  :   // Expected
-                        // Iterator has become singular
-                        ret = Remove (surface);
-
-                        assert (ret);
-
-                        break;
-            case 0  :; 
-            default :   // Unexpected
-                        // Iterator has become singular
-                        _it_surf = _surfaces.end ();
-                        assert (false);
-        }
-    }
-    else {
-        // Unknown or surface equals nullptr
-
-        if (surface == nullptr) {
-            // All associated surfaces have to be removed
-
-            /* void */ _surfaces.clear ();
-
-            // iterator has become singular
-
-            ret = _surfaces.size () < NonEmptySizeInitialValue ();
-
-            assert (ret != false);
-        }
-        else {
-            // Error, untracked surface
-            assert (false);
-        }
-    }
-
-    if (_it_dev != _map_dev.end ()) {
-        if (ret != false /*|| surface == nullptr*/) {
-            // Successfully removed and/or empty set
-            _it_dev->second = _surfaces;
-
-            ret = true;
-        }
-    }
-    else {
-        // Unknown device or cleared map, in debug mode, only, a cleared map
-        ret = device == nullptr && _map_dev.size () < NonEmptySizeInitialValue ();
-
-        assert (ret);
-    }
-
-    return ret;
+    return _ret;
 }
 
 bool Platform::Exist (gbm_surface_t const & surface) const {
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    bool ret = false;
+    DeviceSetOnion const & _dso = static_cast <DeviceSetOnion const &> (_set);
 
-    if (surface != nullptr) {
-        const auto _it_surf = _map_surf.find (surface);
+    Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> _device (gbm_device_t_DEFAULT () /* act as dummy */);
 
-        // Empty sets should be considered as non-existent
-        ret = _it_surf != _map_surf.end () && _it_surf->second.size () >= NonEmptySizeInitialValue ();
-    }
-    else {
-        // Unintended use
-        assert (false);
-    }
+    Surface <gbm_surface_t, void, gbm_bo_t> _surface (surface);
 
-    return ret;
+    return _dso.Has (_device, _surface);
 }
 
 bool Platform::Exist (gbm_device_t const & device) const {
     std::lock_guard < decltype (Platform::_syncobject) > _lock (_syncobject);
 
-    bool ret = false;
+    Device <gbm_device_t, void, gbm_surface_t, void, gbm_bo_t> _device (device);
 
-    if (device != nullptr) {
-        auto _it_dev = _map_dev.find (device);
-
-        // Empty sets should be considered as non-existent
-        ret = _it_dev != _map_dev.end () && _it_dev->second.size () >= NonEmptySizeInitialValue ();
-    }
-    else {
-        // Unintended use
-        assert (false);
-    }
-
-    return ret;
+    return _set.Has (_device);
 }
 
 #undef _PROXYGBM_PRIVATE
@@ -774,14 +553,14 @@ struct gbm_bo* gbm_surface_lock_front_buffer (struct gbm_surface* surface) {
 
     static bool resolved = lookup ("gbm_surface_lock_front_buffer", reinterpret_cast <uintptr_t&> (_gbm_surface_lock_front_buffer));
 
-    struct gbm_bo* bo = nullptr;
+    struct gbm_bo* bo = Platform::gbm_bo_t_DEFAULT ();
 
     if (resolved != false) {
         std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
 
         bool _flag = false;
 
-        if (surface != nullptr) {
+        if (surface != Platform::gbm_surface_t_DEFAULT ()) {
             _flag = gbm_surface_has_free_buffers (surface) > 0;
 
             LOG (_2CSTR ("Calling Real gbm_surface_lock_front_buffer"));
@@ -794,7 +573,7 @@ struct gbm_bo* gbm_surface_lock_front_buffer (struct gbm_surface* surface) {
             assert (false);
         }
 
-        if (bo == nullptr) {
+        if (bo == Platform::gbm_bo_t_DEFAULT ()) {
             // gbm_surface_lock_front_buffer (also) fails if eglSwapBuffers has not been called (yet)
 
             if (_flag != false) {
@@ -817,7 +596,7 @@ struct gbm_bo* gbm_surface_lock_front_buffer (struct gbm_surface* surface) {
 
                 /* void */ gbm_surface_release_buffer (surface, bo);
 
-                bo = nullptr;
+                bo = Platform::gbm_bo_t_DEFAULT ();
 
                 assert (false);
             }
@@ -853,7 +632,7 @@ void gbm_surface_release_buffer (struct gbm_surface* surface, struct gbm_bo* bo)
         }
 
         // Avoid any segfault
-        if (bo != nullptr) {
+        if (bo != Platform::gbm_bo_t_DEFAULT ()) {
             LOG (_2CSTR ("Calling Real gbm_surface_release_buffer"));
 
             // Always release even an untracked surface
@@ -898,7 +677,7 @@ struct gbm_surface* gbm_surface_create (struct gbm_device* gbm, uint32_t width, 
 
     static bool resolved = lookup ("gbm_surface_create", reinterpret_cast <uintptr_t&> (_gbm_surface_create));
 
-    struct gbm_surface* ret = nullptr;
+    struct gbm_surface* ret = Platform::gbm_surface_t_DEFAULT ();
 
     if (resolved != false) {
         std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
@@ -915,7 +694,7 @@ struct gbm_surface* gbm_surface_create (struct gbm_device* gbm, uint32_t width, 
         if (Platform::Instance ().Add (gbm, ret) != true) {
             /* void */ gbm_surface_destroy (ret);
 
-            ret = nullptr;
+            ret = Platform::gbm_surface_t_DEFAULT ();
 
             assert (false);
         }
@@ -937,7 +716,7 @@ struct gbm_surface* gbm_surface_create_with_modifiers (struct gbm_device* gbm, u
     static bool resolved = lookup ("gbm_surface_create_with_modifiers", reinterpret_cast <uintptr_t&> (_gbm_surface_create_with_modifiers));
 
     // GBM uses only values 0 and 1; the latter indicates free buffers are available
-    struct gbm_surface* ret = nullptr;
+    struct gbm_surface* ret = Platform::gbm_surface_t_DEFAULT ();
 
     if (resolved != false) {
         std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
@@ -954,7 +733,7 @@ struct gbm_surface* gbm_surface_create_with_modifiers (struct gbm_device* gbm, u
         if (Platform::Instance ().Add (gbm, ret) != true) {
             /* void */ gbm_surface_destroy (ret);
 
-            ret = nullptr;
+            ret = Platform::gbm_surface_t_DEFAULT ();
 
             assert (false);
         }
@@ -1023,7 +802,7 @@ struct gbm_device* gbm_create_device (int fd) {
 
     static bool resolved = lookup ("gbm_create_device", reinterpret_cast <uintptr_t&> (_gbm_create_device));
 
-    struct gbm_device* ret = nullptr;
+    struct gbm_device* ret = Platform::gbm_device_t_DEFAULT ();
 
     if (resolved != false) {
         std::lock_guard < decltype (Platform::Instance ().SyncObject ()) > _lock (Platform::Instance ().SyncObject ());
@@ -1040,7 +819,7 @@ struct gbm_device* gbm_create_device (int fd) {
         if (Platform::Instance ().Add (ret, nullptr) != true) {
             /* void */ gbm_device_destroy (ret);
 
-            ret = nullptr;
+            ret = Platform::gbm_device_t_DEFAULT ();
 
             assert (false);
         }
