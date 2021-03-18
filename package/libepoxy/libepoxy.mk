@@ -13,9 +13,18 @@ LIBEPOXY_DEPENDENCIES = host-pkgconf xutil_util-macros
 LIBEPOXY_LICENSE = MIT
 LIBEPOXY_LICENSE_FILES = COPYING
 
+# Epoxy includes eglplatform.h that for some platforms need preprocessor flags to be made available
+define LIBEPOXY_ADD_MESA_CFLAGS_OTHER
+$(shell $(SED) 's/Cflags.*/& $(LIBEPOXY_MESA_CFLAGS_OTHER)/g' $(@D)/epoxy.pc)
+endef
+
 ifeq ($(BR2_PACKAGE_HAS_LIBEGL),y)
 LIBEPOXY_CONF_OPTS += --enable-egl
 LIBEPOXY_DEPENDENCIES += libegl
+ifeq ($(BR2_PACKAGE_MESA3D),y)
+LIBEPOXY_POST_BUILD_HOOKS += LIBEPOXY_ADD_MESA_CFLAGS_OTHER
+LIBEPOXY_MESA_CFLAGS_OTHER=$(shell ($(PKG_CONFIG_HOST_BINARY) --cflags-only-other egl))
+endif
 else
 LIBEPOXY_CONF_OPTS += --disable-egl
 endif
