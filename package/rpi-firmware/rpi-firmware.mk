@@ -3,7 +3,7 @@
 # rpi-firmware
 #
 ################################################################################
-RPI_FIRMWARE_VERSION = e10b2880e26708afc0b32a485c1231207037fc45
+RPI_FIRMWARE_VERSION = d016a6eb01c8c7326a89cb42809fed2a21525de5
 RPI_FIRMWARE_SITE = $(call github,raspberrypi,firmware,$(RPI_FIRMWARE_VERSION))
 RPI_FIRMWARE_LICENSE = BSD-3c
 RPI_FIRMWARE_LICENSE_FILES = boot/LICENCE.broadcom
@@ -32,7 +32,7 @@ define RPI_FIRMWARE_INSTALL_TARGET_CMDS
 endef
 endif # INSTALL_VCDBG
 
-ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14),y)
+ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14)$(BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_4),yn)
 define RPI_FIRMWARE_MOUNT_BOOT
 	mkdir -p $(TARGET_DIR)/boot
 	grep -q '^/dev/mmcblk1p1' $(TARGET_DIR)/etc/fstab || \
@@ -53,7 +53,7 @@ endef
 endif
 
 ifeq ($(BR2_TARGET_ROOTFS_CPIO),y)
-ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14),y)
+ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_4_14)$(BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_4),yn)
 define RPI_FIRMWARE_MOUNT_ROOT
 	mkdir -p $(TARGET_DIR)/root
 	grep -q '^/dev/mmcblk1p2' $(TARGET_DIR)/etc/fstab || \
