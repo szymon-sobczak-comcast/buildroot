@@ -1,0 +1,98 @@
+diff --git a/Source/ocdm/Module.h b/Source/ocdm/Module.h
+index da826585..b0a06ee8 100644
+--- a/Source/ocdm/Module.h
++++ b/Source/ocdm/Module.h
+@@ -25,6 +25,7 @@
+ #endif
+ 
+ #include "../core/core.h"
++#include "../core/Singleton.h"
+ #include "../com/com.h"
+ 
+ #undef EXTERNAL
+diff --git a/Source/ocdm/open_cdm.cpp b/Source/ocdm/open_cdm.cpp
+index 2459d95d..9241d80d 100644
+--- a/Source/ocdm/open_cdm.cpp
++++ b/Source/ocdm/open_cdm.cpp
+@@ -98,7 +98,6 @@ KeyStatus CDMState(const OCDM::ISession::KeyStatus state)
+     return KeyStatus::InternalError;
+ }
+ 
+-/* static */ OpenCDMAccessor* OpenCDMAccessor::_singleton = nullptr;
+ 
+ /**
+  * Destructs an \ref OpenCDMAccessor instance.
+diff --git a/Source/ocdm/open_cdm_impl.h b/Source/ocdm/open_cdm_impl.h
+index a73dce0d..c235f633 100644
+--- a/Source/ocdm/open_cdm_impl.h
++++ b/Source/ocdm/open_cdm_impl.h
+@@ -53,7 +53,7 @@ private:
+ private:
+     typedef std::map<string, OpenCDMSession*> KeyMap;
+ 
+-private:
++protected:
+     OpenCDMAccessor(const TCHAR domainName[])
+         : _refCount(1)
+         , _domain(domainName)
+@@ -66,7 +66,6 @@ private:
+         , _sessionKeys()
+     {
+         TRACE_L1("Trying to open an OCDM connection @ %s\n", domainName);
+-        Reconnect();
+     }
+ 
+     void Reconnect() const
+@@ -94,30 +93,14 @@ private:
+ public:
+     static OpenCDMAccessor* Instance()
+     {
+-        _systemLock.Lock();
+-
+-        if (_singleton == nullptr) {
+-            // See if we have an environment variable set.
+-            string connector;
+-            if ((Core::SystemInfo::GetEnvironment(_T("OPEN_CDM_SERVER"), connector) == false) || (connector.empty() == true)) {
+-                connector = _T("/tmp/ocdm");
+-            }
+-
+-            OpenCDMAccessor* result = new OpenCDMAccessor(connector.c_str());
+-
+-            if (result->_remote != nullptr) {
+-                _singleton = result;
+-            } else {
+-                delete result;
+-            }
+-        } else {
+-            // Reconnect if server is down
+-            _singleton->Reconnect();
++        string connector;
++        if ((Core::SystemInfo::GetEnvironment(_T("OPEN_CDM_SERVER"), connector) == false) || (connector.empty() == true)) {
++            connector = _T("/tmp/ocdm");
+         }
+ 
+-        _systemLock.Unlock();
+-
+-        return (_singleton);
++        static OpenCDMAccessor& result = Core::SingletonType<OpenCDMAccessor>::Instance(connector.c_str());
++        result.Reconnect();
++        return &result;
+     }
+     ~OpenCDMAccessor()
+     {
+@@ -129,7 +112,6 @@ public:
+             _client.Release();
+         }
+ 
+-        _singleton = nullptr;
+         TRACE_L1("Destructed the OpenCDMAccessor %p", this);
+     }
+     bool WaitForKey(const uint8_t keyLength, const uint8_t keyId[],
+@@ -336,7 +318,6 @@ private:
+     mutable Core::Event _signal;
+     mutable volatile uint32_t _interested;
+     KeyMap _sessionKeys;
+-    static OpenCDMAccessor* _singleton;
+ };
+ 
+ struct OpenCDMSession {
