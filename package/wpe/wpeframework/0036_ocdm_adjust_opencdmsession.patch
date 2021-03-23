@@ -1,0 +1,12 @@
+diff --git a/Source/ocdm/open_cdm_impl.h b/Source/ocdm/open_cdm_impl.h
+index c235f633..9f1e0e05 100644
+--- a/Source/ocdm/open_cdm_impl.h
++++ b/Source/ocdm/open_cdm_impl.h
+@@ -520,7 +520,6 @@ public:
+             Session(nullptr);
+         }
+ 
+-        system->Release();
+         TRACE_L1("Destructed the Session Client side: %p", this);
+     }
+ 
