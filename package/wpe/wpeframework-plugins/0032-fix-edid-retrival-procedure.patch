@@ -1,0 +1,33 @@
+diff --git a/DisplayInfo/Nexus/PlatformImplementation.cpp b/DisplayInfo/Nexus/PlatformImplementation.cpp
+index a604a118..04f6ae50 100644
+--- a/DisplayInfo/Nexus/PlatformImplementation.cpp
++++ b/DisplayInfo/Nexus/PlatformImplementation.cpp
+@@ -625,12 +625,18 @@ private:
+             default:
+                 break;
+             }
+-            if (connected == true) {
++        }
++
++        // The EDID should only be refreshed on hotplug events, because
++        // otherwise we might query it when it's not fully available.
++        if (callbacktype == CallbackType::HotPlug)
++        {
++            if (connected == true)
+                 RetrieveEDID(hdmiHandle, _EDID);
+-            } else {
++            else
+                 _EDID.Clear();
+-            }
+         }
++
+         _adminLock.Unlock();
+ 
+         if (notify == true) {
+@@ -658,7 +664,7 @@ private:
+ 
+             index++;
+ 
+-        } while ( (index <= info.Segments()) && (error == 0) );
++        } while ( (index < info.Segments()) && (error == 0) );
+     }

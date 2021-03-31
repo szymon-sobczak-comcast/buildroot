@@ -1,0 +1,15 @@
+diff --git a/DisplayInfo/Nexus/PlatformImplementation.cpp b/DisplayInfo/Nexus/PlatformImplementation.cpp
+index 3ebd0845..a604a118 100644
+--- a/DisplayInfo/Nexus/PlatformImplementation.cpp
++++ b/DisplayInfo/Nexus/PlatformImplementation.cpp
+@@ -204,6 +204,10 @@ public:
+         length = _EDID.Raw(length, data);
+         return length ? (Core::ERROR_NONE) : Core::ERROR_UNAVAILABLE;
+     }
++    uint32_t Segments (uint8_t& blocks /* @out */) const override {
++        blocks = _EDID.Segments();
++        return blocks ? (Core::ERROR_NONE) : Core::ERROR_UNAVAILABLE;
++    }
+     uint32_t WidthInCentimeters(uint8_t& width) const override {
+         width = _EDID.WidthInCentimeters();
+         return width ? (Core::ERROR_NONE) : Core::ERROR_UNAVAILABLE;

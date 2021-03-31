@@ -1,0 +1,14 @@
+diff --git a/partner/dpi/gstreamer/FileSystem.cpp b/partner/dpi/gstreamer/FileSystem.cpp
+index eaaf7e0d..43c543c1 100644
+--- a/partner/dpi/gstreamer/FileSystem.cpp
++++ b/partner/dpi/gstreamer/FileSystem.cpp
+@@ -322,7 +322,8 @@ void FileSystem::HandleOutputStatusChange()
+         mHDRType = displayinfo_hdr(&mDisplayInfo);
+         mAtmosSupport = displayinfo_is_atmos_supported(&mDisplayInfo);
+ 
+-        uint8_t edidBuff[256];
++        uint8_t blocks = displayinfo_edid_segments(&mDisplayInfo);
++        uint8_t edidBuff[blocks*128];
+         uint16_t edidBuffSize = sizeof(edidBuff);
+         bool hasEdid = displayinfo_edid(&mDisplayInfo, edidBuff, &edidBuffSize) == 0;
+         printf("Have EDID with size %d\n", edidBuffSize);

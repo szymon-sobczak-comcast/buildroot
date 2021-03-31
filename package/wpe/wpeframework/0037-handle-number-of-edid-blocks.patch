@@ -1,0 +1,68 @@
+diff --git a/Source/displayinfo/DisplayInfo.cpp b/Source/displayinfo/DisplayInfo.cpp
+index b127db28..a68ecd49 100644
+--- a/Source/displayinfo/DisplayInfo.cpp
++++ b/Source/displayinfo/DisplayInfo.cpp
+@@ -422,6 +422,15 @@ public:
+         return _displayConnection->EDID(len, data);
+     }
+ 
++    uint8_t Segments() const
++    {
++        ASSERT(_displayConnection != nullptr);
++        uint8_t value = 0;
++        return (_displayConnection != nullptr ?
++                   ( _displayConnection->Segments(value) == Core::ERROR_NONE ? value : 0) :
++                   0 );
++    }
++
+     Exchange::IHDRProperties::HDRType HDR() const
+     {
+         Exchange::IHDRProperties::HDRType value = Exchange::IHDRProperties::HDRType::HDR_OFF;
+@@ -596,6 +605,11 @@ uint32_t displayinfo_edid(struct displayinfo_type* displayinfo, uint8_t buffer[]
+     return reinterpret_cast<DisplayInfo*>(displayinfo)->EDID(*length, buffer);
+ }
+ 
++uint8_t displayinfo_edid_segments(struct displayinfo_type* displayinfo)
++{
++    return reinterpret_cast<DisplayInfo*>(displayinfo)->Segments();
++}
++
+ uint8_t displayinfo_width_in_centimeters(struct displayinfo_type* displayinfo)
+ {
+     return reinterpret_cast<DisplayInfo*>(displayinfo)->WidthInCentimeters();
+diff --git a/Source/displayinfo/include/displayinfo.h b/Source/displayinfo/include/displayinfo.h
+index 8de31a12..627c59cc 100644
+--- a/Source/displayinfo/include/displayinfo.h
++++ b/Source/displayinfo/include/displayinfo.h
+@@ -252,6 +252,16 @@ EXTERNAL uint8_t displayinfo_width_in_centimeters(struct displayinfo_type* insta
+  **/
+ EXTERNAL uint8_t displayinfo_height_in_centimeters(struct displayinfo_type* instance);
+ 
++/**
++ * \brief Returns number of EDID blocks of a connected display.
++ *
++ * \param instance Instance of \ref displayinfo_type.
++ *
++ * \return The number of EDID blocks
++ *
++ **/
++EXTERNAL uint8_t displayinfo_edid_segments(struct displayinfo_type* instance);
++
+ 
+ #ifdef __cplusplus
+ } // extern "C"
+diff --git a/Source/interfaces/IDisplayInfo.h b/Source/interfaces/IDisplayInfo.h
+index 5674212c..1a0397c4 100644
+--- a/Source/interfaces/IDisplayInfo.h
++++ b/Source/interfaces/IDisplayInfo.h
+@@ -98,6 +98,10 @@ namespace Exchange {
+         // @param edid: edid byte string
+         virtual uint32_t EDID (uint16_t& length /* @inout */, uint8_t data[] /* @out @length:length */) const = 0;
+ 
++        // @brief TV's Extended Display Identification Data
++        // @param blocks: blocks count
++        virtual uint32_t Segments(uint8_t& blocks /* @out */) const = 0;
++
+         // @brief Horizontal size in centimeters
+         // @param width: width in cm
+         virtual uint32_t WidthInCentimeters(uint8_t& width /* @out */) const = 0;
