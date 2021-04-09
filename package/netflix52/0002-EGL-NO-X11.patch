@@ -1,0 +1,10 @@
+--- a/partner/gibbon/graphics/wpeframework/gibbon_graphics.cmake	2021-04-07 21:56:12.100852563 +0530
++++ b/partner/gibbon/graphics/wpeframework/gibbon_graphics.cmake	2022-04-07 21:55:54.260851813 +0530
+@@ -63,6 +63,7 @@ endif()
+ #endif()
+ if(GIBBON_GRAPHICS_GL_WSYS STREQUAL "egl")
+     message("    + Using GL WSYS: ${GIBBON_GRAPHICS_GL_WSYS}")
++    add_definitions(-DEGL_NO_X11)
+ else()
+     message(FATAL_ERROR "Unknown GL WSYS: ${GIBBON_GRAPHICS_GL_WSYS}")
+ endif()
