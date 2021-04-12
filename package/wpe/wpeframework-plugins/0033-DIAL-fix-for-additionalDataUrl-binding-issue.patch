@@ -1,0 +1,69 @@
+diff --git a/DIALServer/DIALServer.cpp b/DIALServer/DIALServer.cpp
+index c0cbe3db..313417a3 100644
+--- a/DIALServer/DIALServer.cpp
++++ b/DIALServer/DIALServer.cpp
+@@ -273,9 +273,9 @@ namespace Plugin {
+ 
+         // get an interface with a public IP address, then we will have a proper MAC address..
+         // Core::NodeId selectedNode = Plugin::Config::IPV4UnicastNode(_config.Interface.Value());
+-        Core::NodeId selectedNode = Core::NodeId(_config.Interface.Value().c_str());
++        _selectedNode = Core::NodeId(_config.Interface.Value().c_str());
+ 
+-        if (selectedNode.IsValid() == false) {
++        if (_selectedNode.IsValid() == false) {
+             // Oops no way we can operate...
+             result = _T("No DIALInterface available.");
+         } else {
+@@ -284,7 +284,7 @@ namespace Plugin {
+ 
+             _service = service;
+             _dialURL = Core::URL(service->Accessor());
+-            _dialURL.Host(selectedNode.HostAddress());
++            _dialURL.Host(_selectedNode.HostAddress());
+             _dialPath = '/' + _dialURL.Path().Value();
+             _webServerPort = _dialURL.Port().IsSet() ? _dialURL.Port().Value() : 80;
+ 
+@@ -643,10 +643,12 @@ namespace Plugin {
+ 
+         _adminLock.Lock();
+ 
++        Core::URL url = Core::URL(pluginInterface->Accessor());
++        url.Host(_selectedNode.HostAddress());
++
+         // Let's set the URL of the WebServer, as it is active :-)
+-        _dialServiceImpl->Locator(pluginInterface->Accessor() + _dialPath);
++        _dialServiceImpl->Locator(url.Text() + _dialPath.substr(1));
+ 
+-        Core::URL url = Core::URL(pluginInterface->Accessor());
+         _webServerPort = url.Port().IsSet() ? url.Port().Value() : 80;
+ 
+         // Redirect all calls to the DIALServer, via a proxy.
+diff --git a/DIALServer/DIALServer.h b/DIALServer/DIALServer.h
+index 5dc06a83..35936303 100644
+--- a/DIALServer/DIALServer.h
++++ b/DIALServer/DIALServer.h
+@@ -665,6 +665,8 @@ namespace Plugin {
+                 _baseURL = hostName;
+ 
+                 _lock.Unlock();
++
++                TRACE(Trace::Information, (string(_T("New locator %s"), hostName.c_str())));
+             }
+ 
+         private:
+@@ -1017,6 +1019,7 @@ namespace Plugin {
+             , _config()
+             , _service(NULL)
+             , _dialURL()
++            , _selectedNode()
+             , _dialPath()
+             , _webServerPort()
+             , _dialServiceImpl(NULL)
+@@ -1099,6 +1102,7 @@ namespace Plugin {
+         Config _config;
+         PluginHost::IShell* _service;
+         Core::URL _dialURL;
++        Core::NodeId _selectedNode;
+         string _dialPath;
+         uint16_t _webServerPort;
+         DIALServerImpl* _dialServiceImpl;
