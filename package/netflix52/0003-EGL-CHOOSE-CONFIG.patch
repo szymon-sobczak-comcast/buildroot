@@ -1,0 +1,11 @@
+--- a/partner/gibbon/graphics/wpeframework/OpenGLContextEGL.cpp	2021-04-06 21:27:52.000000000 +0530
++++ b/partner/gibbon/graphics/wpeframework/OpenGLContextEGL.cpp	2021-04-21 13:36:31.397357977 +0530
+@@ -108,7 +108,7 @@ bool OpenGLDriverEGL::init()
+     configAttributes[EGL_RENDERABLE_TYPE] = api_version;
+     configAttributes[EGL_CONFORMANT] = api_version;
+     //configAttributes[EGL_CONTEXT_OPENGL_PROFILE_MASK] = EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT;
+-    configAttributes[EGL_SURFACE_TYPE] = getSurfaceType();
++    configAttributes[EGL_SURFACE_TYPE] = EGL_DONT_CARE;
+     appendConfigAttributes(configAttributes);
+     {
+         VarLengthArray<EGLint, 32> attr;
