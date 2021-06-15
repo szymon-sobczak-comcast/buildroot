@@ -3,7 +3,7 @@
 # explora-sdk
 #
 ################################################################################
-EXPLORA_SDK_VERSION = 8249baa08f67e7494090544a6a8a8ebd7d2c704a
+EXPLORA_SDK_VERSION = eb960ce67b6b09d1d306f882ba3b589e385c0790
 EXPLORA_SDK_SITE = git@github.com:Metrological/SDK_Explora.git
 EXPLORA_SDK_SITE_METHOD = git
 EXPLORA_SDK_INSTALL_STAGING = YES
@@ -40,7 +40,6 @@ define EXPLORA_SDK_INSTALL_TARGET_CMDS
 	cp -r $(@D)/cobalt/cobalt.json $(TARGET_DIR)/usr/share/WPEFramework/Provisioning/vault
 
 	$(INSTALL) -D -m 0644 $(STAGING_DIR)/usr/lib/libv3ddriver.so $(TARGET_DIR)/usr/lib/
-	$(INSTALL) -D -m 0644 $(STAGING_DIR)/usr/lib/libnxclient_local.so $(TARGET_DIR)/usr/lib/
 	$(INSTALL) -D -m 0644 $(STAGING_DIR)/usr/lib/libnxclient.so $(TARGET_DIR)/usr/lib/
 	rm -f $(TARGET_DIR)/usr/lib/libEGL.so
 	rm -f $(TARGET_DIR)/usr/lib/libGLESv2.so

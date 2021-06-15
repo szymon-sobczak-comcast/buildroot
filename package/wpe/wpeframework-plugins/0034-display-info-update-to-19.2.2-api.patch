@@ -1,0 +1,16 @@
+diff --git a/DisplayInfo/Nexus/PlatformImplementation.cpp b/DisplayInfo/Nexus/PlatformImplementation.cpp
+index 4b6a1205..aa51c4bb 100644
+--- a/DisplayInfo/Nexus/PlatformImplementation.cpp
++++ b/DisplayInfo/Nexus/PlatformImplementation.cpp
+@@ -341,10 +341,10 @@ private:
+         return result;
+     }
+ 
+-    static string NEXUSHdmiOutputHdcpErrorToString(const NEXUS_HdmiOutputHdcpError error) {
++    static string NEXUSHdmiOutputHdcpErrorToString(const unsigned error) {
+ 
+         struct HdmiOutputHdcpErrorStrings {
+-            NEXUS_HdmiOutputHdcpError error;
++            unsigned error;
+             const char* strValue;
+         };
