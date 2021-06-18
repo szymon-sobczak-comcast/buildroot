@@ -4,6 +4,7 @@
 #
 ################################################################################
 
+
 GST1_AAMP_VERSION = 8a0d9ef607ea254aff4b897137fd1f743db74c29
 GST1_AAMP_SITE = http://code.rdkcentral.com/r/rdk/components/generic/gst-plugins-rdk-aamp
 GST1_AAMP_SITE_METHOD = git
