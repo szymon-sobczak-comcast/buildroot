@@ -1,0 +1,61 @@
+From a97d94742348dec7317fef498be060b33a711431 Mon Sep 17 00:00:00 2001
+From: Lukasz Iwan <l.iwan@metrological.com>
+Date: Tue, 10 Aug 2021 16:36:12 +0200
+Subject: [PATCH] Fill subsample data in widevine sample structure. Setting
+ encryption pattern explicitly
+
+---
+ MediaSession.cpp | 25 ++++++++++++++++++-------
+ 1 file changed, 18 insertions(+), 7 deletions(-)
+
+diff --git a/MediaSession.cpp b/MediaSession.cpp
+index 5b7732a..c822173 100644
+--- a/MediaSession.cpp
++++ b/MediaSession.cpp
+@@ -381,28 +381,39 @@ CDMi_RESULT MediaKeySession::Decrypt(
+     if (widevine::Cdm::kUsable == it->second) {
+ #if defined (USE_CENC16) 
+ 
+-      widevine::Cdm::DecryptionBatch batch;
+-      widevine::Cdm::Sample sample;
++      widevine::Cdm::Subsample subsample;
++      subsample.protected_bytes = f_cbData;
++      
+ 
+-      sample.input.iv = m_IV;
+-      sample.input.iv_length = sizeof(m_IV);
++      widevine::Cdm::Sample sample;
+       sample.input.data = reinterpret_cast<uint8_t*>(m_pNexusMemory);
+       sample.input.data_length = f_cbData;
+-      sample.input.subsamples = nullptr;
+-      sample.input.subsamples_length = 0;
++      sample.input.subsamples = &subsample;
++      sample.input.subsamples_length = 1;
++      sample.input.iv = m_IV;
++      sample.input.iv_length = sizeof(m_IV);
++
+       sample.output.data = reinterpret_cast<uint8_t*>(pOpaqueData);
+       sample.output.data_length = f_cbData;
+       sample.output.data_offset = 0;
+ 
++
++      widevine::Cdm::DecryptionBatch batch;
+       batch.samples = &sample;
+       batch.samples_length = 1;
+-
+       batch.key_id = keyId;
+       batch.key_id_length = keyIdLength;
+       batch.is_secure = true;
+       batch.encryption_scheme = widevine::Cdm::kAesCtr;
+       batch.is_video = true;
+ 
++
++      uint8_t crypto_byte_block = 0;
++      uint8_t skip_byte_block = 0;
++      widevine::Cdm::Pattern pattern(crypto_byte_block, skip_byte_block);
++      batch.pattern = pattern;
++
++
+       if (widevine::Cdm::kSuccess == m_cdm->decrypt(batch)) {
+         status = CDMi_SUCCESS;
+       } else {
