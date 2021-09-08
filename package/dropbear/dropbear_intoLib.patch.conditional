@@ -1,29 +1,3 @@
-From 05167c418323663498d9f7d92cce140eba070528 Mon Sep 17 00:00:00 2001
-From: Suman Rapolu <suman.rapolu@soctronics.com>
-Date: Fri, 27 Sep 2019 11:10:57 +0530
-Subject: [PATCH] New interface for ThunderNanoServices
-
-1. Created API interface for Dropbear service
-2. Implemented Session management using linked list
-3. Integrated with pkg-config tool
-4. Modified Configure.ac and Makefile.in to generate shared library
-
-Signed-off-by: Suman Rapolu <suman.rapolu@soctronics.com>
----
- Makefile.in       |  18 ++-
- configure.ac      |   3 +
- libdropbear.h     |  27 +++++
- libdropbear.pc.in |  11 ++
- linkedlist.h      | 169 ++++++++++++++++++++++++++
- svr-main.c        | 302 ++++++++++++++++++++++++++++++++++++++++++++--
- svr-session.c     |   2 +-
- 7 files changed, 514 insertions(+), 18 deletions(-)
- create mode 100644 libdropbear.h
- create mode 100644 libdropbear.pc.in
- create mode 100644 linkedlist.h
-
-diff --git a/Makefile.in b/Makefile.in
-index d9bfdfa..79c15c0 100644
 --- a/Makefile.in
 +++ b/Makefile.in
 @@ -10,7 +10,7 @@
@@ -35,7 +9,7 @@ index d9bfdfa..79c15c0 100644
  endif
  
  STATIC_LTC=libtomcrypt/libtomcrypt.a
-@@ -18,6 +18,8 @@ STATIC_LTM=libtommath/libtommath.a
+@@ -18,6 +18,8 @@
  
  LIBTOM_LIBS=@LIBTOM_LIBS@
  
@@ -44,7 +18,7 @@ index d9bfdfa..79c15c0 100644
  ifeq (@BUNDLED_LIBTOM@, 1)
  LIBTOM_DEPS=$(STATIC_LTC) $(STATIC_LTM) 
  CFLAGS+=-I$(srcdir)/libtomcrypt/src/headers/
-@@ -75,6 +77,9 @@ datarootdir = @datarootdir@
+@@ -75,6 +77,9 @@
  bindir=@bindir@
  sbindir=@sbindir@
  mandir=@mandir@
@@ -54,7 +28,7 @@ index d9bfdfa..79c15c0 100644
  
  CC=@CC@
  AR=@AR@
-@@ -82,9 +87,10 @@ RANLIB=@RANLIB@
+@@ -82,9 +87,10 @@
  STRIP=@STRIP@
  INSTALL=@INSTALL@
  CPPFLAGS=@CPPFLAGS@
@@ -66,7 +40,7 @@ index d9bfdfa..79c15c0 100644
  
  EXEEXT=@EXEEXT@
  
-@@ -106,12 +112,14 @@ export RANLIB AR STRIP
+@@ -106,12 +112,14 @@
  
  ifeq ($(STATIC), 1)
  	LDFLAGS+=-static
@@ -82,16 +56,17 @@ index d9bfdfa..79c15c0 100644
  endif
  
  # for the scp progress meter. The -D doesn't affect anything else.
-@@ -175,6 +183,8 @@ dropbearkey dropbearconvert: $(HEADERS) $(LIBTOM_DEPS) Makefile
+@@ -175,6 +183,9 @@
  scp: $(SCPOBJS)  $(HEADERS) Makefile
  	$(CC) $(LDFLAGS) -o $@$(EXEEXT) $(SCPOBJS)
  
++#dropbear server as a lib needs libcurl to communicate to Thunder throigh jsonrpc
 +$(DROPBEAR_SERVER_LIB):$(LIBTOM_LIBS)$(dropbearobjs)
-+	$(CC) $(LDFLAGS) -o $@ $(dropbearobjs) $(LIBTOM_LIBS)
++	$(CC) $(LDFLAGS) -o $@ $(dropbearobjs) $(LIBTOM_LIBS) -lcurl
  
  # multi-binary compilation.
  MULTIOBJS=
-@@ -215,7 +225,7 @@ clean: ltc-clean ltm-clean thisclean
+@@ -215,7 +226,7 @@
  
  thisclean:
  	-rm -f dropbear dbclient dropbearkey dropbearconvert scp scp-progress \
@@ -100,11 +75,13 @@ index d9bfdfa..79c15c0 100644
  
  distclean: clean tidy
  	-rm -f config.h
+
+
 diff --git a/configure.ac b/configure.ac
 index 893b904..f99ae67 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -730,6 +730,9 @@ AC_CONFIG_HEADER(config.h)
+@@ -730,6 +730,9 @@
  AC_CONFIG_FILES(Makefile $LIBTOM_FILES)
  AC_OUTPUT
  
@@ -114,12 +91,10 @@ index 893b904..f99ae67 100644
  AC_MSG_NOTICE()
  if test $BUNDLED_LIBTOM = 1 ; then
  AC_MSG_NOTICE([Using bundled libtomcrypt and libtommath])
+
+
 diff --git a/libdropbear.h b/libdropbear.h
-new file mode 100644
-index 0000000..70999c9
---- /dev/null
-+++ b/libdropbear.h
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,58 @@
 +#ifndef __LIBDROPBEAR_H
 +#define __LIBDROPBEAR_H
 +
@@ -136,17 +111,51 @@ index 0000000..70999c9
 +        char timestamp[TIMESTAMPLENGTH];  //timestamp of the received client
 +};
 +
-+void activate_dropbear(char*);
-+void deactivate_dropbear();
-+int get_active_sessions_count();
-+void get_active_sessions_info(struct client_info*, int);
-+int close_client_session(int);
++
++/**
++ * @brief Activate dropbear server
++ * @return 0 if successfull, 1 in case of error caused by mutexes, 2 in case of error during the creation of a new working thread
++ */
++uint32_t activate_dropbear(const char*);   
++
++/**
++ * @brief Deactivate dropbear server
++ * @return 0 if successfull, 1 in case of failure of in case dropbear was not running
++ */
++uint32_t deactivate_dropbear();      
++
++/**
++ * @brief get Number of active ssh sessions
++ * @return number of active sessions
++ */
++size_t get_active_sessions_count();
++
++/**
++ * @brief Get details about all open sessions
++ * @param connectedclientsContainer pointer to a container where to store all sessions informations
++ * @param size_t size of the container(number of struct of type client_info)
++ * @return 0 if successfull, 1 for any error(example dropbear is not active)
++ */
++uint32_t get_active_sessions_info(struct client_info* connectedclientsContainer, size_t number);
++
++
++/**
++ * @brief Close ssh session with specific pid
++ * @param pid pid of the ssh client session
++ * @return 0 if successfull, 1 if pid does not exist and 2 is dropbear is inactive
++ */
++uint32_t close_client_session(int pid);
++
++
 +
 +#ifdef __cplusplus
 +}
 +#endif
 +
 +#endif
+
+
+
 diff --git a/libdropbear.pc.in b/libdropbear.pc.in
 new file mode 100644
 index 0000000..2d3ce41
@@ -339,6 +348,8 @@ index 0000000..8da6057
 +
 +#endif
 +
+
+
 diff --git a/svr-main.c b/svr-main.c
 index b274551..d581dfa 100644
 --- a/svr-main.c
@@ -372,7 +383,7 @@ index b274551..d581dfa 100644
 +
 +static int pluginActivated = 0;
 +static pthread_t threadID;
-+int server_active = 0;
++static bool server_active = false;
 +pthread_mutex_t lock;
 +
  #ifdef INETD_MODE
@@ -388,7 +399,7 @@ index b274551..d581dfa 100644
  #if defined(DBMULTI_dropbear) || !defined(DROPBEAR_MULTI)
  #if defined(DBMULTI_dropbear) && defined(DROPBEAR_MULTI)
  int dropbear_main(int argc, char ** argv)
-@@ -75,6 +99,207 @@
+@@ -75,6 +99,232 @@
  	return -1;
  }
  #endif
@@ -396,7 +407,6 @@ index b274551..d581dfa 100644
 +
 +void init_dropbear(int argc, char ** argv)
 +{
-+	server_active = 1;
 +	_dropbear_exit = svr_dropbear_exit;
 +	_dropbear_log = svr_dropbear_log;
 +	disallow_core();
@@ -450,62 +460,79 @@ index b274551..d581dfa 100644
 +}
 +
 +
-+void activate_dropbear(char* string)
++uint32_t activate_dropbear(const char* string)
 +{
-+	int status;
++	uint32_t result = 0;
++	int status=0;
 +	int argc,len;
 +	char **argv;
 +	char *str;
 +
-+	if(pluginActivated == 1)
++	if(pluginActivated == 0)
 +	{
-+		printf("Plugin already Activated \n");
-+		return;
-+	}
++		#ifdef DEBUG_TRACE
++		printf("libdropbear Activating drop bear\n");
++		#endif
++		len = strlen("dropbear ")+strlen(string)+1;
++		str=(char *)malloc(len*sizeof(char));
++		strncpy(str, "dropbear ", strlen("dropbear "));
++		strncpy(str+strlen("dropbear "), string, strlen(string)+1);
++		argv = parsedargs(str,&argc);
++		free(str);
++		/*for (int i = 0; i < argc; i++)
++			printf("argv[%d] = %s\n", i, argv[i]);*/
 +
-+	len = strlen("dropbear ")+strlen(string)+1;
-+	str=(char *)malloc(len*sizeof(char));
-+	strncpy(str, "dropbear ", strlen("dropbear "));
-+	strncpy(str+strlen("dropbear "), string, strlen(string)+1);
-+	argv = parsedargs(str,&argc);
-+	free(str);
-+	/*for (int i = 0; i < argc; i++)
-+		printf("argv[%d] = %s\n", i, argv[i]);*/
-+
-+	init_dropbear(argc, argv);
-+	freeparsedargs(argv);
-+	if (pthread_mutex_init(&lock, NULL) != 0)
-+	{
-+		printf("\n mutex init has failed\n");
-+		return;
++		init_dropbear(argc, argv);
++		freeparsedargs(argv);
++		if (pthread_mutex_init(&lock, NULL) != 0)
++		{
++			result= 1;
++		}
++		if (result ==0) {
++			
++			status = pthread_create(&threadID,NULL,main_noinetd,NULL);
++		}
++		if(status != 0)
++		{
++			result= 2;
++		} 
++		
++		if(result==0){
++			pluginActivated = 1;
++		}
++		
++		return result;
++	} else {
++		#ifdef DEBUG_TRACE
++		printf("libdropbear :Dropbear is already running, can not start it again! \n");
++		#endif
 +	}
-+	status = pthread_create(&threadID,NULL,main_noinetd,NULL);
-+	if(status != 0)
-+	{
-+		printf("Error in creating thread\n");
-+		return;
-+	}
-+	printf("Plugin Activated \n");
-+	pluginActivated =1;
 +}
 +
-+void deactivate_dropbear()
++uint32_t deactivate_dropbear()
 +{
++	uint32_t result = 1;
++	#ifdef DEBUG_TRACE
++	printf("libbdropbear : DeActivating dropbear \n");
++	#endif
 +	if(pluginActivated == 1)
 +	{
-+		server_active = 0;
++		pthread_mutex_lock(&lock);
++		server_active = false;
++		pthread_mutex_unlock(&lock);
 +		pthread_join(threadID, 0);
 +		pthread_mutex_destroy(&lock);
 +		pluginActivated = 0;
-+	}
-+	printf("Plugin DeActivated \n");
-+	return;
++		result = 0;
++	} 
++	
++	return result;
 +}
 +
 +/*Return the number of clients currently connected*/
 +
-+int get_active_sessions_count(){
-+	int count=0;
++size_t get_active_sessions_count(){
++	size_t count=0;
 +	if(pluginActivated){
 +		struct active_clients *client;
 +		struct list_head *ptr_list;
@@ -520,7 +547,8 @@ index b274551..d581dfa 100644
 +}
 +
 +/*To get the list of connections that are currently serving*/
-+void  get_active_sessions_info(struct client_info* connected_clients,int connections_count){
++uint32_t  get_active_sessions_info(struct client_info* connectedclientsContainer,size_t connections_count){
++	uint32_t result = 0 ;
 +	if(pluginActivated){
 +		int count = 0;
 +		struct active_clients *client;
@@ -528,20 +556,24 @@ index b274551..d581dfa 100644
 +		list_for_each(ptr_list,&client_connections_info){
 +			client = list_entry(ptr_list, struct active_clients, client_list );
 +			if(client && (count < connections_count)){
-+				connected_clients[count].pid=client->info.pid;
-+				strcpy(connected_clients[count].ipaddress,client->info.ipaddress);
-+				strcpy(connected_clients[count].timestamp,client->info.timestamp);
++				connectedclientsContainer[count].pid=client->info.pid;
++				strcpy(connectedclientsContainer[count].ipaddress,client->info.ipaddress);
++				strcpy(connectedclientsContainer[count].timestamp,client->info.timestamp);
 +				count++;
 +			}
 +			else{
 +				break;
 +			}
 +		}
++	} else {
++		result = 1;
 +	}
++	return result;
 +}
 +
 +/* To terminate  the server connection to client with the pid  */
-+int  close_client_session(int client_pid){
++uint32_t  close_client_session(int client_pid){
++	uint32_t result = 0 ;
 +	int pid_existing=0;
 +	struct active_clients *client;
 +	struct list_head *ptr_list;
@@ -555,22 +587,26 @@ index b274551..d581dfa 100644
 +		}
 +		if(pid_existing){
 +			if(kill(client_pid,SIGUSR1)== -1){
++				#ifdef DEBUG_TRACE
 +				printf("Error during close session: %s\n", strerror(errno));
-+				return errno;
++				#endif
++				result=1;
 +			}else {
++				#ifdef DEBUG_TRACE
 +				printf("successfully closed the process : %d\n",client_pid);
++				#endif
 +				//remove the closed session from the list
 +				__list_del_entry(ptr_list);
-+				return 0;
 +			}
 +		}
 +		else{
-+			return -1;
++			result =1;
 +		}
 +	}
 +	else{
-+		return -1;
++		result =2;
 +	}
++	return result;
 +}
 +
 +
@@ -596,16 +632,17 @@ index b274551..d581dfa 100644
  
  #ifdef INETD_MODE
  static void main_inetd() {
-@@ -104,7 +329,7 @@
+@@ -104,7 +354,8 @@
  #endif /* INETD_MODE */
  
  #ifdef NON_INETD_MODE
 -static void main_noinetd() {
 +static void* main_noinetd(void *UNUSED(unused)){
++	server_active = true;
  	fd_set fds;
  	unsigned int i, j;
  	int val;
-@@ -118,11 +343,7 @@
+@@ -118,11 +369,7 @@
  
  	int childsock;
  	int childpipe[2];
@@ -618,7 +655,7 @@ index b274551..d581dfa 100644
  
  	/* sockets to identify pre-authenticated clients */
  	for (i = 0; i < MAX_UNAUTH_CLIENTS; i++) {
-@@ -141,6 +362,7 @@
+@@ -141,6 +388,7 @@
  		FD_SET(listensocks[i], &fds);
  	}
  
@@ -626,7 +663,7 @@ index b274551..d581dfa 100644
  	/* fork */
  	if (svr_opts.forkbg) {
  		int closefds = 0;
-@@ -154,6 +376,7 @@
+@@ -154,6 +402,7 @@
  		}
  	}
  
@@ -634,7 +671,7 @@ index b274551..d581dfa 100644
  	/* should be done after syslog is working */
  	if (svr_opts.forkbg) {
  		dropbear_log(LOG_INFO, "Running in background");
-@@ -161,6 +384,7 @@
+@@ -161,6 +410,7 @@
  		dropbear_log(LOG_INFO, "Not backgrounding");
  	}
  
@@ -642,7 +679,7 @@ index b274551..d581dfa 100644
  	/* create a PID file so that we can be killed easily */
  	pidfile = fopen(svr_opts.pidfile, "w");
  	if (pidfile) {
-@@ -168,6 +392,9 @@
+@@ -168,6 +418,9 @@
  		fclose(pidfile);
  	}
  
@@ -652,7 +689,7 @@ index b274551..d581dfa 100644
  	/* incoming connection select loop */
  	for(;;) {
  
-@@ -186,11 +413,18 @@
+@@ -186,12 +439,34 @@
  			}
  		}
  
@@ -660,21 +697,37 @@ index b274551..d581dfa 100644
 +		val = select(maxsock+1, &fds, NULL, NULL, &timeout);
  
 -		if (exitflag) {
-+		if (!server_active) {
++		pthread_mutex_lock(&lock);
++		if (server_active == false) {
++			pthread_mutex_unlock(&lock);
++			//first closed all sessions
++			free_client_info();
  			unlink(svr_opts.pidfile);
 -			dropbear_exit("Terminated by signal");
-+			//dropbear_exit("Terminated by signal");
++			//dropbear_exit("Dropbear is terminated by signal \n ");
 +			/* make sure we close sockets */
 +			FD_ZERO(&fds);
 +			for (i = 0; i < listensockcount; i++) {
 +				m_close(listensocks[i]);
 +			}
-+			free_client_info();
-+			break;
++			return;
++		}
++		else
++		{
++			pthread_mutex_unlock(&lock);
++		}
++
++		// exit this process after receivig a closing signal
++		pthread_mutex_lock(&lock);
++		if (exitflag==1){
++			printf("libdropbear :exitflag ==true received exit signal! \n");
++			exit(0);
  		}
++		pthread_mutex_unlock(&lock);
  		
  		if (val == 0) {
-@@ -281,6 +515,21 @@
+ 			/* timeout reached - shouldn't happen. eh */
+@@ -281,6 +556,21 @@
  			if (fork_ret > 0) {
  
  				/* parent */
@@ -684,7 +737,7 @@ index b274551..d581dfa 100644
 +				struct active_clients *client;
 +				client = (struct active_clients *)malloc(sizeof(struct active_clients));
 +				if(!client){
-+					printf("unable to create a memory for active clients structure\n ");
++					printf("libdropbear Error! unable to create a memory for active clients structure\n ");
 +				}
 +				client->info.pid = fork_ret;
 +				strcpy(client->info.ipaddress, remote_host);
@@ -696,7 +749,7 @@ index b274551..d581dfa 100644
  				childpipes[conn_idx] = childpipe[0];
  				m_close(childpipe[1]);
  				preauth_addrs[conn_idx] = remote_host;
-@@ -328,6 +577,7 @@
+@@ -328,6 +618,7 @@
  	} /* for(;;) loop */
  
  	/* don't reach here */
@@ -704,7 +757,7 @@ index b274551..d581dfa 100644
  }
  #endif /* NON_INETD_MODE */
  
-@@ -338,10 +588,26 @@
+@@ -338,10 +629,26 @@
  
  	const int saved_errno = errno;
  
@@ -733,19 +786,31 @@ index b274551..d581dfa 100644
  	sigemptyset(&sa_chld.sa_mask);
  	if (sigaction(SIGCHLD, &sa_chld, NULL) < 0) {
  		dropbear_exit("signal() error");
-@@ -361,6 +627,11 @@
+@@ -357,10 +664,21 @@
+ }
  
+ /* catch ctrl-c or sigterm */
+-static void sigintterm_handler(int UNUSED(unused)) {
+-
++static void sigintterm_handler(int signal) {
++	#ifdef DEBUG_TRACE 
++	printf("libdropbear sigintterm_handler received  %d \n ",signal);
++	#endif
  	exitflag = 1;
  }
-+static void sigusr1_handler(int UNUSED(unused)) {
-+
++static void sigusr1_handler(int signal) {
++	#ifdef DEBUG_TRACE 
++	printf("libdropbear sigusr1_handler received %d , setting  exitflag to true \n ",signal);
++	#endif
++	pthread_mutex_lock(&lock);
 +	exitflag = 1;
++	pthread_mutex_unlock(&lock);
 +}
 +
  
  /* Things used by inetd and non-inetd modes */
  static void commonsetup() {
-@@ -371,7 +642,7 @@
+@@ -371,7 +689,7 @@
  		startsyslog(PROGNAME);
  	}
  #endif
@@ -754,7 +819,7 @@ index b274551..d581dfa 100644
  	/* set up cleanup handler */
  	if (signal(SIGINT, sigintterm_handler) == SIG_ERR || 
  #ifndef DEBUG_VALGRIND
-@@ -385,12 +656,19 @@
+@@ -385,12 +703,23 @@
  	sa_chld.sa_handler = sigchld_handler;
  	sa_chld.sa_flags = SA_NOCLDSTOP;
  	sigemptyset(&sa_chld.sa_mask);
@@ -763,7 +828,11 @@ index b274551..d581dfa 100644
  		dropbear_exit("signal() error");
  	}
 +#endif
++	// Metrological: We introduced this signal to use it when we want to shut down a server process
 +	if (signal(SIGUSR1, sigusr1_handler) == SIG_ERR) {
++		#ifdef DEBUG_TRACE 
++		printf("libdropbear signal failed --> stopping this instance\n");
++		#endif
 +		dropbear_exit("signal() error");
 +	}
 +#if 0 
@@ -773,5 +842,170 @@ index b274551..d581dfa 100644
 +#endif
  
  	crypto_init();
- 
 
+
+
+--- a/svr-session.c	2016-07-21 17:17:09.000000000 +0200
++++ b/svr-session.c	2021-09-03 11:39:51.450143396 +0200
+@@ -40,6 +40,7 @@
+ #include "auth.h"
+ #include "runopts.h"
+ #include "crypto_desc.h"
++#include <curl/curl.h>
+ 
+ static void svr_remoteclosed(void);
+ 
+@@ -191,7 +192,7 @@
+ 		m_free(svr_opts.ports[i]);
+ 	}
+ 
+-	exit(exitcode);
++	_exit(exitcode);
+ 
+ }
+ 
+@@ -232,14 +233,34 @@
+ 	}
+ }
+ 
+-/* called when the remote side closes the connection */
++/* called when the remote client closes the connection  --> we signal it to the main process which keeps track of the open sessions */
+ static void svr_remoteclosed() {
+-
+ 	m_close(ses.sock_in);
+ 	m_close(ses.sock_out);
+ 	ses.sock_in = -1;
+ 	ses.sock_out = -1;
+-	dropbear_close("Exited normally");
++
++	pid_t myPid= getpid();
++	// We need the main WPEProcess to get signal that a client has disconnected, Many options here! Ill go for sending a close signal to thunder through JSONRPC
++   	CURL *curl = curl_easy_init();
++    struct curl_slist *headers = NULL;
++
++    if (curl) {
++		char buffer[1024];
++		//snprintf(buffer, sizeof(buffer), "{\"jsonrpc\": \"2.0\", \"id\": 1234567890, \"method\": \"SecureShellServer.1.closeclientsession\", \"params\":{\"pid\":%d}}", myPid);
++
++		headers = curl_slist_append(headers, "content-type: text/plain;");
++		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
++
++		curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:80/jsonrpc/Controller");
++
++		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long) strlen(buffer));
++		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buffer);
++
++		curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_TRY);
++
++		curl_easy_perform(curl);
++    }
+ 
+ }
+ 
+--- a/common-session.c	2021-09-07 13:59:42.670970689 +0200
++++ b/common-session.c	2021-09-07 11:22:43.956232052 +0200
+@@ -149,6 +149,7 @@
+ 	struct timeval timeout;
+ 	int val;
+ 
++
+ 	/* main loop, select()s for all sockets in use */
+ 	for(;;) {
+ 		const int writequeue_has_space = (ses.writequeue_len <= 2*TRANS_MAX_PAYLOAD_LEN);
+@@ -190,11 +191,17 @@
+ 
+ 		val = select(ses.maxfd+1, &readfd, &writefd, NULL, &timeout);
+ 
++		
++		printf("libdropbear wissem val= %d %d\n", val, timeout.tv_sec);
++			
++
+ 		if (exitflag) {
++			printf("libdropbear wissem exitflag is truee\n");
+ 			dropbear_exit("Terminated by signal");
+ 		}
+ 		
+ 		if (val < 0 && errno != EINTR) {
++			printf("libdropbear wissem val is < 0 >\n");
+ 			dropbear_exit("Error in select");
+ 		}
+ 
+@@ -203,8 +210,10 @@
+ 			 * want to iterate over channels etc for reading, to handle
+ 			 * server processes exiting etc. 
+ 			 * We don't want to read/write FDs. */
++			printf("libdropbear wissem val<=0 \n");
+ 			FD_ZERO(&writefd);
+ 			FD_ZERO(&readfd);
++			
+ 		}
+ 		
+ 		/* We'll just empty out the pipe if required. We don't do
+@@ -229,13 +238,15 @@
+ 				} else {
+ 					read_packet();
+ 				}
+-			}
++			} 
+ 			
+ 			/* Process the decrypted packet. After this, the read buffer
+ 			 * will be ready for a new packet */
+ 			if (ses.payload != NULL) {
+ 				process_packet();
+ 			}
++		} else {
++				printf("libdropbear wissem ses.sock_in = %d \n",ses.sock_in);
+ 		}
+ 
+ 		/* if required, flush out any queued reply packets that
+
+
+--- a/packet.c	2016-07-21 17:17:09.000000000 +0200
++++ b/packet.c	2021-09-07 15:21:47.711053266 +0200
+@@ -173,12 +173,15 @@
+ 		len = 0;
+ 	} else {
+ 		len = read(ses.sock_in, buf_getptr(ses.readbuf, maxlen), maxlen);
++		printf("wissem dropbearlib read_packet: len= %d maxlen = %d\n",len,maxlen);
+ 
+ 		if (len == 0) {
++			printf("wissem dropbearlib read_packet : here normally connection is timedout!! \n");
+ 			ses.remoteclosed();
+ 		}
+ 
+ 		if (len < 0) {
++			printf("wissem dropbearlib read_packet len<0 -->error %d\n",errno);
+ 			if (errno == EINTR || errno == EAGAIN) {
+ 				TRACE2(("leave read_packet: EINTR or EAGAIN"))
+ 				return;
+@@ -225,10 +228,13 @@
+ 	/* read the rest of the packet if possible */
+ 	slen = read(ses.sock_in, buf_getwriteptr(ses.readbuf, maxlen),
+ 			maxlen);
++	printf("wissem dropbearlib read_packetInit: slen= %d maxlen = %d\n",slen,maxlen);
+ 	if (slen == 0) {
++		printf("wissem dropbearlib read_packet_init: here normally connection is timedout!! \n");
+ 		ses.remoteclosed();
+ 	}
+ 	if (slen < 0) {
++		printf("wissem dropbearlib read_packet_init: slen<0 %d!! \n",errno);
+ 		if (errno == EINTR || errno == EAGAIN) {
+ 			TRACE2(("leave read_packet_init: EINTR"))
+ 			return DROPBEAR_FAILURE;
+
+--- a/process-packet.c	2016-07-21 17:17:09.000000000 +0200
++++ b/process-packet.c	2021-09-07 16:32:50.956326274 +0200
+@@ -71,9 +71,13 @@
+ 			
+ 		case SSH_MSG_DISCONNECT:
+ 			/* TODO cleanup? */
++			printf("libdropbear wissem SSH_MSG_DISCONNECT received \n");
++			ses.remoteclosed();
+ 			dropbear_close("Disconnect received");
+ 	}
+ 
++	printf("wissem libdropbear type== %d",type);
++
+ 	/* Ignore these packet types so that keepalives don't interfere with
+ 	idle detection. This is slightly incorrect since a tcp forwarded
+ 	global request with failure won't trigger the idle timeout,

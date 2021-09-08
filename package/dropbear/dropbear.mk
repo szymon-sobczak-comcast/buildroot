@@ -16,6 +16,7 @@ DROPBEAR_PROGRAMS = dropbear $(DROPBEAR_TARGET_BINS)
 else #case for BR2_PACKAGE_DROPBEAR_LIB
 DROPBEAR_PROGRAMS = dropbear
 DROPBEAR_AUTORECONF = YES
+DROPBEAR_DEPENDENCIES += libcurl
 define DROPBEAR_APPLY_LOCAL_PATCHES
  # Apply these patches only incase of WPEFramework/DropbearServer plugin is enabled.
  $(APPLY_PATCHES) $(@D) package/dropbear/ *.patch.conditional
