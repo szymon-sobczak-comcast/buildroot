@@ -76,23 +76,6 @@
  distclean: clean tidy
  	-rm -f config.h
 
-
-diff --git a/configure.ac b/configure.ac
-index 893b904..f99ae67 100644
---- a/configure.ac
-+++ b/configure.ac
-@@ -730,6 +730,9 @@
- AC_CONFIG_FILES(Makefile $LIBTOM_FILES)
- AC_OUTPUT
- 
-+AC_CONFIG_FILES(libdropbear.pc)
-+AC_OUTPUT
-+
- AC_MSG_NOTICE()
- if test $BUNDLED_LIBTOM = 1 ; then
- AC_MSG_NOTICE([Using bundled libtomcrypt and libtommath])
-
-
 diff --git a/libdropbear.h b/libdropbear.h
 @@ -0,0 +1,58 @@
 +#ifndef __LIBDROPBEAR_H
@@ -153,8 +136,20 @@ diff --git a/libdropbear.h b/libdropbear.h
 +#endif
 +
 +#endif
+finstall
 
-
+--- a/configure.ac	2016-07-21 17:17:09.000000000 +0200
++++ b/configure.ac	2021-08-20 07:58:26.063608000 +0200
+@@ -730,6 +730,9 @@
+ AC_CONFIG_FILES(Makefile $LIBTOM_FILES)
+ AC_OUTPUT
+ 
++AC_CONFIG_FILES(libdropbear.pc)
++AC_OUTPUT
++
+ AC_MSG_NOTICE()
+ if test $BUNDLED_LIBTOM = 1 ; then
+ AC_MSG_NOTICE([Using bundled libtomcrypt and libtommath])
 
 diff --git a/libdropbear.pc.in b/libdropbear.pc.in
 new file mode 100644
@@ -173,6 +168,8 @@ index 0000000..2d3ce41
 +URL: http://matt.ucc.asn.au/dropbear/releases
 +Libs: -L${libdir} -ldropbear
 +Cflags: -I${includedir}
+
+
 diff --git a/linkedlist.h b/linkedlist.h
 new file mode 100644
 index 0000000..8da6057
@@ -351,9 +348,6 @@ index 0000000..8da6057
 
 
 diff --git a/svr-main.c b/svr-main.c
-index b274551..d581dfa 100644
---- a/svr-main.c
-+++ b/svr-main.c
 @@ -30,19 +30,43 @@
  #include "runopts.h"
  #include "dbrandom.h"
@@ -902,6 +896,7 @@ index b274551..d581dfa 100644
  
  }
  
+ 
 --- a/common-session.c	2021-09-07 13:59:42.670970689 +0200
 +++ b/common-session.c	2021-09-07 11:22:43.956232052 +0200
 @@ -149,6 +149,7 @@
@@ -912,36 +907,15 @@ index b274551..d581dfa 100644
  	/* main loop, select()s for all sockets in use */
  	for(;;) {
  		const int writequeue_has_space = (ses.writequeue_len <= 2*TRANS_MAX_PAYLOAD_LEN);
-@@ -190,11 +191,17 @@
- 
- 		val = select(ses.maxfd+1, &readfd, &writefd, NULL, &timeout);
- 
-+		
-+		printf("libdropbear wissem val= %d %d\n", val, timeout.tv_sec);
-+			
-+
- 		if (exitflag) {
-+			printf("libdropbear wissem exitflag is truee\n");
- 			dropbear_exit("Terminated by signal");
- 		}
- 		
- 		if (val < 0 && errno != EINTR) {
-+			printf("libdropbear wissem val is < 0 >\n");
- 			dropbear_exit("Error in select");
- 		}
- 
-@@ -203,8 +210,10 @@
- 			 * want to iterate over channels etc for reading, to handle
- 			 * server processes exiting etc. 
+@@ -205,6 +206,7 @@
  			 * We don't want to read/write FDs. */
-+			printf("libdropbear wissem val<=0 \n");
  			FD_ZERO(&writefd);
  			FD_ZERO(&readfd);
 +			
  		}
  		
  		/* We'll just empty out the pipe if required. We don't do
-@@ -229,13 +238,15 @@
+@@ -229,14 +231,14 @@
  				} else {
  					read_packet();
  				}
@@ -953,59 +927,30 @@ index b274551..d581dfa 100644
  			if (ses.payload != NULL) {
  				process_packet();
  			}
-+		} else {
-+				printf("libdropbear wissem ses.sock_in = %d \n",ses.sock_in);
- 		}
+-		}
++		} 
  
  		/* if required, flush out any queued reply packets that
+ 		were being held up during a KEX */
 
 
 --- a/packet.c	2016-07-21 17:17:09.000000000 +0200
 +++ b/packet.c	2021-09-07 15:21:47.711053266 +0200
-@@ -173,12 +173,15 @@
- 		len = 0;
- 	} else {
- 		len = read(ses.sock_in, buf_getptr(ses.readbuf, maxlen), maxlen);
-+		printf("wissem dropbearlib read_packet: len= %d maxlen = %d\n",len,maxlen);
- 
- 		if (len == 0) {
-+			printf("wissem dropbearlib read_packet : here normally connection is timedout!! \n");
- 			ses.remoteclosed();
- 		}
- 
- 		if (len < 0) {
-+			printf("wissem dropbearlib read_packet len<0 -->error %d\n",errno);
- 			if (errno == EINTR || errno == EAGAIN) {
- 				TRACE2(("leave read_packet: EINTR or EAGAIN"))
- 				return;
-@@ -225,10 +228,13 @@
+@@ -225,6 +225,7 @@
  	/* read the rest of the packet if possible */
  	slen = read(ses.sock_in, buf_getwriteptr(ses.readbuf, maxlen),
  			maxlen);
-+	printf("wissem dropbearlib read_packetInit: slen= %d maxlen = %d\n",slen,maxlen);
++
  	if (slen == 0) {
-+		printf("wissem dropbearlib read_packet_init: here normally connection is timedout!! \n");
  		ses.remoteclosed();
  	}
- 	if (slen < 0) {
-+		printf("wissem dropbearlib read_packet_init: slen<0 %d!! \n",errno);
- 		if (errno == EINTR || errno == EAGAIN) {
- 			TRACE2(("leave read_packet_init: EINTR"))
- 			return DROPBEAR_FAILURE;
-
 --- a/process-packet.c	2016-07-21 17:17:09.000000000 +0200
 +++ b/process-packet.c	2021-09-07 16:32:50.956326274 +0200
-@@ -71,9 +71,13 @@
+@@ -71,6 +71,7 @@
  			
  		case SSH_MSG_DISCONNECT:
  			/* TODO cleanup? */
-+			printf("libdropbear wissem SSH_MSG_DISCONNECT received \n");
 +			ses.remoteclosed();
  			dropbear_close("Disconnect received");
  	}
  
-+	printf("wissem libdropbear type== %d",type);
-+
- 	/* Ignore these packet types so that keepalives don't interfere with
- 	idle detection. This is slightly incorrect since a tcp forwarded
- 	global request with failure won't trigger the idle timeout,
