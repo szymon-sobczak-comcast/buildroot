@@ -377,7 +377,7 @@ diff --git a/svr-main.c b/svr-main.c
 +
 +static int pluginActivated = 0;
 +static pthread_t threadID;
-+static bool server_active = false;
++static bool stop_server = true;  // This is used a switch to start/stop the main server therad
 +pthread_mutex_t lock;
 +
  #ifdef INETD_MODE
@@ -393,7 +393,7 @@ diff --git a/svr-main.c b/svr-main.c
  #if defined(DBMULTI_dropbear) || !defined(DROPBEAR_MULTI)
  #if defined(DBMULTI_dropbear) && defined(DROPBEAR_MULTI)
  int dropbear_main(int argc, char ** argv)
-@@ -75,6 +99,232 @@
+@@ -75,6 +99,235 @@
  	return -1;
  }
  #endif
@@ -495,12 +495,13 @@ diff --git a/svr-main.c b/svr-main.c
 +			pluginActivated = 1;
 +		}
 +		
-+		return result;
 +	} else {
 +		#ifdef DEBUG_TRACE
 +		printf("libdropbear :Dropbear is already running, can not start it again! \n");
 +		#endif
 +	}
++
++	return result;
 +}
 +
 +uint32_t deactivate_dropbear()
@@ -512,7 +513,7 @@ diff --git a/svr-main.c b/svr-main.c
 +	if(pluginActivated == 1)
 +	{
 +		pthread_mutex_lock(&lock);
-+		server_active = false;
++		stop_server = true;
 +		pthread_mutex_unlock(&lock);
 +		pthread_join(threadID, 0);
 +		pthread_mutex_destroy(&lock);
@@ -608,6 +609,7 @@ diff --git a/svr-main.c b/svr-main.c
 +	if(pluginActivated){
 +		struct active_clients *client;
 +		struct list_head *ptr_list;
++		pthread_mutex_lock(&lock);
 +		list_for_each(ptr_list, &client_connections_info){
 +			client = list_entry(ptr_list,struct active_clients, client_list);
 +			if (client){
@@ -619,6 +621,7 @@ diff --git a/svr-main.c b/svr-main.c
 +				break;
 +			}
 +		}
++		pthread_mutex_unlock(&lock);
 +	}
 +
 +}
@@ -626,17 +629,17 @@ diff --git a/svr-main.c b/svr-main.c
  
  #ifdef INETD_MODE
  static void main_inetd() {
-@@ -104,7 +354,8 @@
+@@ -104,7 +357,8 @@
  #endif /* INETD_MODE */
  
  #ifdef NON_INETD_MODE
 -static void main_noinetd() {
 +static void* main_noinetd(void *UNUSED(unused)){
-+	server_active = true;
++	stop_server = false;
  	fd_set fds;
  	unsigned int i, j;
  	int val;
-@@ -118,11 +369,7 @@
+@@ -118,11 +372,7 @@
  
  	int childsock;
  	int childpipe[2];
@@ -649,7 +652,7 @@ diff --git a/svr-main.c b/svr-main.c
  
  	/* sockets to identify pre-authenticated clients */
  	for (i = 0; i < MAX_UNAUTH_CLIENTS; i++) {
-@@ -141,6 +388,7 @@
+@@ -141,6 +391,7 @@
  		FD_SET(listensocks[i], &fds);
  	}
  
@@ -657,7 +660,7 @@ diff --git a/svr-main.c b/svr-main.c
  	/* fork */
  	if (svr_opts.forkbg) {
  		int closefds = 0;
-@@ -154,6 +402,7 @@
+@@ -154,6 +405,7 @@
  		}
  	}
  
@@ -665,7 +668,7 @@ diff --git a/svr-main.c b/svr-main.c
  	/* should be done after syslog is working */
  	if (svr_opts.forkbg) {
  		dropbear_log(LOG_INFO, "Running in background");
-@@ -161,6 +410,7 @@
+@@ -161,6 +413,7 @@
  		dropbear_log(LOG_INFO, "Not backgrounding");
  	}
  
@@ -673,7 +676,7 @@ diff --git a/svr-main.c b/svr-main.c
  	/* create a PID file so that we can be killed easily */
  	pidfile = fopen(svr_opts.pidfile, "w");
  	if (pidfile) {
-@@ -168,6 +418,9 @@
+@@ -168,6 +421,9 @@
  		fclose(pidfile);
  	}
  
@@ -683,7 +686,7 @@ diff --git a/svr-main.c b/svr-main.c
  	/* incoming connection select loop */
  	for(;;) {
  
-@@ -186,12 +439,34 @@
+@@ -186,12 +442,32 @@
  			}
  		}
  
@@ -692,36 +695,34 @@ diff --git a/svr-main.c b/svr-main.c
  
 -		if (exitflag) {
 +		pthread_mutex_lock(&lock);
-+		if (server_active == false) {
++		if (stop_server == true) {  //stop_server command received
 +			pthread_mutex_unlock(&lock);
-+			//first closed all sessions
++			//first close all clients open sessions
 +			free_client_info();
  			unlink(svr_opts.pidfile);
 -			dropbear_exit("Terminated by signal");
-+			//dropbear_exit("Dropbear is terminated by signal \n ");
++
 +			/* make sure we close sockets */
 +			FD_ZERO(&fds);
 +			for (i = 0; i < listensockcount; i++) {
 +				m_close(listensocks[i]);
 +			}
-+			return;
-+		}
-+		else
-+		{
++			break;
++		} else {
 +			pthread_mutex_unlock(&lock);
-+		}
+ 		}
 +
 +		// exit this process after receivig a closing signal
 +		pthread_mutex_lock(&lock);
 +		if (exitflag==1){
 +			printf("libdropbear :exitflag ==true received exit signal! \n");
 +			exit(0);
- 		}
++		}
 +		pthread_mutex_unlock(&lock);
  		
  		if (val == 0) {
  			/* timeout reached - shouldn't happen. eh */
-@@ -281,6 +556,21 @@
+@@ -281,6 +557,21 @@
  			if (fork_ret > 0) {
  
  				/* parent */
@@ -743,7 +744,7 @@ diff --git a/svr-main.c b/svr-main.c
  				childpipes[conn_idx] = childpipe[0];
  				m_close(childpipe[1]);
  				preauth_addrs[conn_idx] = remote_host;
-@@ -328,6 +618,7 @@
+@@ -328,6 +619,7 @@
  	} /* for(;;) loop */
  
  	/* don't reach here */
@@ -751,7 +752,7 @@ diff --git a/svr-main.c b/svr-main.c
  }
  #endif /* NON_INETD_MODE */
  
-@@ -338,10 +629,26 @@
+@@ -338,10 +630,26 @@
  
  	const int saved_errno = errno;
  
@@ -780,7 +781,7 @@ diff --git a/svr-main.c b/svr-main.c
  	sigemptyset(&sa_chld.sa_mask);
  	if (sigaction(SIGCHLD, &sa_chld, NULL) < 0) {
  		dropbear_exit("signal() error");
-@@ -357,10 +664,21 @@
+@@ -357,10 +665,21 @@
  }
  
  /* catch ctrl-c or sigterm */
@@ -804,7 +805,7 @@ diff --git a/svr-main.c b/svr-main.c
  
  /* Things used by inetd and non-inetd modes */
  static void commonsetup() {
-@@ -371,7 +689,7 @@
+@@ -371,7 +690,7 @@
  		startsyslog(PROGNAME);
  	}
  #endif
@@ -813,7 +814,7 @@ diff --git a/svr-main.c b/svr-main.c
  	/* set up cleanup handler */
  	if (signal(SIGINT, sigintterm_handler) == SIG_ERR || 
  #ifndef DEBUG_VALGRIND
-@@ -385,12 +703,23 @@
+@@ -385,12 +704,23 @@
  	sa_chld.sa_handler = sigchld_handler;
  	sa_chld.sa_flags = SA_NOCLDSTOP;
  	sigemptyset(&sa_chld.sa_mask);
@@ -836,8 +837,6 @@ diff --git a/svr-main.c b/svr-main.c
 +#endif
  
  	crypto_init();
-
-
 
 --- a/svr-session.c	2016-07-21 17:17:09.000000000 +0200
 +++ b/svr-session.c	2021-09-03 11:39:51.450143396 +0200
@@ -879,7 +878,7 @@ diff --git a/svr-main.c b/svr-main.c
 +
 +    if (curl) {
 +		char buffer[1024];
-+		//snprintf(buffer, sizeof(buffer), "{\"jsonrpc\": \"2.0\", \"id\": 1234567890, \"method\": \"SecureShellServer.1.closeclientsession\", \"params\":{\"pid\":%d}}", myPid);
++		snprintf(buffer, sizeof(buffer), "{\"jsonrpc\": \"2.0\", \"id\": 1234567890, \"method\": \"SecureShellServer.1.closeclientsession\", \"params\":{\"pid\":%d}}", myPid);
 +
 +		headers = curl_slist_append(headers, "content-type: text/plain;");
 +		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -895,7 +894,6 @@ diff --git a/svr-main.c b/svr-main.c
 +    }
  
  }
- 
  
 --- a/common-session.c	2021-09-07 13:59:42.670970689 +0200
 +++ b/common-session.c	2021-09-07 11:22:43.956232052 +0200
