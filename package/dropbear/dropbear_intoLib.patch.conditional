@@ -895,53 +895,7 @@ diff --git a/svr-main.c b/svr-main.c
  
  }
  
---- a/common-session.c	2021-09-07 13:59:42.670970689 +0200
-+++ b/common-session.c	2021-09-07 11:22:43.956232052 +0200
-@@ -149,6 +149,7 @@
- 	struct timeval timeout;
- 	int val;
- 
-+
- 	/* main loop, select()s for all sockets in use */
- 	for(;;) {
- 		const int writequeue_has_space = (ses.writequeue_len <= 2*TRANS_MAX_PAYLOAD_LEN);
-@@ -205,6 +206,7 @@
- 			 * We don't want to read/write FDs. */
- 			FD_ZERO(&writefd);
- 			FD_ZERO(&readfd);
-+			
- 		}
- 		
- 		/* We'll just empty out the pipe if required. We don't do
-@@ -229,14 +231,14 @@
- 				} else {
- 					read_packet();
- 				}
--			}
-+			} 
- 			
- 			/* Process the decrypted packet. After this, the read buffer
- 			 * will be ready for a new packet */
- 			if (ses.payload != NULL) {
- 				process_packet();
- 			}
--		}
-+		} 
- 
- 		/* if required, flush out any queued reply packets that
- 		were being held up during a KEX */
 
-
---- a/packet.c	2016-07-21 17:17:09.000000000 +0200
-+++ b/packet.c	2021-09-07 15:21:47.711053266 +0200
-@@ -225,6 +225,7 @@
- 	/* read the rest of the packet if possible */
- 	slen = read(ses.sock_in, buf_getwriteptr(ses.readbuf, maxlen),
- 			maxlen);
-+
- 	if (slen == 0) {
- 		ses.remoteclosed();
- 	}
 --- a/process-packet.c	2016-07-21 17:17:09.000000000 +0200
 +++ b/process-packet.c	2021-09-07 16:32:50.956326274 +0200
 @@ -71,6 +71,7 @@
