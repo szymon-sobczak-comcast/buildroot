@@ -6,6 +6,7 @@ BOARD_DIR="$(dirname $0)"
 BOARD_NAME="$(basename ${BOARD_DIR})"
 GENIMAGE_CFG="${BOARD_DIR}/genimage-${BOARD_NAME}.cfg"
 GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
+BLUETOOTH=$(eval grep ^BR2_PACKAGE_BRIDGE_BLUETOOTH=y ${BR2_CONFIG} | wc -l)
 
 for arg in "$@"
 do
@@ -91,12 +92,14 @@ __EOF__
 		;;
 		--add-vc4-fkms-v3d-overlay)
 		# Enable VC4 overlay
-		echo "Adding 'dtoverlay=vc4-fkms-v3d' to config.txt."
-		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+		if ! grep -qE '^dtoverlay=vc4-fkms-v3d' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Adding 'dtoverlay=vc4-fkms-v3d' to config.txt."
+			cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
 
-# Add VC4 GPU support on top of dispmanx
+# Add VC4 GPU support
 dtoverlay=vc4-fkms-v3d
 __EOF__
+		fi
 		;;
 		--add-vc4-kms-v3d-overlay)
 		# Enable VC4 overlay
@@ -133,21 +136,21 @@ __EOF__
                         cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
 # Enable spi functionality
 dtparam=spi=on
-dtoverlay=spi0-1cs
+dtoverlay=spi0
 __EOF__
-                fi
-                ;;
-                --1w)
-                if ! grep -qE '^dtoverlay=w1-gpio' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
-                        echo "Adding '1w' functionality to config.txt."
-                        cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+		            fi
+		            ;;
+		            --1w)
+		            if ! grep -qE '^dtoverlay=w1-gpio' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			                  echo "Adding '1w' functionality to config.txt."
+			                  cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
 # Enable 1Wire functionality
 dtoverlay=w1-gpio,gpiopin=25
 __EOF__
                 fi
                 ;;
-		--add-miniuart-bt-overlay)
-                if [ "x${BLUETOOTH}" = "x" ]; then
+		            --add-miniuart-bt-overlay)
+                if [ "x${BLUETOOTH}" = "x0" ]; then
                         if ! grep -qE '^dtoverlay=pi3-miniuart-bt' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
                                 echo "Adding 'dtoverlay=pi3-miniuart-bt' to config.txt (fixes ttyAMA0 serial console)."
                                 cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
@@ -182,6 +185,16 @@ __EOF__
                         fi
                 fi
                 ;;
+		--add-dtparam-audio)
+		if ! grep -qE '^dtparam=audio=on' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Adding 'dtparam=audio=on' to config.txt."
+			cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Enable onboard ALSA audio
+dtparam=audio=on
+__EOF__
+		fi
+		;;
 	esac
 
 done
