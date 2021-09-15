@@ -44,14 +44,28 @@ define LIBDRM_EXAMPLES_CONFIGURE_CMDS
 @echo "Nothing to be done"
 endef
 
-define LIBDRM_EXAMPLES_BUILD_DRM_PRIME_MULTI
+define LIBDRM_EXAMPLES_BUILD_DRM_PRIME_SIMPLE
 pushd $(@D); \
-$(MAKE) -f $(@D)/Makefile CC="$(TARGET_CROSS)cc" CXX="$(TARGET_CROSS)c++" CPPFLAGS="$(LIBDRM_EXAMPLES_CPPFLAGS)" CFLAGS="$(LIBDRM_EXAMPLES_CFLAGS)" CXXFLAGS="$(LIBDRM_EXAMPLES_CXXFLAGS)" LDFLAGS="$(LIBDRM_EXAMPLES_LDFLAGS)" drm-prime-multi; \
+$(MAKE) -f $(@D)/Makefile CC="$(TARGET_CROSS)cc" CXX="$(TARGET_CROSS)c++" CPPFLAGS="$(LIBDRM_EXAMPLES_CPPFLAGS)" CFLAGS="$(LIBDRM_EXAMPLES_CFLAGS)" CXXFLAGS="$(LIBDRM_EXAMPLES_CXXFLAGS)" LDFLAGS="$(LIBDRM_EXAMPLES_LDFLAGS)" drm-prime-simple; \
+popd; 
+endef
+
+define LIBDRM_EXAMPLES_BUILD_DRM_PRIME_TILE
+pushd $(@D); \
+$(MAKE) -f $(@D)/Makefile CC="$(TARGET_CROSS)cc" CXX="$(TARGET_CROSS)c++" CPPFLAGS="$(LIBDRM_EXAMPLES_CPPFLAGS)" CFLAGS="$(LIBDRM_EXAMPLES_CFLAGS)" CXXFLAGS="$(LIBDRM_EXAMPLES_CXXFLAGS)" LDFLAGS="$(LIBDRM_EXAMPLES_LDFLAGS)" drm-prime-tile; \
+popd; 
+endef
+
+define LIBDRM_EXAMPLES_BUILD_DRM_PRIME_UNPRIV
+pushd $(@D); \
+$(MAKE) -f $(@D)/Makefile CC="$(TARGET_CROSS)cc" CXX="$(TARGET_CROSS)c++" CPPFLAGS="$(LIBDRM_EXAMPLES_CPPFLAGS)" CFLAGS="$(LIBDRM_EXAMPLES_CFLAGS)" CXXFLAGS="$(LIBDRM_EXAMPLES_CXXFLAGS)" LDFLAGS="$(LIBDRM_EXAMPLES_LDFLAGS)" drm-prime-unpriv; \
 popd;
 endef
 
 define LIBDRM_EXAMPLES_BUILD_CMDS
-$(call LIBDRM_EXAMPLES_BUILD_DRM_PRIME_MULTI)
+$(call LIBDRM_EXAMPLES_BUILD_DRM_PRIME_SIMPLE)
+$(call LIBDRM_EXAMPLES_BUILD_DRM_PRIME_TILE)
+$(call LIBDRM_EXAMPLES_BUILD_DRM_PRIME_UNPRIV)
 endef
 
 define LIBDRM_EXAMPLES_INSTALL_STAGING_CMDS
@@ -59,7 +73,9 @@ define LIBDRM_EXAMPLES_INSTALL_STAGING_CMDS
 endef
 
 define LIBDRM_EXAMPLES_INSTALL_TARGET_CMDS
-[ -f $(@D)/.bin/drm-prime-multi ] && $(INSTALL) -D -m 755 $(@D)/.bin/drm-prime-multi $(TARGET_DIR)/usr/bin/drm-prime-multi
+[ -f $(@D)/.bin/drm-prime-simple ] && $(INSTALL) -D -m 755 $(@D)/.bin/drm-prime-simple $(TARGET_DIR)/usr/bin/drm-prime-simple
+[ -f $(@D)/.bin/drm-prime-tile ] && $(INSTALL) -D -m 755 $(@D)/.bin/drm-prime-tile $(TARGET_DIR)/usr/bin/drm-prime-tle
+[ -f $(@D)/.bin/drm-prime-unpriv ] && $(INSTALL) -D -m 755 $(@D)/.bin/drm-prime-unpriv $(TARGET_DIR)/usr/bin/drm-prime-unpriv
 endef
 
 $(eval $(generic-package))
