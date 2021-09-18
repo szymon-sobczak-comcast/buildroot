@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-DROPBEAR_VERSION = 2016.74
-DROPBEAR_SITE = http://matt.ucc.asn.au/dropbear/releases
+DROPBEAR_VERSION = 2020.81
+DROPBEAR_SITE = https://mirror.dropbear.nl/mirror/releases
 DROPBEAR_SOURCE = dropbear-$(DROPBEAR_VERSION).tar.bz2
 DROPBEAR_LICENSE = MIT, BSD-2c-like, BSD-2c
 DROPBEAR_LICENSE_FILES = LICENSE
@@ -16,13 +16,14 @@ DROPBEAR_PROGRAMS = dropbear $(DROPBEAR_TARGET_BINS)
 else #case for BR2_PACKAGE_DROPBEAR_LIB
 DROPBEAR_PROGRAMS = dropbear
 DROPBEAR_AUTORECONF = YES
-DROPBEAR_DEPENDENCIES += libcurl
+
 define DROPBEAR_APPLY_LOCAL_PATCHES
  # Apply these patches only incase of WPEFramework/DropbearServer plugin is enabled.
  $(APPLY_PATCHES) $(@D) package/dropbear/ *.patch.conditional
 endef
 DROPBEAR_POST_PATCH_HOOKS += DROPBEAR_APPLY_LOCAL_PATCHES
 endif
+
 
 ifeq ($(BR2_PACKAGE_DROPBEAR_CLIENT),y)
 # Build dbclient, and create a convenience symlink named ssh
@@ -36,7 +37,7 @@ DROPBEAR_MAKE = \
         PROGRAMS="$(DROPBEAR_PROGRAMS)"
 else #case for BR2_PACKAGE_DROPBEAR_LIB
 DROPBEAR_MAKE = \
-        $(MAKE) DROPBEAR_SHARED_LIB=1
+        $(MAKE) DROPBEAR_SHARED_LIB=1 
 endif
 
 ifeq ($(BR2_STATIC_LIBS),y)
@@ -70,16 +71,16 @@ endef
 
 define DROPBEAR_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 644 package/dropbear/dropbear.service \
-		$(TARGET_DIR)/usr/lib/systemd/system/dropbear.service
+	$(TARGET_DIR)/usr/lib/systemd/system/dropbear.service
 	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
 	ln -fs ../../../../usr/lib/systemd/system/dropbear.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/dropbear.service
+	$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/dropbear.service
 endef
 
 ifeq ($(BR2_USE_MMU),y)
 define DROPBEAR_INSTALL_INIT_SYSV
 	$(INSTALL) -D -m 755 package/dropbear/S50dropbear \
-		$(TARGET_DIR)/etc/init.d/S50dropbear
+	$(TARGET_DIR)/etc/init.d/S50dropbear
 endef
 else
 DROPBEAR_POST_EXTRACT_HOOKS += DROPBEAR_DISABLE_STANDALONE
@@ -109,9 +110,9 @@ ifeq ($(BR2_PACKAGE_DROPBEAR_LIB),y)
 define DROPBEAR_INSTALL_TARGET_CMDS
         ln -snf /var/run/dropbear $(TARGET_DIR)/etc/dropbear
         $(INSTALL) -D $(@D)/libdropbear.so $(TARGET_DIR)/usr/lib
-		$(INSTALL) -D $(@D)/libdropbear.so $(STAGING_DIR)/usr/lib
+	$(INSTALL) -D $(@D)/libdropbear.so $(STAGING_DIR)/usr/lib
         $(INSTALL) -D $(@D)/libdropbear.h $(STAGING_DIR)/usr/include
-        $(INSTALL) -D $(@D)/libdropbear.pc $(STAGING_DIR)/usr/lib/pkgconfig/LibDropbear.pc
+        $(INSTALL) -D $(@D)/libdropbear.pc $(STAGING_DIR)/usr/lib/pkgconfig/libdropbear.pc
 endef
 endif
 
@@ -119,7 +120,7 @@ ifeq ($(BR2_PACKAGE_DROPBEAR_PROGRAM),y)
 define DROPBEAR_INSTALL_TARGET_CMDS
         $(INSTALL) -m 755 $(@D)/dropbearmulti $(TARGET_DIR)/usr/sbin/dropbear
         for f in $(DROPBEAR_TARGET_BINS); do \
-                ln -snf ../sbin/dropbear $(TARGET_DIR)/usr/bin/$$f ; \
+        ln -snf ../sbin/dropbear $(TARGET_DIR)/usr/bin/$$f ; \
         done
         ln -snf /var/run/dropbear $(TARGET_DIR)/etc/dropbear
 endef

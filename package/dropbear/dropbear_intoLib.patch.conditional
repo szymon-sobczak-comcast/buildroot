@@ -1,7 +1,7 @@
 --- a/Makefile.in
 +++ b/Makefile.in
-@@ -10,7 +10,7 @@
- # Hopefully that seems intuitive.
+@@ -9,7 +9,7 @@
+ # dbclient functionality, and includes the progress-bar functionality in scp.
  
  ifndef PROGRAMS
 -	PROGRAMS=dropbear dbclient dropbearkey dropbearconvert
@@ -9,7 +9,7 @@
  endif
  
  STATIC_LTC=libtomcrypt/libtomcrypt.a
-@@ -18,6 +18,8 @@
+@@ -17,6 +17,8 @@ STATIC_LTM=libtommath/libtommath.a
  
  LIBTOM_LIBS=@LIBTOM_LIBS@
  
@@ -17,8 +17,16 @@
 +
  ifeq (@BUNDLED_LIBTOM@, 1)
  LIBTOM_DEPS=$(STATIC_LTC) $(STATIC_LTM) 
- CFLAGS+=-I$(srcdir)/libtomcrypt/src/headers/
-@@ -75,6 +77,9 @@
+ LIBTOM_CLEAN=ltc-clean ltm-clean
+@@ -55,6 +57,7 @@ CLISVROBJS=common-session.o packet.o common-algo.o common-kex.o \
+ 			tcp-accept.o listener.o process-packet.o dh_groups.o \
+ 			common-runopts.o circbuffer.o list.o netio.o chachapoly.o gcm.o
+ 
++
+ KEYOBJS=dropbearkey.o
+ 
+ CONVERTOBJS=dropbearconvert.o keyimport.o
+@@ -98,6 +101,9 @@ datarootdir = @datarootdir@
  bindir=@bindir@
  sbindir=@sbindir@
  mandir=@mandir@
@@ -26,9 +34,9 @@
 +includedir = @includedir@
 +pkgconfigdir = $(libdir)/pkgconfig
  
- CC=@CC@
- AR=@AR@
-@@ -82,9 +87,10 @@
+ .DELETE_ON_ERROR:
+ 
+@@ -107,9 +113,10 @@ RANLIB=@RANLIB@
  STRIP=@STRIP@
  INSTALL=@INSTALL@
  CPPFLAGS=@CPPFLAGS@
@@ -40,7 +48,7 @@
  
  EXEEXT=@EXEEXT@
  
-@@ -106,12 +112,14 @@
+@@ -131,12 +138,15 @@ export RANLIB AR STRIP
  
  ifeq ($(STATIC), 1)
  	LDFLAGS+=-static
@@ -49,34 +57,49 @@
  endif
  
  ifeq ($(MULTI), 1)
- 	TARGETS=dropbearmulti
+ 	TARGETS=dropbearmulti$(EXEEXT)
  else
 -	TARGETS=$(PROGRAMS)
 +	TARGETS=$(DROPBEAR_SERVER_LIB)
++	CFLAGS+=-DDEBUG_TRACE
  endif
  
  # for the scp progress meter. The -D doesn't affect anything else.
-@@ -175,6 +183,9 @@
+@@ -197,6 +207,7 @@ dbclient: $(dbclientobjs)
+ dropbearkey: $(dropbearkeyobjs)
+ dropbearconvert: $(dropbearconvertobjs)
+ 
++
+ dropbear: $(HEADERS) $(LIBTOM_DEPS) Makefile
+ 	$(CC) $(LDFLAGS) -o $@$(EXEEXT) $($@objs) $(LIBTOM_LIBS) $(LIBS) @CRYPTLIB@ $(PLUGIN_LIBS)
+ 
+@@ -210,6 +221,11 @@ dropbearkey dropbearconvert: $(HEADERS) $(LIBTOM_DEPS) Makefile
  scp: $(SCPOBJS)  $(HEADERS) Makefile
  	$(CC) $(LDFLAGS) -o $@$(EXEEXT) $(SCPOBJS)
  
-+#dropbear server as a lib needs libcurl to communicate to Thunder throigh jsonrpc
-+$(DROPBEAR_SERVER_LIB):$(LIBTOM_LIBS)$(dropbearobjs)
-+	$(CC) $(LDFLAGS) -o $@ $(dropbearobjs) $(LIBTOM_LIBS) -lcurl
++#dropbear server as a lib needs libcurl to communicate to Thunder through jsonrpc()
++$(DROPBEAR_SERVER_LIB):$(LIBTOM_LIBS) $(dropbearobjs)
++	$(CC) $(LDFLAGS) -o $@ $(dropbearobjs) $(LIBTOM_LIBS) $(LIBS) 
++
++
  
  # multi-binary compilation.
  MULTIOBJS=
-@@ -215,7 +226,7 @@
- 
+@@ -251,7 +267,7 @@ clean: $(LIBTOM_CLEAN) thisclean
  thisclean:
- 	-rm -f dropbear dbclient dropbearkey dropbearconvert scp scp-progress \
--			dropbearmulti *.o *.da *.bb *.bbg *.prof 
-+			dropbearmulti *.o *.da *.bb *.bbg *.prof libdropbear.pc $(DROPBEAR_SERVER_LIB)
+ 	-rm -f dropbear$(EXEEXT) dbclient$(EXEEXT) dropbearkey$(EXEEXT) \
+ 			dropbearconvert$(EXEEXT) scp$(EXEEXT) scp-progress$(EXEEXT) \
+-			dropbearmulti$(EXEEXT) *.o *.da *.bb *.bbg *.prof
++			*.o *.da *.bb *.bbg *.prof libdropbear.pc $(DROPBEAR_SERVER_LIB)
  
  distclean: clean tidy
  	-rm -f config.h
 
-diff --git a/libdropbear.h b/libdropbear.h
+
+
+
+--- /dev/null
++++ b/libdropbear.h
 @@ -0,0 +1,58 @@
 +#ifndef __LIBDROPBEAR_H
 +#define __LIBDROPBEAR_H
@@ -111,7 +134,7 @@ diff --git a/libdropbear.h b/libdropbear.h
 + * @brief get Number of active ssh sessions
 + * @return number of active sessions
 + */
-+size_t get_active_sessions_count();
++uint32_t get_active_sessions_count();
 +
 +/**
 + * @brief Get details about all open sessions
@@ -136,11 +159,9 @@ diff --git a/libdropbear.h b/libdropbear.h
 +#endif
 +
 +#endif
-finstall
-
 --- a/configure.ac	2016-07-21 17:17:09.000000000 +0200
 +++ b/configure.ac	2021-08-20 07:58:26.063608000 +0200
-@@ -730,6 +730,9 @@
+@@ -863,6 +863,9 @@ AC_CONFIG_HEADER(config.h)
  AC_CONFIG_FILES(Makefile $LIBTOM_FILES)
  AC_OUTPUT
  
@@ -348,7 +369,7 @@ index 0000000..8da6057
 
 
 diff --git a/svr-main.c b/svr-main.c
-@@ -30,19 +30,43 @@
+@@ -30,11 +30,36 @@
  #include "runopts.h"
  #include "dbrandom.h"
  #include "crypto_desc.h"
@@ -360,6 +381,8 @@ diff --git a/svr-main.c b/svr-main.c
  static void sigchld_handler(int dummy);
  static void sigsegv_handler(int);
  static void sigintterm_handler(int fish);
++
++//Functions used to build dropbear as a sharedlib
 +void init_dropbear(int argc, char ** argv);
 +void free_client_info();
 +static int setargs(char *args, char **argv);
@@ -367,8 +390,7 @@ diff --git a/svr-main.c b/svr-main.c
 +void freeparsedargs(char **argv);
 +
 +
-+
-+struct list_head client_connections_info;
++struct list_head client_connections_info;  //list of all connected SSH clients
 +
 +struct active_clients{
 +	struct client_info info;
@@ -380,36 +402,41 @@ diff --git a/svr-main.c b/svr-main.c
 +static bool stop_server = true;  // This is used a switch to start/stop the main server therad
 +pthread_mutex_t lock;
 +
- #ifdef INETD_MODE
++
+ #if INETD_MODE
  static void main_inetd(void);
  #endif
- #ifdef NON_INETD_MODE
--static void main_noinetd(void);
-+static void* main_noinetd(void *);
+@@ -43,6 +68,7 @@ static void main_noinetd(void);
  #endif
  static void commonsetup(void);
  
 +#if 0
- #if defined(DBMULTI_dropbear) || !defined(DROPBEAR_MULTI)
- #if defined(DBMULTI_dropbear) && defined(DROPBEAR_MULTI)
+ #if defined(DBMULTI_dropbear) || !DROPBEAR_MULTI
+ #if defined(DBMULTI_dropbear) && DROPBEAR_MULTI
  int dropbear_main(int argc, char ** argv)
-@@ -75,6 +99,235 @@
+@@ -67,7 +93,7 @@ int main(int argc, char ** argv)
+ #endif
+ 
+ #if NON_INETD_MODE
+-	main_noinetd();
++	main_noinetd(NULL);
+ 	/* notreached */
+ #endif
+ 
+@@ -75,6 +101,232 @@ int main(int argc, char ** argv)
  	return -1;
  }
  #endif
 +#endif
 +
-+void init_dropbear(int argc, char ** argv)
++// Here we define the api functions when building as a shared lib
++ void init_dropbear(int argc, char ** argv)
 +{
 +	_dropbear_exit = svr_dropbear_exit;
 +	_dropbear_log = svr_dropbear_log;
 +	disallow_core();
 +	/* get commandline options */
 +	svr_getopts(argc, argv);
-+	/* Note: commonsetup() must happen before we daemon()ise. Otherwise
-+           daemon() will chdir("/"), and we won't be able to find local-dir
-+           hostkeys. */
-+	commonsetup();
 +	INIT_LIST_HEAD(&client_connections_info);
 +}
 +
@@ -526,8 +553,8 @@ diff --git a/svr-main.c b/svr-main.c
 +
 +/*Return the number of clients currently connected*/
 +
-+size_t get_active_sessions_count(){
-+	size_t count=0;
++uint32_t get_active_sessions_count(){
++	uint32_t count=0;
 +	if(pluginActivated){
 +		struct active_clients *client;
 +		struct list_head *ptr_list;
@@ -545,7 +572,7 @@ diff --git a/svr-main.c b/svr-main.c
 +uint32_t  get_active_sessions_info(struct client_info* connectedclientsContainer,size_t connections_count){
 +	uint32_t result = 0 ;
 +	if(pluginActivated){
-+		int count = 0;
++		size_t count = 0;
 +		struct active_clients *client;
 +		struct list_head *ptr_list;
 +		list_for_each(ptr_list,&client_connections_info){
@@ -627,81 +654,53 @@ diff --git a/svr-main.c b/svr-main.c
 +}
 +
  
- #ifdef INETD_MODE
+ #if INETD_MODE
  static void main_inetd() {
-@@ -104,7 +357,8 @@
- #endif /* INETD_MODE */
+@@ -114,6 +366,7 @@ static void main_inetd() {
  
- #ifdef NON_INETD_MODE
--static void main_noinetd() {
-+static void* main_noinetd(void *UNUSED(unused)){
+ #if NON_INETD_MODE
+ static void main_noinetd() {
 +	stop_server = false;
  	fd_set fds;
  	unsigned int i, j;
  	int val;
-@@ -118,11 +372,7 @@
+@@ -133,6 +386,8 @@ static void main_noinetd() {
+ 	   hostkeys. */
+ 	commonsetup();
  
- 	int childsock;
- 	int childpipe[2];
--
--	/* Note: commonsetup() must happen before we daemon()ise. Otherwise
--	   daemon() will chdir("/"), and we won't be able to find local-dir
--	   hostkeys. */
--	commonsetup();
-+	struct timeval timeout;
- 
++	
++
  	/* sockets to identify pre-authenticated clients */
  	for (i = 0; i < MAX_UNAUTH_CLIENTS; i++) {
-@@ -141,6 +391,7 @@
- 		FD_SET(listensocks[i], &fds);
- 	}
- 
-+#if 0
- 	/* fork */
- 	if (svr_opts.forkbg) {
- 		int closefds = 0;
-@@ -154,6 +405,7 @@
- 		}
- 	}
- 
-+#endif
- 	/* should be done after syslog is working */
- 	if (svr_opts.forkbg) {
- 		dropbear_log(LOG_INFO, "Running in background");
-@@ -161,6 +413,7 @@
- 		dropbear_log(LOG_INFO, "Not backgrounding");
- 	}
- 
-+
- 	/* create a PID file so that we can be killed easily */
- 	pidfile = fopen(svr_opts.pidfile, "w");
- 	if (pidfile) {
-@@ -168,6 +421,9 @@
+ 		childpipes[i] = -1;
+@@ -177,6 +432,7 @@ static void main_noinetd() {
  		fclose(pidfile);
  	}
  
 +
-+	timeout.tv_sec = 5;
-+	timeout.tv_usec = 0;
  	/* incoming connection select loop */
  	for(;;) {
  
-@@ -186,12 +442,32 @@
+@@ -195,12 +451,37 @@ static void main_noinetd() {
  			}
  		}
  
 -		val = select(maxsock+1, &fds, NULL, NULL, NULL);
-+		val = select(maxsock+1, &fds, NULL, NULL, &timeout);
- 
--		if (exitflag) {
++		val = select(maxsock+1, &fds, NULL, NULL,NULL);
++
++		
++		//Check if a stop_server command received 
 +		pthread_mutex_lock(&lock);
-+		if (stop_server == true) {  //stop_server command received
++		if (stop_server == true) {  
 +			pthread_mutex_unlock(&lock);
 +			//first close all clients open sessions
 +			free_client_info();
- 			unlink(svr_opts.pidfile);
++ 			unlink(svr_opts.pidfile);
++			
+ 
+-		if (ses.exitflag) {
+-			unlink(svr_opts.pidfile);
 -			dropbear_exit("Terminated by signal");
-+
 +			/* make sure we close sockets */
 +			FD_ZERO(&fds);
 +			for (i = 0; i < listensockcount; i++) {
@@ -710,23 +709,25 @@ diff --git a/svr-main.c b/svr-main.c
 +			break;
 +		} else {
 +			pthread_mutex_unlock(&lock);
- 		}
++ 		}
 +
 +		// exit this process after receivig a closing signal
 +		pthread_mutex_lock(&lock);
-+		if (exitflag==1){
++		if (ses.exitflag==1){
++			#ifdef DEBUG_TRACE 
 +			printf("libdropbear :exitflag ==true received exit signal! \n");
++			#endif
 +			exit(0);
-+		}
+ 		}
 +		pthread_mutex_unlock(&lock);
  		
  		if (val == 0) {
  			/* timeout reached - shouldn't happen. eh */
-@@ -281,6 +557,21 @@
+@@ -290,11 +571,26 @@ static void main_noinetd() {
  			if (fork_ret > 0) {
  
  				/* parent */
-+				/* taking the pids and respective IP address and timestamp to structure list*/
++				/* Saving the client new SSH details into the clients struct */
 +				time_t now;
 +				time(&now);
 +				struct active_clients *client;
@@ -744,35 +745,41 @@ diff --git a/svr-main.c b/svr-main.c
  				childpipes[conn_idx] = childpipe[0];
  				m_close(childpipe[1]);
  				preauth_addrs[conn_idx] = remote_host;
-@@ -328,6 +619,7 @@
- 	} /* for(;;) loop */
+ 				remote_host = NULL;
+-
++			
+ 			} else {
  
- 	/* don't reach here */
-+	return NULL;
- }
- #endif /* NON_INETD_MODE */
+ 				/* child */
+@@ -338,14 +634,34 @@ out:
  
-@@ -338,10 +630,26 @@
+ /* catch + reap zombie children */
+ static void sigchld_handler(int UNUSED(unused)) {
++	#if DEBUG_TRACE
++	printf(" libdropbear signal : sigchld signal received \n");
++	#endif
+ 	struct sigaction sa_chld;
  
  	const int saved_errno = errno;
  
 -	while(waitpid(-1, NULL, WNOHANG) > 0) {}
 +	int  pid;
-+	/* disconnected ports are removing from structure List */
-+	while ((pid = waitpid(0, NULL, WNOHANG)) > 0) {
++
++	while((pid=waitpid(-1, NULL, WNOHANG)) > 0) {
 +		struct active_clients *client;
 +		struct list_head *ptr_list;
-+
++		pthread_mutex_lock(&lock);
 +		list_for_each(ptr_list, &client_connections_info){
 +			client  = list_entry(ptr_list,struct active_clients, client_list);
-+			if (client && client->info.pid == pid){
-+				pthread_mutex_lock(&lock);
++			if (client && client->info.pid == pid){	
 +				list_del(ptr_list);
 +				pthread_mutex_unlock(&lock);
 +				free(client);
 +				break;
 +			}
 +		}
++		pthread_mutex_unlock(&lock);
++
 +	}
  
  	sa_chld.sa_handler = sigchld_handler;
@@ -781,48 +788,64 @@ diff --git a/svr-main.c b/svr-main.c
  	sigemptyset(&sa_chld.sa_mask);
  	if (sigaction(SIGCHLD, &sa_chld, NULL) < 0) {
  		dropbear_exit("signal() error");
-@@ -357,10 +665,21 @@
+@@ -360,12 +676,27 @@ static void sigsegv_handler(int UNUSED(unused)) {
+ 	_exit(EXIT_FAILURE);
  }
  
- /* catch ctrl-c or sigterm */
+-/* catch ctrl-c or sigterm */
 -static void sigintterm_handler(int UNUSED(unused)) {
--
+ 
 +static void sigintterm_handler(int signal) {
 +	#ifdef DEBUG_TRACE 
-+	printf("libdropbear sigintterm_handler received  %d \n ",signal);
++	printf("libdropbear NON expected sigintterm_handler received  %d \n ",signal);
 +	#endif
- 	exitflag = 1;
- }
++	pthread_mutex_lock(&lock);
++ 	ses.exitflag = 1;
++	pthread_mutex_unlock(&lock);
++ }
++
 +static void sigusr1_handler(int signal) {
 +	#ifdef DEBUG_TRACE 
 +	printf("libdropbear sigusr1_handler received %d , setting  exitflag to true \n ",signal);
 +	#endif
 +	pthread_mutex_lock(&lock);
-+	exitflag = 1;
+ 	ses.exitflag = 1;
 +	pthread_mutex_unlock(&lock);
-+}
-+
+ }
  
++
++
  /* Things used by inetd and non-inetd modes */
  static void commonsetup() {
-@@ -371,7 +690,7 @@
- 		startsyslog(PROGNAME);
+ 
+@@ -376,6 +707,7 @@ static void commonsetup() {
  	}
  #endif
--
-+#if 0
+ 
++
  	/* set up cleanup handler */
  	if (signal(SIGINT, sigintterm_handler) == SIG_ERR || 
  #ifndef DEBUG_VALGRIND
-@@ -385,12 +704,23 @@
+@@ -385,6 +717,13 @@ static void commonsetup() {
+ 		dropbear_exit("signal() error");
+ 	}
+ 
++	//Metrological: We introduced this signal to use it when we want to shut down a server process
++	if (signal(SIGUSR1, sigusr1_handler) == SIG_ERR) {
++		#ifdef DEBUG_TRACE 
++		printf("ERROR libdropbear : signal handlers failed to handle the stop signal \n");
++		#endif
++	}
++
+ 	/* catch and reap zombie children */
  	sa_chld.sa_handler = sigchld_handler;
  	sa_chld.sa_flags = SA_NOCLDSTOP;
- 	sigemptyset(&sa_chld.sa_mask);
-+
+@@ -392,9 +731,19 @@ static void commonsetup() {
  	if (sigaction(SIGCHLD, &sa_chld, NULL) < 0) {
  		dropbear_exit("signal() error");
  	}
-+#endif
+-	if (signal(SIGSEGV, sigsegv_handler) == SIG_ERR) {
++	
 +	// Metrological: We introduced this signal to use it when we want to shut down a server process
 +	if (signal(SIGUSR1, sigusr1_handler) == SIG_ERR) {
 +		#ifdef DEBUG_TRACE 
@@ -830,75 +853,48 @@ diff --git a/svr-main.c b/svr-main.c
 +		#endif
 +		dropbear_exit("signal() error");
 +	}
-+#if 0 
- 	if (signal(SIGSEGV, sigsegv_handler) == SIG_ERR) {
++	
++		if (signal(SIGSEGV, sigsegv_handler) == SIG_ERR) {
  		dropbear_exit("signal() error");
  	}
-+#endif
++	
  
  	crypto_init();
+ 
+
 
 --- a/svr-session.c	2016-07-21 17:17:09.000000000 +0200
 +++ b/svr-session.c	2021-09-03 11:39:51.450143396 +0200
-@@ -40,6 +40,7 @@
- #include "auth.h"
- #include "runopts.h"
+@@ -42,6 +42,7 @@
  #include "crypto_desc.h"
-+#include <curl/curl.h>
+ #include "fuzz.h"
  
++
  static void svr_remoteclosed(void);
+ static void svr_algos_initialise(void);
  
-@@ -191,7 +192,7 @@
- 		m_free(svr_opts.ports[i]);
- 	}
- 
--	exit(exitcode);
-+	_exit(exitcode);
- 
- }
- 
-@@ -232,14 +233,34 @@
+@@ -316,7 +317,7 @@ void svr_dropbear_log(int priority, const char* format, va_list param) {
  	}
  }
  
 -/* called when the remote side closes the connection */
 +/* called when the remote client closes the connection  --> we signal it to the main process which keeps track of the open sessions */
  static void svr_remoteclosed() {
--
+ 
  	m_close(ses.sock_in);
- 	m_close(ses.sock_out);
+@@ -326,7 +327,7 @@ static void svr_remoteclosed() {
  	ses.sock_in = -1;
  	ses.sock_out = -1;
--	dropbear_close("Exited normally");
-+
-+	pid_t myPid= getpid();
-+	// We need the main WPEProcess to get signal that a client has disconnected, Many options here! Ill go for sending a close signal to thunder through JSONRPC
-+   	CURL *curl = curl_easy_init();
-+    struct curl_slist *headers = NULL;
-+
-+    if (curl) {
-+		char buffer[1024];
-+		snprintf(buffer, sizeof(buffer), "{\"jsonrpc\": \"2.0\", \"id\": 1234567890, \"method\": \"SecureShellServer.1.closeclientsession\", \"params\":{\"pid\":%d}}", myPid);
-+
-+		headers = curl_slist_append(headers, "content-type: text/plain;");
-+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-+
-+		curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:80/jsonrpc/Controller");
-+
-+		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long) strlen(buffer));
-+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buffer);
-+
-+		curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_TRY);
-+
-+		curl_easy_perform(curl);
-+    }
- 
+ 	dropbear_close("Exited normally");
+-
++	
  }
  
+ static void svr_algos_initialise(void) {
 
 --- a/process-packet.c	2016-07-21 17:17:09.000000000 +0200
 +++ b/process-packet.c	2021-09-07 16:32:50.956326274 +0200
-@@ -71,6 +71,7 @@
+@@ -69,6 +69,7 @@ void process_packet() {
  			
  		case SSH_MSG_DISCONNECT:
  			/* TODO cleanup? */
@@ -906,3 +902,4 @@ diff --git a/svr-main.c b/svr-main.c
  			dropbear_close("Disconnect received");
  	}
  
+
