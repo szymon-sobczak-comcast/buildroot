@@ -3,9 +3,9 @@
 # westeros
 #
 ################################################################################
-WESTEROS_VERSION = 23a65d1fa48f6d82d51c3cb6cd08bf403f95187d
+WESTEROS_VERSION = 55133756057db2592fa2b4f2a7dea01db846def4
 WESTEROS_SITE_METHOD = git
-WESTEROS_SITE = git://github.com/rdkcmf/westeros
+WESTEROS_SITE = https://code.rdkcentral.com/r/components/opensource/westeros
 WESTEROS_INSTALL_STAGING = YES
 
 WESTEROS_DEPENDENCIES = host-pkgconf host-autoconf wayland \
@@ -44,7 +44,7 @@ else ifeq ($(BR2_PACKAGE_HAS_NEXUS),y)
 		$(BCM_REFSW_MAKE_ENV)	
 	WESTEROS_DEPENDENCIES += wayland-egl-bnxs bcm-refsw
 else ifeq ($(BR2_PACKAGE_LIBDRM),y)
-	WESTEROS_CONF_ENV += CXXFLAGS="$(TARGET_CXXFLAGS) -DWESTEROS_PLATFORM_DRM"
+	WESTEROS_CONF_ENV += CXXFLAGS="$(TARGET_CXXFLAGS) -I$(STAGING_DIR)/usr/include/libdrm -DWESTEROS_PLATFORM_DRM"
 	WESTEROS_CONF_ENV += LDFLAGS="-L$(@D)/.libs -lEGL -lGLESv2"
 endif # BR2_PACKAGE_WESTEROS_SOC_RPI
 

@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-WESTEROS_SIMPLESHELL_VERSION = 23a65d1fa48f6d82d51c3cb6cd08bf403f95187d
+WESTEROS_SIMPLESHELL_VERSION = 55133756057db2592fa2b4f2a7dea01db846def4
 WESTEROS_SIMPLESHELL_SITE_METHOD = git
-WESTEROS_SIMPLESHELL_SITE = git://github.com/rdkcmf/westeros
+WESTEROS_SIMPLESHELL_SITE = https://code.rdkcentral.com/r/components/opensource/westeros
 WESTEROS_SIMPLESHELL_INSTALL_STAGING = YES
 WESTEROS_SIMPLESHELL_SUBDIR = simpleshell/
 WESTEROS_SIMPLESHELL_AUTORECONF = YES

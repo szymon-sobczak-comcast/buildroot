@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-WESTEROS_SOC_VERSION = 23a65d1fa48f6d82d51c3cb6cd08bf403f95187d
+WESTEROS_SOC_VERSION = 55133756057db2592fa2b4f2a7dea01db846def4
 WESTEROS_SOC_SITE_METHOD = git
-WESTEROS_SOC_SITE = git://github.com/rdkcmf/westeros
+WESTEROS_SOC_SITE = https://code.rdkcentral.com/r/components/opensource/westeros
 WESTEROS_SOC_INSTALL_STAGING = YES
 
 WESTEROS_SOC_DEPENDENCIES = host-pkgconf host-autoconf wayland libegl
@@ -35,6 +35,10 @@ else ifeq ($(BR2_PACKAGE_HAS_NEXUS),y)
 		CXXFLAGS="$(TARGET_CXXFLAGS) -I ${STAGING_DIR}/usr/include/refsw/"
 	WESTEROS_SOC_SUBDIR = brcm
     WESTEROS_SOC_DEPENDENCIES += wayland-egl-bnxs bcm-refsw
+else ifeq ($(BR2_PACKAGE_XIONE_SDK),y)
+	WESTEROS_SOC_DEPENDENCIES += libdrm
+	WESTEROS_SOC_CONF_OPTS += CFLAGS="$(TARGET_CFLAGS) -I $(STAGING_DIR)/usr/include/libdrm -lEGL -lGLESv2 -DEGL_WINSYS_GBM=1 -DWESTEROS_GL_NO_PLANES=1"
+	WESTEROS_SOC_SUBDIR = drm
 else ifeq ($(BR2_PACKAGE_LIBDRM),y)
 ifeq ($(BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4),y)
 	WESTEROS_DRM_CARD=/dev/dri/card1
