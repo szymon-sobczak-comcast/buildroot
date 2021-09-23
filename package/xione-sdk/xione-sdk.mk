@@ -10,30 +10,18 @@ XIONE_SDK_INSTALL_STAGING = YES
 XIONE_SDK_INSTALL_TARGET = YES
 
 define XIONE_SDK_INSTALL_STAGING_CMDS
-	cp -Rpf $(@D)/mali/include/* $(STAGING_DIR)/usr/include/
-	cp -Rpf $(@D)/mali/lib/* $(STAGING_DIR)/usr/lib/
-endef
-
-define XIONE_SDK_DEVICES
-        /dev/console c  622  0  0  5  1  0  0  -
-        /dev/ptmx    c  622  0  0  5  2  0  0  -
-        /dev/tty     c  622  0  0  5  0  0  0  -
-        /dev/tty0    c  622  0  0  4  0  0  0  -
-        /dev/tty1    c  622  0  0  4  0  0  0  -
-        /dev/tty2    c  622  0  0  4  0  0  0  -
-        /dev/ttyS0   c  622  0  0  5  3  0  0  -
-        /dev/random  c  622  0  0  1  8  0  0  -
-        /dev/random  c  622  0  0  1  9  0  0  -
-endef
-
-define XIONE_SDK_PERMISSIONS
+	$(INSTALL) -d $(STAGING_DIR)/usr/include
+	$(INSTALL) -d $(STAGING_DIR)/usr/lib
+        cp -rP $(@D)/mali/include $(STAGING_DIR)/usr/include
+	cp -rP $(@D)/mali/lib/* $(STAGING_DIR)/usr/lib
 endef
 
 define XIONE_SDK_INSTALL_TARGET_CMDS
-	cp -pf $(@D)/mali/lib/*.so $(STAGING_DIR)/usr/lib/
-	cp -pf $(@D)/mali/lib/*.so $(STAGING_DIR)/usr/lib/
-	cp -pf $(@D)/verity/* board/xione
-	cp -pf $(@D)/image/* board/xione
+	$(INSTALL) -d $(TARGET_DIR)/tas
+	$(INSTALL) -d $(TARGET_DIR)/usr/lib
+	$(INSTALL) -m 0640 $(@D)/vision/tee/* $(TARGET_DIR)/tas
+	$(INSTALL) -m 0640 $(@D)/vision/lib/* $(TARGET_DIR)/usr/lib
+	cp -P $(@D)/mali/lib/* $(TARGET_DIR)/usr/lib
 endef
 
 define QORVO_BUILD_MODULE
