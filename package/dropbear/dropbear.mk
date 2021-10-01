@@ -10,20 +10,18 @@ DROPBEAR_SOURCE = dropbear-$(DROPBEAR_VERSION).tar.bz2
 DROPBEAR_LICENSE = MIT, BSD-2c-like, BSD-2c
 DROPBEAR_LICENSE_FILES = LICENSE
 
-ifeq ($(BR2_PACKAGE_DROPBEAR_PROGRAM),y)
 DROPBEAR_TARGET_BINS = dropbearkey dropbearconvert scp
-DROPBEAR_PROGRAMS = dropbear $(DROPBEAR_TARGET_BINS)
-else #case for BR2_PACKAGE_DROPBEAR_LIB
-DROPBEAR_PROGRAMS = dropbear
-DROPBEAR_AUTORECONF = YES
+DROPBEAR_PROGRAMS = $(DROPBEAR_TARGET_BINS)
+
+# Disable hardening flags added by dropbear configure.ac, and let
+# Buildroot add them when the relevant options are enabled. This
+# prevents dropbear from using SSP support when not available.
+DROPBEAR_CONF_OPTS = --disable-harden
 
 define DROPBEAR_APPLY_LOCAL_PATCHES
  # Apply these patches only incase of WPEFramework/DropbearServer plugin is enabled.
  $(APPLY_PATCHES) $(@D) package/dropbear/ *.patch.conditional
 endef
-DROPBEAR_POST_PATCH_HOOKS += DROPBEAR_APPLY_LOCAL_PATCHES
-endif
-
 
 ifeq ($(BR2_PACKAGE_DROPBEAR_CLIENT),y)
 # Build dbclient, and create a convenience symlink named ssh
@@ -32,12 +30,16 @@ DROPBEAR_TARGET_BINS += dbclient ssh
 endif
 
 ifeq ($(BR2_PACKAGE_DROPBEAR_PROGRAM),y)
+DROPBEAR_PROGRAMS+=dropbear
 DROPBEAR_MAKE = \
         $(MAKE) MULTI=1 SCPPROGRESS=1 \
         PROGRAMS="$(DROPBEAR_PROGRAMS)"
 else #case for BR2_PACKAGE_DROPBEAR_LIB
+DROPBEAR_POST_PATCH_HOOKS += DROPBEAR_APPLY_LOCAL_PATCHES
+DROPBEAR_AUTORECONF = YES
 DROPBEAR_MAKE = \
-        $(MAKE) DROPBEAR_SHARED_LIB=1 
+	$(MAKE) DROPBEAR_SHARED_LIB=1 MULTI=1 SCPPROGRESS=1 \
+	PROGRAMS="$(DROPBEAR_PROGRAMS)"     
 endif
 
 ifeq ($(BR2_STATIC_LIBS),y)
