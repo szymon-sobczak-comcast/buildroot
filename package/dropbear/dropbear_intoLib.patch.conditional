@@ -35,7 +35,7 @@
  	$(CC) $(LDFLAGS) -o $@$(EXEEXT) $(SCPOBJS)
  
 +$(DROPBEAR_SERVER_LIB):$(LIBTOM_LIBS) $(dropbearobjs)
-+	$(CC) $(LDFLAGS) -o $@ $(dropbearobjs) $(LIBTOM_LIBS) $(LIBS) -shared -fPIC -pthread
++	$(CC) $(LDFLAGS) -o $@ $(dropbearobjs) $(LIBTOM_LIBS) $(LIBS) -shared -pthread
 +
  
  # multi-binary compilation.
@@ -75,7 +75,7 @@
 + * @return 0 if successfull
 + *         1 in case of error caused by mutexes,
 + *         2 in case of error during the creation of a new working thread,
-+ *         3 if the dropbear server uis already runnning
++ *         3 if the dropbear server is already runnning
 + */
 +uint activate_dropbear(const char*);   
 +
@@ -357,9 +357,9 @@ diff --git a/svr-main.c b/svr-main.c
 +	struct list_head client_list;
 +};
 +
-+static int pluginActivated = 0;
-+static pthread_t threadID;
-+static bool stop_server = false;  // a flag to stop the main server therad
++static bool pluginActivated = false;   // flag representing the status of the dropbear server
++static pthread_t threadID;        // id of the main server thread id
++static bool stop_server = false;  // a command  to stop the main server therad
 +pthread_mutex_t lock;
 +int signal_pipe[2]; /* stores endpoints of a self-pipe used for
 +						race-free signal handling */
@@ -390,7 +390,7 @@ diff --git a/svr-main.c b/svr-main.c
  	/* notreached */
  #endif
  
-@@ -76,6 +111,259 @@ int main(int argc, char ** argv)
+@@ -76,6 +111,260 @@ int main(int argc, char ** argv)
  }
  #endif
  
@@ -460,7 +460,7 @@ diff --git a/svr-main.c b/svr-main.c
 +	}
 +	if (result==0){	
 +		pthread_mutex_lock(&lock);
-+		if(pluginActivated == 0)
++		if(pluginActivated == false)
 +		{
 +			pthread_mutex_unlock(&lock);
 +			TRACE(("libdropbear: Activating drop bear\n"))
@@ -481,7 +481,7 @@ diff --git a/svr-main.c b/svr-main.c
 +					result=2;
 +				} else {
 +					pthread_mutex_lock(&lock);
-+					pluginActivated = 1; //server is indeed running on a separate thread
++					pluginActivated = true; //server has successfully been started
 +					pthread_mutex_unlock(&lock);
 +				}
 +			}
@@ -500,15 +500,16 @@ diff --git a/svr-main.c b/svr-main.c
 +	uint result = 1;
 +	TRACE(("libbdropbear : Deactivating dropbear"));
 +	pthread_mutex_lock(&lock);
-+	if(pluginActivated == 1)
++	if(pluginActivated == true)
 +	{
 +		stop_server = true;
 +		pthread_mutex_unlock(&lock);
 +		pthread_join(threadID, 0);
 +		pthread_mutex_destroy(&lock);
-+		pluginActivated = 0;
++		pluginActivated = false;
 +		result = 0;
 +	}  else {
++		TRACE(("libbdropbear : Deactivating dropbear failed because drop bear is already NOT active"));
 +		pthread_mutex_unlock(&lock);
 +	}
 +	
@@ -541,7 +542,7 @@ diff --git a/svr-main.c b/svr-main.c
 +uint get_active_sessions_count(){
 +	uint count=0;
 +	pthread_mutex_lock(&lock);
-+	if(pluginActivated){
++	if(pluginActivated==true){
 +		struct active_clients *client;
 +		struct list_head *ptr_list;
 +		list_for_each(ptr_list,&client_connections_info){
@@ -650,7 +651,7 @@ diff --git a/svr-main.c b/svr-main.c
  #if INETD_MODE
  static void main_inetd() {
  	char *host, *port = NULL;
-@@ -113,7 +401,7 @@ static void main_inetd() {
+@@ -113,7 +402,7 @@ static void main_inetd() {
  #endif /* INETD_MODE */
  
  #if NON_INETD_MODE
@@ -659,7 +660,7 @@ diff --git a/svr-main.c b/svr-main.c
  	fd_set fds;
  	unsigned int i, j;
  	int val;
-@@ -158,17 +446,22 @@ static void main_noinetd() {
+@@ -158,17 +447,22 @@ static void main_noinetd() {
  			closefds = 1;
  		}
  #endif
@@ -683,7 +684,7 @@ diff --git a/svr-main.c b/svr-main.c
  
  	/* create a PID file so that we can be killed easily */
  	pidfile = fopen(svr_opts.pidfile, "w");
-@@ -181,7 +474,15 @@ static void main_noinetd() {
+@@ -181,7 +475,15 @@ static void main_noinetd() {
  	for(;;) {
  
  		DROPBEAR_FD_ZERO(&fds);
@@ -700,7 +701,7 @@ diff --git a/svr-main.c b/svr-main.c
  		/* listening sockets */
  		for (i = 0; i < listensockcount; i++) {
  			FD_SET(listensocks[i], &fds);
-@@ -194,19 +495,69 @@ static void main_noinetd() {
+@@ -194,19 +496,68 @@ static void main_noinetd() {
  				maxsock = MAX(maxsock, childpipes[i]);
  			}
  		}
@@ -738,19 +739,18 @@ diff --git a/svr-main.c b/svr-main.c
  
 +
 +
-+		/* this is a WAKEUP internal signal We'll just empty out the pipe if required. We don't do
-+		any thing with the data, since the pipe's purpose is purely to
-+		wake up the select() above. */
-+	
++		/* this is an internal WAKEUP internal signal, when received, means a SIGCHLD signal has been received and now time to reap 
++		the child process and updat eour list. data is not BEING USED */
 +		if (FD_ISSET(signal_pipe[0], &fds)) {
 +			const int saved_errno = errno;
 +			int status;
 +			char x;
++			bool fd_existing=false;
 +			while (read(signal_pipe[0], &x, 1) > 0) {}
 +			
 +			int pid;
 +			while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-+				bool fd_existing=false;
++				fd_existing=false;
 +				struct active_clients *client;
 +				struct list_head *ptr_list;
 +				pthread_mutex_lock(&lock);
@@ -812,7 +812,7 @@ diff --git a/svr-main.c b/svr-main.c
  	/* don't reach here */
  }
  #endif /* NON_INETD_MODE */
-@@ -341,14 +704,25 @@ static void sigchld_handler(int UNUSED(unused)) {
+@@ -341,14 +704,24 @@ static void sigchld_handler(int UNUSED(unused)) {
  	struct sigaction sa_chld;
  
  	const int saved_errno = errno;
@@ -833,14 +833,13 @@ diff --git a/svr-main.c b/svr-main.c
  	sa_chld.sa_handler = sigchld_handler;
  	sa_chld.sa_flags = SA_NOCLDSTOP;
  	sigemptyset(&sa_chld.sa_mask);
-+	sigaction(SIGCHLD, &sa_chld, NULL);
  	if (sigaction(SIGCHLD, &sa_chld, NULL) < 0) {
 -		dropbear_exit("signal() error");
 +		dropbear_exit("signal() error inside sigchld_handler");
  	}
  	errno = saved_errno;
  }
-@@ -362,7 +736,6 @@ static void sigsegv_handler(int UNUSED(unused)) {
+@@ -362,7 +735,6 @@ static void sigsegv_handler(int UNUSED(unused)) {
  
  /* catch ctrl-c or sigterm */
  static void sigintterm_handler(int UNUSED(unused)) {
@@ -848,7 +847,7 @@ diff --git a/svr-main.c b/svr-main.c
  	ses.exitflag = 1;
  }
  
-@@ -411,7 +784,7 @@ static size_t listensockets(int *socks, size_t sockcount, int *maxfd) {
+@@ -411,7 +783,7 @@ static size_t listensockets(int *socks, size_t sockcount, int *maxfd) {
  	size_t sockpos = 0;
  	int nsock;
  
@@ -856,6 +855,9 @@ diff --git a/svr-main.c b/svr-main.c
 +	TRACE(("listensockets: %d to try", svr_opts.portcount));
  
  	for (i = 0; i < svr_opts.portcount; i++) {
+ 
+ 
+ 
 
 --- a/dbutil.c
 +++ b/dbutil.c
