@@ -390,10 +390,11 @@ diff --git a/svr-main.c b/svr-main.c
  	/* notreached */
  #endif
  
-@@ -76,6 +111,258 @@ int main(int argc, char ** argv)
+@@ -76,6 +111,259 @@ int main(int argc, char ** argv)
  }
  #endif
  
++
 +// Here we define the api functions when building as a shared lib
 + void init_dropbear(int argc, char ** argv)
 +{
@@ -594,12 +595,12 @@ diff --git a/svr-main.c b/svr-main.c
 +	if(pluginActivated){
 +		list_for_each(ptr_list,&client_connections_info){
 +			client = list_entry(ptr_list,struct active_clients,client_list);
-+			if(client && (client->info.pid == client_pid)){
-+				pthread_mutex_unlock(&lock);
++			if(client && (client->info.pid == client_pid)){	
 +				pid_existing=true;
 +				break;
 +			}
 +		}
++		pthread_mutex_unlock(&lock);
 +		if(pid_existing == true){
 +			if(kill(client_pid,SIGUSR1) !=-1){
 +				TRACE(("libbdropbear: successfully closed the process : %d\n",client_pid));
@@ -649,7 +650,7 @@ diff --git a/svr-main.c b/svr-main.c
  #if INETD_MODE
  static void main_inetd() {
  	char *host, *port = NULL;
-@@ -113,7 +400,7 @@ static void main_inetd() {
+@@ -113,7 +401,7 @@ static void main_inetd() {
  #endif /* INETD_MODE */
  
  #if NON_INETD_MODE
@@ -658,7 +659,7 @@ diff --git a/svr-main.c b/svr-main.c
  	fd_set fds;
  	unsigned int i, j;
  	int val;
-@@ -158,17 +445,22 @@ static void main_noinetd() {
+@@ -158,17 +446,22 @@ static void main_noinetd() {
  			closefds = 1;
  		}
  #endif
@@ -682,7 +683,7 @@ diff --git a/svr-main.c b/svr-main.c
  
  	/* create a PID file so that we can be killed easily */
  	pidfile = fopen(svr_opts.pidfile, "w");
-@@ -181,7 +473,15 @@ static void main_noinetd() {
+@@ -181,7 +474,15 @@ static void main_noinetd() {
  	for(;;) {
  
  		DROPBEAR_FD_ZERO(&fds);
@@ -699,7 +700,7 @@ diff --git a/svr-main.c b/svr-main.c
  		/* listening sockets */
  		for (i = 0; i < listensockcount; i++) {
  			FD_SET(listensocks[i], &fds);
-@@ -194,19 +494,69 @@ static void main_noinetd() {
+@@ -194,19 +495,69 @@ static void main_noinetd() {
  				maxsock = MAX(maxsock, childpipes[i]);
  			}
  		}
@@ -776,7 +777,7 @@ diff --git a/svr-main.c b/svr-main.c
  		if (val < 0) {
  			if (errno == EINTR) {
  				continue;
-@@ -290,6 +640,11 @@ static void main_noinetd() {
+@@ -290,6 +641,11 @@ static void main_noinetd() {
  			if (fork_ret > 0) {
  
  				/* parent */
@@ -788,7 +789,7 @@ diff --git a/svr-main.c b/svr-main.c
  				childpipes[conn_idx] = childpipe[0];
  				m_close(childpipe[1]);
  				preauth_addrs[conn_idx] = remote_host;
-@@ -315,7 +670,13 @@ static void main_noinetd() {
+@@ -315,7 +671,13 @@ static void main_noinetd() {
  				}
  
  				m_close(childpipe[0]);
@@ -803,7 +804,7 @@ diff --git a/svr-main.c b/svr-main.c
  				/* start the session */
  				svr_session(childsock, childpipe[1]);
  				/* don't return */
-@@ -331,6 +692,7 @@ out:
+@@ -331,6 +693,7 @@ out:
  		}
  	} /* for(;;) loop */
  
@@ -811,7 +812,7 @@ diff --git a/svr-main.c b/svr-main.c
  	/* don't reach here */
  }
  #endif /* NON_INETD_MODE */
-@@ -341,14 +703,25 @@ static void sigchld_handler(int UNUSED(unused)) {
+@@ -341,14 +704,25 @@ static void sigchld_handler(int UNUSED(unused)) {
  	struct sigaction sa_chld;
  
  	const int saved_errno = errno;
@@ -839,7 +840,7 @@ diff --git a/svr-main.c b/svr-main.c
  	}
  	errno = saved_errno;
  }
-@@ -362,7 +735,6 @@ static void sigsegv_handler(int UNUSED(unused)) {
+@@ -362,7 +736,6 @@ static void sigsegv_handler(int UNUSED(unused)) {
  
  /* catch ctrl-c or sigterm */
  static void sigintterm_handler(int UNUSED(unused)) {
@@ -847,7 +848,7 @@ diff --git a/svr-main.c b/svr-main.c
  	ses.exitflag = 1;
  }
  
-@@ -411,7 +783,7 @@ static size_t listensockets(int *socks, size_t sockcount, int *maxfd) {
+@@ -411,7 +784,7 @@ static size_t listensockets(int *socks, size_t sockcount, int *maxfd) {
  	size_t sockpos = 0;
  	int nsock;
  
@@ -855,8 +856,7 @@ diff --git a/svr-main.c b/svr-main.c
 +	TRACE(("listensockets: %d to try", svr_opts.portcount));
  
  	for (i = 0; i < svr_opts.portcount; i++) {
- 
- 
+
 --- a/dbutil.c
 +++ b/dbutil.c
 @@ -105,7 +105,6 @@ void dropbear_close(const char* format, ...) {
@@ -879,7 +879,8 @@ diff --git a/svr-main.c b/svr-main.c
 +	kill(getpid(),SIGTERM);
  }
  
- void fail_assert(const char* expr, const char* file, int line) 
+ void fail_assert(const char* expr, const char* file, int line) {
+
 --- a/svr-session.c
 +++ b/svr-session.c
 @@ -275,7 +275,10 @@ void svr_dropbear_exit(int exitcode, const char* format, va_list param) {
@@ -894,4 +895,3 @@ diff --git a/svr-main.c b/svr-main.c
  
  }
  
-
