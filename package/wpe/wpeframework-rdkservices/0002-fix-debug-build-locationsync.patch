@@ -1,0 +1,13 @@
+diff --git a/LocationSync/LocationSync.cpp b/LocationSync/LocationSync.cpp
+index 7ed0e0c..3bf34f9 100644
+--- a/LocationSync/LocationSync.cpp
++++ b/LocationSync/LocationSync.cpp
+@@ -116,7 +116,7 @@ namespace Plugin {
+                 response->City = location->City();
+ 
+                 result->ContentType = Web::MIMETypes::MIME_JSON;
+-                result->Body(Core::proxy_cast<Web::IBody>(response));
++                result->Body(Core::ProxyType<Web::IBody>(response));
+             } else {
+                 result->ErrorCode = Web::STATUS_SERVICE_UNAVAILABLE;
+                 result->Message = _T("Internet and Location Service not yet available");

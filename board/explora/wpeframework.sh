@@ -72,12 +72,18 @@ case "$1" in
 		ln -s $SOURCE/root/OCDM $DESTINATION/root/OCDM
 		ln -s /usr/bin/sage/sage_ta_widevine.bin $SOURCE/sage_ta_widevine.bin
 		ln -s /usr/bin/sage/sage_ta_netflix.bin $SOURCE/sage_ta_netflix.bin
+
+                ln -s $SOURCE/usr/lib/libEGL.so $SOURCE/usr/lib/libEGL.so.1
+                ln -s $SOURCE/usr/lib/libGLESv2.so $SOURCE/usr/lib/libGLESv2.so.1
 	fi
 
 	export DRMSTORE=/tmp/drmstore
 	if [ ! -f $DRMSTORE ]; then
 		touch /tmp/drmstore
 	fi
+        if [ ! -d /usr/libexec ]; then
+                ln -s $SOURCE/usr/libexec /usr/libexec
+        fi
 
 	grep -q "/usr/share ext4" /proc/mounts && echo "/usr/share is already mounted" || mount -t ext4 --bind $DESTINATION/share/ /usr/share/
 	grep -q "/etc ext4" /proc/mounts && echo "/etc is already mounted" || mount -t ext4 --bind $DESTINATION/etc/ /etc/

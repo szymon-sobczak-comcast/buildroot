@@ -27,6 +27,11 @@ GLIBC_VERSION = 2.30-20-g50f20fe506abb8853641006a7b90a81af21d7b91
 GLIBC_SITE = $(call github,bminor,glibc,$(GLIBC_VERSION))
 endif
 
+GLIBC_VERSION = 2.24
+GLIBC_SITE = $(BR2_GNU_MIRROR)/libc
+GLIBC_SOURCE = glibc-$(GLIBC_VERSION).tar.xz
+GLIBC_SRC_SUBDIR = .
+
 GLIBC_LICENSE = GPL-2.0+ (programs), LGPL-2.1+, BSD-3-Clause, MIT (library)
 GLIBC_LICENSE_FILES = COPYING COPYING.LIB LICENSES
 
@@ -48,6 +53,8 @@ GLIBC_INSTALL_STAGING_OPTS = install_root=$(STAGING_DIR) install
 ifeq ($(BR2_ARM_INSTRUCTIONS_THUMB),y)
 GLIBC_EXTRA_CFLAGS += -marm
 endif
+
+GLIBC_EXTRA_CFLAGS += -Wno-error 
 
 # MIPS64 defaults to n32 so pass the correct -mabi if
 # we are using a different ABI. OABI32 is also used

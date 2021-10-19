@@ -1,0 +1,19 @@
+diff --git a/WebKitBrowser/WebKitImplementation.cpp b/WebKitBrowser/WebKitImplementation.cpp
+index 2889567..3c0cc95 100644
+--- a/WebKitBrowser/WebKitImplementation.cpp
++++ b/WebKitBrowser/WebKitImplementation.cpp
+@@ -2408,7 +2408,14 @@ static GSourceFuncs _handlerIntervention =
+             _page = WKViewGetPage(_view);
+ 
+             if (_config.Transparent.Value() == true)
++#ifndef WEBKIT_GLIB_API
+                 WKPageSetDrawsBackground(_page, false);
++#else
++                #error "NO WEBKIT GLIB"
++                printf("OZGUR: HERE I AM \n");fflush(stdout); 
++                WebKitColor transparentColor{0, 0, 0, 0};
++                webkit_web_view_set_background_color(_view, &transparentColor);
++#endif
+ 
+             // Register handlers for page navigation and message from injected bundle.
+             _handlerWebKit.base.clientInfo = static_cast<void*>(this);

@@ -49,6 +49,7 @@ libgstbase-1.0.so
 libgstbasecamerabinsrc-1.0.so
 libgstcodecparsers-1.0.so
 libgstcontroller-1.0.so
+libgstisoff-1.0.so.0
 libgstfaad.so
 libgstfft-1.0.so
 libgstinsertbin-1.0.so
@@ -92,7 +93,7 @@ libwebsocket.so
 libWPE.so
 libWPE-platform.so
 libWPEWebInspectorResources.so
-libWPEWebKit-0.1.so
+libWPEWebKit-1.0.so
 libxkbcommon.so
 libxml2.so
 libxslt.so
@@ -125,7 +126,6 @@ libWPEFrameworkMarshallings.so
 libWPEFrameworkCore.so
 libWPEFrameworkCryptalgo.so
 libWPEFrameworkPlugins.so
-libWPEFrameworkProtocols.so
 libWPEFrameworkTracing.so
 libWPEFrameworkVirtualInput.so
 libWPEFrameworkTimeSync.so
@@ -138,7 +138,7 @@ libWPEFrameworkJSONRPCPlugin.so
 libWPEFrameworkPlayerInfo.so
 libWPEFrameworkWebServer.so
 libWPEFrameworkAmazonPrime.so
-libwpe-0.2.so
+libwpe-1.0.so
 libWPEBackend-rdk.so
 libWPEBackend-default.so
 libwebpdemux.so
@@ -175,3 +175,10 @@ libWPEFrameworkInputSwitch.so
 playready
 MeteringCertificate.bin
 cobalt.json
+libgiognutls.so
+libWPEInjectedBundle.so
+libWPEFrameworkWebKitBrowserImpl.so
+libWPEFrameworkCOM.so
+libWPEFrameworkWebSocket.so
+libdeviceinfo.so
+libignition.so
