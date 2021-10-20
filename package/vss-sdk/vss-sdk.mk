@@ -5,8 +5,7 @@
 ################################################################################
 
 ifeq ($(BR2_PACKAGE_HAS_NEXUS_SAGE),y)
-#FIXME: set proper version
-VSS_SDK_VERSION = d3e0326e73ef443bcbc66049d4813ef8e3006497 # SVP URSR 18.1
+VSS_SDK_VERSION = 8fff199c206de67e67f594a7e5c44efe3b1f2375 # svp branch
 else
 VSS_SDK_VERSION = be1700584e7ebcf54276c432edd390dce118ebf8 # VDGRM URSR 18.1
 endif
