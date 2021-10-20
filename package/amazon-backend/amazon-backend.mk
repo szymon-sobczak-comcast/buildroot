@@ -4,7 +4,8 @@
 #
 ################################################################################
 
-AMAZON_BACKEND_VERSION = 6916e98947a38c1800f9906e6d07e1429cd621b1
+# use vss-svp branch
+AMAZON_BACKEND_VERSION = 2e54f1c65a0958bb10114eb15488dd907fa339fa
 AMAZON_BACKEND_SITE = git@github.com:Metrological/amazon-backend.git
 AMAZON_BACKEND_SITE_METHOD = git
 AMAZON_BACKEND_DEPENDENCIES =
