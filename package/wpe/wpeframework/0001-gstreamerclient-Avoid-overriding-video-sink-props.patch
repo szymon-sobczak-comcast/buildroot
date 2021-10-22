@@ -1,0 +1,39 @@
+From adc536d74d46758e0ceb6fa1652de2635ca37beb Mon Sep 17 00:00:00 2001
+From: Artur Gebicz <a.gebicz@metrological.com>
+Date: Fri, 22 Oct 2021 15:46:31 +0200
+Subject: [PATCH] [gstreamerclient] Avoid overriding video sink props
+
+Do not override following properties in OnVideoPad
+for broadcom platform:
+"window_set"
+"zorder"
+"zoom-mode"
+---
+ Source/gstreamerclient/Nexus/Implementation.cpp | 11 -----------
+ 1 file changed, 11 deletions(-)
+
+diff --git a/Source/gstreamerclient/Nexus/Implementation.cpp b/Source/gstreamerclient/Nexus/Implementation.cpp
+index 4b5a9866..06ab79a4 100644
+--- a/Source/gstreamerclient/Nexus/Implementation.cpp
++++ b/Source/gstreamerclient/Nexus/Implementation.cpp
+@@ -278,17 +278,6 @@ private:
+         name = gst_structure_get_name(structure);
+ 
+         if (g_strrstr(name, "video/x-")) {
+-
+-            GValue window_set = {0, };
+-            static char str[40];
+-            std::snprintf(str, 40, "%d,%d,%d,%d", 0,0, 1280, 720);
+-
+-            g_value_init(&window_set, G_TYPE_STRING);
+-            g_value_set_static_string(&window_set, str);
+-            g_object_set(self->_videoSink, "window_set", str, nullptr);
+-            g_object_set(self->_videoSink, "zorder", 0, nullptr);
+-            g_object_set(self->_videoSink, "zoom-mode", 1, nullptr); // By default box mode
+-
+             if (gst_element_link(self->_videoDecodeBin, self->_videoSink) == FALSE) {
+                 TRACE_L1("Could not make link video sink to bin");
+             }
+-- 
+2.30.1 (Apple Git-130)
+
