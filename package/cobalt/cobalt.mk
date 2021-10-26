@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-COBALT_VERSION = a92b34d6e6b8de04c49a3265de9b9c6d805b2790
+COBALT_VERSION = 2a5904e00679b00c62cb9966b6f199a5be4983ed
 COBALT_SITE_METHOD = git
 COBALT_SITE = git@github.com:Metrological/cobalt
 COBALT_INSTALL_STAGING = YES
@@ -34,6 +34,13 @@ ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_PROVISIONPROXY),y)
 export COBALT_HAS_PROVISION=1
 else
 export COBALT_HAS_PROVISION=0
+endif
+
+ifeq ($(BR2_PACKAGE_WESTON),y)
+export COBALT_HAS_WAYLANDSINK=1
+COBALT_DEPENDENCIES += weston
+else
+export COBALT_HAS_WAYLANDSINK=0
 endif
 
 ifeq ($(BR2_PACKAGE_COBALT_BUILD_TYPE_QA),y)
