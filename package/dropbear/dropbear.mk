@@ -145,7 +145,7 @@ define DROPBEAR_INSTALL_TARGET_CMDS
         $(INSTALL) -D $(@D)/libdropbear.so $(TARGET_DIR)/usr/lib
 	$(INSTALL) -D $(@D)/libdropbear.so $(STAGING_DIR)/usr/lib
         $(INSTALL) -D $(@D)/libdropbear.h $(STAGING_DIR)/usr/include
-        $(INSTALL) -D $(@D)/libdropbear.pc $(STAGING_DIR)/usr/lib/pkgconfig/libdropbear.pc
+        $(INSTALL) -D $(@D)/libdropbear.pc $(STAGING_DIR)/usr/lib/pkgconfig/LibDropbear.pc
 endef
 endif
 
