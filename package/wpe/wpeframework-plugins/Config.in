@@ -1275,6 +1275,70 @@ config BR2_PACKAGE_WPEFRAMEWORK_UX_AUTOSTART
 
 config BR2_PACKAGE_WPEFRAMEWORK_UX_USERAGENT
     string "useragent"
+    default "Mozilla/5.0 (Macintosh, Intel Mac OS X 10_11_4) AppleWebKit/602.1.28+ (KHTML, like Gecko) Version/9.1 Safari/601.5.17"
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_WINDOWCLOSE
+       bool "windowclose"
+       default false
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_WEBGL
+       bool "webgl"
+       default false
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_MEMORYPROFILE
+    string "memory-profile"
+    default "512m"
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_MEMORYPRESSURE
+    string "memory-pressure"
+    default "databaseprocess:50m,networkprocess:100m,webprocess:512m,rpcprocess:50m"
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_MEDIADISKCACHE
+    bool "media-disk-cache"
+    default n
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_DISKCACHE
+    string "disk-cache"
+    default "0"
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_XHRCACHE
+    bool "xhr-cache"
+    default false
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_TRANSPARENT
+    bool "transparent"
+    default false
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_COMPOSITOR
+       string "compositor"
+       default "noaa"
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_MSEBUFFERS
+       string "msebuffers"
+       default "audio:2m,video:75m,text:1m"
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_JIT
+       bool "use JIT"
+       default true
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_DFG
+       bool "use DFG"
+       default false
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_CLIENTIDENTIFIER
+    string "clientidentifier"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_THREADEDPAINTING
+    string "threaded-painting"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_LOCALSTORAGE
+    string "HTML5 local storage path"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_UX_COOKIESTORAGE
+    string "Cookie storage path"
     default ""
 
 endif
