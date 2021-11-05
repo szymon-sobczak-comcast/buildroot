@@ -1,17 +1,29 @@
-From 8ce6bbe6bbca1711e438bfcbb7bb7b258eae4980 Mon Sep 17 00:00:00 2001
+From 6d9764ccbfaa658bdb9e53efa12ebc77136e3233 Mon Sep 17 00:00:00 2001
 From: "k.plata" <k.plata@metrological.com>
 Date: Thu, 4 Nov 2021 13:43:45 +0100
 Subject: [PATCH] Seperate WebKit options from UX
 
 ---
- WebKitBrowser/UX.config | 54 ++++++++++++++++++++++++++---------------
- 1 file changed, 35 insertions(+), 19 deletions(-)
+ WebKitBrowser/UX.config | 60 +++++++++++++++++++++++++++--------------
+ 1 file changed, 40 insertions(+), 20 deletions(-)
 
 diff --git a/WebKitBrowser/UX.config b/WebKitBrowser/UX.config
-index 28e883c4..afcfa67d 100644
+index 28e883c4..82ba3c11 100644
 --- a/WebKitBrowser/UX.config
 +++ b/WebKitBrowser/UX.config
-@@ -17,33 +17,49 @@ map()
+@@ -1,6 +1,10 @@
+ set (autostart ${PLUGIN_UX_AUTOSTART})
+ 
+-set(preconditions Graphics)
++if(PLUGIN_WEBSERVER)
++    set (preconditions Graphics WebSource)
++else()
++    set (preconditions Graphics)
++endif(PLUGIN_WEBSERVER)
+ 
+ map()
+     kv(outofprocess true)
+@@ -17,33 +21,49 @@ map()
      kv(url "about:blank")
      kv(useragent ${PLUGIN_UX_USERAGENT})
      kv(injectedbundle "libWPEInjectedBundle${CMAKE_SHARED_LIBRARY_SUFFIX}")
@@ -77,7 +89,7 @@ index 28e883c4..afcfa67d 100644
      endif()
      if(PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH)
          kv(execpath ${PLUGIN_WEBKITBROWSER_ALTERNATIVE_EXEC_PATH})
-@@ -60,16 +76,16 @@ ans(configuration)
+@@ -60,16 +80,16 @@ ans(configuration)
  map_append(${configuration} root ${rootobject})
  
  map()
