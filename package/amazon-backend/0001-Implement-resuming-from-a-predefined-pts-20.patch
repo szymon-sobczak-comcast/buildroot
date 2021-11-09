@@ -1,0 +1,119 @@
+From 644311fa21f252946dbf4ef908d8573bf88a1f85 Mon Sep 17 00:00:00 2001
+From: Krystian Plata <38192743+krp97@users.noreply.github.com>
+Date: Fri, 29 Oct 2021 14:02:51 +0200
+Subject: [PATCH] Implement resuming from a predefined pts (#20)
+
+* Add start offset for samples pushed from specific pts
+
+* Bring back the old way of calling gst_element_seek
+---
+ AmazonBackendPlayer.cpp | 43 +++++++++++++++++++++++++----------------
+ 1 file changed, 26 insertions(+), 17 deletions(-)
+
+diff --git a/AmazonBackendPlayer.cpp b/AmazonBackendPlayer.cpp
+index c6841e3..ef3e252 100644
+--- a/AmazonBackendPlayer.cpp
++++ b/AmazonBackendPlayer.cpp
+@@ -817,11 +817,16 @@ namespace Amazon {
+ 
+                 if (time || seeking) {
+ 
+-                    gst_element_seek(_pipeline, 1.0, GST_FORMAT_TIME,
+-                                          static_cast<GstSeekFlags>( GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE),
+-                                          GST_SEEK_TYPE_SET, static_cast<gint64>(time), GST_SEEK_TYPE_SET,
+-                                          _video ? static_cast<gint64>(_video->Duration() * SECONDS_TO_NANOSECONDS)
+-                                                 : static_cast<gint64>(0.0));
++                    GstState currentState;
++                    gst_element_get_state(_pipeline, &currentState, nullptr, 250 * GST_NSECOND);
++                    if (currentState >= GST_STATE_PAUSED)
++                    {
++                        gst_element_seek(_pipeline, 1.0, GST_FORMAT_TIME,
++                                         static_cast<GstSeekFlags>(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE),
++                                         GST_SEEK_TYPE_SET, static_cast<gint64>(time), GST_SEEK_TYPE_SET,
++                                         _video ? static_cast<gint64>(_video->Duration() * SECONDS_TO_NANOSECONDS)
++                                                : static_cast<gint64>(0.0));
++                    } 
+                 }
+                 ChangeState(GST_STATE_PLAYING);
+ 
+@@ -1596,6 +1601,7 @@ namespace Amazon {
+ 
+             _seekTime = 0;
+             _currentTime = 0;
++            _startOffset = 0;
+ 
+             ChangeInternalState(State::DEINITIALIZED);
+ 
+@@ -1661,6 +1667,8 @@ namespace Amazon {
+ 
+         virtual bool Seek(uint64_t Pts) {
+ 
++            _startOffset = IsInternalState(State::INITIALIZED) ? Pts : 0;
++
+             ChangeInternalState(State::SEEKING);
+ 
+             _currentTime = 0;
+@@ -1685,23 +1693,23 @@ namespace Amazon {
+         virtual uint64_t CurrentTime() {
+ 
+             if (!_gstPlayer || IsInternalState(State::DEINITIALIZED) || IsInternalState(State::INITIALIZED)) {
+-                // always return 0
+-                return 0;
++                return _startOffset;
+             } else if (IsInternalState(State::SEEKING)) {
+-                // return seek time during seeking
++                // Return seek time while we're seeking, but not after a resume from start pts != 0.
+                 return _seekTime;
+             }
+ 
+             _currentTime = _gstPlayer->Position();
+-            if (_seekTime != 0) {
+-
+-                if (_currentTime == 0 || _currentTime < _seekTime) {
+-                    // During state transition return seek time.
+-                    return _seekTime;
+-                }
++            
++            if (_startOffset != 0) {
++                // Return startPts + currentPts if we're resuming.
++                return _startOffset + _currentTime;
++            } else if (_currentTime < _seekTime && _startOffset == 0) {
++                return _seekTime;
+             }
+ 
+             _seekTime = 0;
++            _startOffset = 0;
+             return _currentTime;
+         }
+ 
+@@ -1776,7 +1784,7 @@ namespace Amazon {
+ 
+             if(status == true){
+                 // Push data to pipeline
+-                _gstPlayer->PushAudio(Fragment, n, Bytes, InitialisationVector, Ticks);
++                _gstPlayer->PushAudio(Fragment, n, Bytes, InitialisationVector, Ticks - _startOffset.load());
+ 
+                 _audio->PTS(Ticks);
+             }
+@@ -1826,7 +1834,7 @@ namespace Amazon {
+             bool status = CheckOutputStatus();
+ 
+             if(status == true){
+-                if (_gstPlayer->PushVideo(Fragment, n, Bytes, InitialisationVector, Ticks)) {
++                if (_gstPlayer->PushVideo(Fragment, n, Bytes, InitialisationVector, Ticks - _startOffset.load())) {
+                     _callbackRendered.Function(_callbackRendered.Context);
+                 }
+ 
+@@ -1852,7 +1860,8 @@ namespace Amazon {
+         Video *_video;
+ 
+         uint64_t _currentTime;
+-        uint64_t _seekTime;
++        std::atomic<uint64_t> _seekTime;
++        std::atomic<uint64_t> _startOffset;
+ 
+         std::condition_variable _streamsReadyCondition;
+         std::mutex  _streamsReadyMutex;
+-- 
+2.25.1
+
