@@ -1,0 +1,167 @@
+From dad73074efd982d2e6a832b0a99562e195fab764 Mon Sep 17 00:00:00 2001
+From: sebaszm <s.szczepaniak@metrological.com>
+Date: Wed, 31 Mar 2021 14:40:11 +0000
+Subject: [PATCH 1/3] Correct NETFLIX button JS keycode
+
+---
+ .../graphics/wpeframework/WPECompositor.cpp   | 144 +++++++++++-------
+ 1 file changed, 89 insertions(+), 55 deletions(-)
+
+diff --git a/partner/gibbon/graphics/wpeframework/WPECompositor.cpp b/partner/gibbon/graphics/wpeframework/WPECompositor.cpp
+index 3042b075..a6a75562 100644
+--- a/partner/gibbon/graphics/wpeframework/WPECompositor.cpp
++++ b/partner/gibbon/graphics/wpeframework/WPECompositor.cpp
+@@ -19,61 +19,95 @@ static inline KeyEvent::Key keyCodeToKey(uint16_t c)
+ {
+     KeyEvent::Key code = KeyEvent::GIBBON_KEY_UNKNOWN;
+ 
+-    switch (c) {
+-       case LINUX_KEY_ENTER: code = KeyEvent::GIBBON_KEY_RETURN; break;
+-       case LINUX_KEY_END: code = KeyEvent::GIBBON_KEY_END; break;
+-       case LINUX_KEY_HOME: code = KeyEvent::GIBBON_KEY_HOME; break;
+-       case LINUX_KEY_F1: code = KeyEvent::GIBBON_KEY_F1; break;
+-       case LINUX_KEY_F2: code = KeyEvent::GIBBON_KEY_F2; break;
+-       case LINUX_KEY_F3: code = KeyEvent::GIBBON_KEY_F3; break;
+-       case LINUX_KEY_F4: code = KeyEvent::GIBBON_KEY_F4; break;
+-       case LINUX_KEY_F5: code = KeyEvent::GIBBON_KEY_DELETE; break;
+-       case LINUX_KEY_F6: code = KeyEvent::GIBBON_KEY_F6; break;
+-       case LINUX_KEY_F7: code = KeyEvent::GIBBON_KEY_F7; break;
+-       case LINUX_KEY_F8: code = KeyEvent::GIBBON_KEY_F8; break;
+-       case LINUX_KEY_F9: code = KeyEvent::GIBBON_KEY_F9; break;
+-       case LINUX_KEY_F10: code = KeyEvent::GIBBON_KEY_F10; break;
+-       case LINUX_KEY_F11: code = KeyEvent::GIBBON_KEY_F11; break;
+-       case LINUX_KEY_F12: code = KeyEvent::GIBBON_KEY_F12; break;
+-       case LINUX_KEY_F13: code = KeyEvent::GIBBON_KEY_F13; break;
+-       case LINUX_KEY_F14: code = KeyEvent::GIBBON_KEY_F14; break;
+-       case LINUX_KEY_F15: code = KeyEvent::GIBBON_KEY_F15; break;
+-       case LINUX_KEY_F16: code = KeyEvent::GIBBON_KEY_F16; break;
+-       case LINUX_KEY_F17: code = KeyEvent::GIBBON_KEY_F17; break;
+-       case LINUX_KEY_F18: code = KeyEvent::GIBBON_KEY_F18; break;
+-       case LINUX_KEY_F19: code = KeyEvent::GIBBON_KEY_F19; break;
+-       case LINUX_KEY_F20: code = KeyEvent::GIBBON_KEY_F20; break;
+-       case LINUX_KEY_F21: code = KeyEvent::GIBBON_KEY_F21; break;
+-       case LINUX_KEY_F22: code = KeyEvent::GIBBON_KEY_F22; break;
+-       case LINUX_KEY_F23: code = KeyEvent::GIBBON_KEY_F23; break;
+-       case LINUX_KEY_F24: code = KeyEvent::GIBBON_KEY_F24; break;
+-       case LINUX_KEY_LEFT: code = KeyEvent::GIBBON_KEY_LEFT; break;
+-       case LINUX_KEY_UP: code = KeyEvent::GIBBON_KEY_UP; break;
+-       case LINUX_KEY_RIGHT: code = KeyEvent::GIBBON_KEY_RIGHT; break;
+-       case LINUX_KEY_DOWN: code = KeyEvent::GIBBON_KEY_DOWN; break;
+-       case LINUX_KEY_BACKSPACE: code = KeyEvent::GIBBON_KEY_ESCAPE; break;
+-       case LINUX_KEY_LEFTSHIFT:
+-       case LINUX_KEY_RIGHTSHIFT: code = KeyEvent::GIBBON_KEY_SHIFT; break;
+-       case LINUX_KEY_LEFTCTRL:
+-       case LINUX_KEY_RIGHTCTRL: code = KeyEvent::GIBBON_KEY_CONTROL; break;
+-       case LINUX_KEY_LEFTALT:
+-       case LINUX_KEY_RIGHTALT: code = KeyEvent::GIBBON_KEY_ALT; break;
+-       case LINUX_KEY_LEFTMETA:
+-       case LINUX_KEY_RIGHTMETA: code = KeyEvent::GIBBON_KEY_META; break;
+-       case LINUX_KEY_CAPSLOCK: code = KeyEvent::GIBBON_KEY_CAPSLOCK; break;
+-       case LINUX_KEY_NUMLOCK: code = KeyEvent::GIBBON_KEY_NUMLOCK; break;
+-       case LINUX_KEY_SCROLLLOCK: code = KeyEvent::GIBBON_KEY_SCROLLLOCK; break;
+-       case LINUX_KEY_ESC: code = KeyEvent::GIBBON_KEY_F12; break;
+-       case LINUX_KEY_TAB: code = KeyEvent::GIBBON_KEY_TAB; break;
+-       case LINUX_KEY_INSERT: code = KeyEvent::GIBBON_KEY_INSERT; break;
+-       case LINUX_KEY_DELETE: code = KeyEvent::GIBBON_KEY_DELETE; break;
+-       case LINUX_KEY_PLAY: code = KeyEvent::GIBBON_KEY_F8; break;  // also Play/Pause according the documentation
+-       case LINUX_KEY_PAUSE: code = KeyEvent::GIBBON_KEY_F6; break;
+-       case LINUX_KEY_FASTFORWARD: code = KeyEvent::GIBBON_KEY_F9; break;
+-       case LINUX_KEY_REWIND: code = KeyEvent::GIBBON_KEY_F7; break;
+-       case LINUX_KEY_SEARCH: code = KeyEvent::GIBBON_KEY_NUMPAD6; break;
+-       default:
+-           break;
++    auto EnvKeyCode = [](const char* env) -> uint16_t {
++        const char *val = ::getenv(env);
++        return (val != nullptr? atoi(val) : 0);
++    };
++
++    static const uint16_t keyCode_Netflix = EnvKeyCode("NF_DPI_KEYCODE_NETFLIX");
++    static const uint16_t keyCode_Info = EnvKeyCode("NF_DPI_KEYCODE_INFO");
++
++    if (c == keyCode_Netflix) {
++        // Netflix button
++        code = KeyEvent::GIBBON_KEY_OEM_4;
++    } else if (c == keyCode_Info) {
++        // Info Button
++        code = KeyEvent::GIBBON_KEY_PRIOR;
++    } else {
++        // Common, universally-defined buttons
++        switch (c) {
++        case LINUX_KEY_ENTER:
++            code = KeyEvent::GIBBON_KEY_RETURN;
++            break;
++        case LINUX_KEY_END:
++            code = KeyEvent::GIBBON_KEY_END;
++            break;
++        case LINUX_KEY_HOME:
++            code = KeyEvent::GIBBON_KEY_HOME;
++            break;
++        case LINUX_KEY_LEFT:
++            code = KeyEvent::GIBBON_KEY_LEFT;
++            break;
++        case LINUX_KEY_UP:
++            code = KeyEvent::GIBBON_KEY_UP;
++            break;
++        case LINUX_KEY_RIGHT:
++            code = KeyEvent::GIBBON_KEY_RIGHT;
++            break;
++        case LINUX_KEY_DOWN:
++            code = KeyEvent::GIBBON_KEY_DOWN;
++            break;
++        case LINUX_KEY_BACKSPACE:
++            code = KeyEvent::GIBBON_KEY_ESCAPE;
++            break;
++        case LINUX_KEY_LEFTSHIFT:  // fallthrough
++        case LINUX_KEY_RIGHTSHIFT:
++            code = KeyEvent::GIBBON_KEY_SHIFT;
++            break;
++        case LINUX_KEY_LEFTCTRL:  // fallthrough
++        case LINUX_KEY_RIGHTCTRL:
++            code = KeyEvent::GIBBON_KEY_CONTROL;
++            break;
++        case LINUX_KEY_LEFTALT:  // fallthrough
++        case LINUX_KEY_RIGHTALT:
++            code = KeyEvent::GIBBON_KEY_ALT;
++            break;
++        case LINUX_KEY_LEFTMETA:
++        case LINUX_KEY_RIGHTMETA:
++            code = KeyEvent::GIBBON_KEY_META;
++            break;
++        case LINUX_KEY_ESC:
++            code = KeyEvent::GIBBON_KEY_F12;
++            break;
++        case LINUX_KEY_TAB:
++            code = KeyEvent::GIBBON_KEY_TAB;
++            break;
++        case LINUX_KEY_INSERT:
++            code = KeyEvent::GIBBON_KEY_INSERT;
++            break;
++        case LINUX_KEY_DELETE:
++            code = KeyEvent::GIBBON_KEY_DELETE;
++            break;
++        case LINUX_KEY_PLAYPAUSE: // fallthrough
++        case LINUX_KEY_PLAY:
++            code = KeyEvent::GIBBON_KEY_F8;
++            break;
++        case LINUX_KEY_PAUSE:
++            code = KeyEvent::GIBBON_KEY_F6;
++            break;
++        case LINUX_KEY_FORWARD:  // fallthrough
++        case LINUX_KEY_FASTFORWARD:
++            code = KeyEvent::GIBBON_KEY_F9;
++            break;
++        case LINUX_KEY_REWIND:
++            code = KeyEvent::GIBBON_KEY_F7;
++            break;
++        case LINUX_KEY_SEARCH:
++            code = KeyEvent::GIBBON_KEY_NUMPAD6;
++            break;
++        default:
++            break;
++        }
+     }
+ 
+     return code;
+-- 
+2.25.1
+

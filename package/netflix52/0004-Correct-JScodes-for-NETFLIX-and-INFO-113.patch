@@ -1,0 +1,25 @@
+From 8a00104905ab0b51ffa516d50f887e920db1d1a1 Mon Sep 17 00:00:00 2001
+From: sebaszm <45654185+sebaszm@users.noreply.github.com>
+Date: Wed, 31 Mar 2021 17:55:36 +0200
+Subject: [PATCH 3/3] Correct JScodes for NETFLIX and INFO (#113)
+
+---
+ partner/gibbon/graphics/wpeframework/WPECompositor.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/partner/gibbon/graphics/wpeframework/WPECompositor.cpp b/partner/gibbon/graphics/wpeframework/WPECompositor.cpp
+index 2fc7644d..67e2d523 100644
+--- a/partner/gibbon/graphics/wpeframework/WPECompositor.cpp
++++ b/partner/gibbon/graphics/wpeframework/WPECompositor.cpp
+@@ -29,7 +29,7 @@ static inline KeyEvent::Key keyCodeToKey(uint16_t c)
+ 
+     if (c == keyCode_Netflix) {
+         // Netflix button
+-        code = KeyEvent::GIBBON_KEY_OEM_4;
++        code = KeyEvent::GIBBON_KEY_PRIOR;
+     } else if (c == keyCode_Info) {
+         // Info Button
+         code = KeyEvent::GIBBON_KEY_DELETE;
+-- 
+2.25.1
+
