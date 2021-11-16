@@ -1,0 +1,80 @@
+From 5c01a20eb25e3152be016935110a6472356723ac Mon Sep 17 00:00:00 2001
+From: sebaszm <45654185+sebaszm@users.noreply.github.com>
+Date: Wed, 31 Mar 2021 16:07:58 +0200
+Subject: [PATCH 2/3] Have INFO and NETFLIX buttons configurable (#112)
+
+---
+ .../graphics/wpeframework/WPECompositor.cpp   | 35 ++++++++++++-------
+ 1 file changed, 22 insertions(+), 13 deletions(-)
+
+diff --git a/partner/gibbon/graphics/wpeframework/WPECompositor.cpp b/partner/gibbon/graphics/wpeframework/WPECompositor.cpp
+index a6a75562..2fc7644d 100644
+--- a/partner/gibbon/graphics/wpeframework/WPECompositor.cpp
++++ b/partner/gibbon/graphics/wpeframework/WPECompositor.cpp
+@@ -32,7 +32,7 @@ static inline KeyEvent::Key keyCodeToKey(uint16_t c)
+         code = KeyEvent::GIBBON_KEY_OEM_4;
+     } else if (c == keyCode_Info) {
+         // Info Button
+-        code = KeyEvent::GIBBON_KEY_PRIOR;
++        code = KeyEvent::GIBBON_KEY_DELETE;
+     } else {
+         // Common, universally-defined buttons
+         switch (c) {
+@@ -110,7 +110,7 @@ static inline KeyEvent::Key keyCodeToKey(uint16_t c)
+         }
+     }
+ 
+-    return code;
++    return (code);
+ }
+ 
+ // let's hope the keys in input.h don't change
+@@ -125,25 +125,34 @@ static inline std::string keyCodeToString(uint16_t code, bool shift)
+     return std::string();
+ }
+ 
+-void WPEFramework::Netflix::Display::Keyboard::Direct(const uint32_t code, const state action) {
++void WPEFramework::Netflix::Display::Keyboard::Direct(const uint32_t code, const state action)
++{
+     const KeyEvent::Key key = keyCodeToKey(code);
+ 
+     switch (action) {
+-    case pressed:
++    case pressed: {
+         sShiftPressed = (key == KeyEvent::GIBBON_KEY_SHIFT ? true : sShiftPressed);
+-        fprintf(stderr, "%s:%d Sending key pressed [%d] -> [%d] to Netflix.\n", __FILE__, __LINE__, code, key);
+-        GibbonApplication::instance()->sendEvent(new KeyEvent(InputEvent::Type_KeyPress, key, keyCodeToString(code, sShiftPressed), sShiftPressed ? KeyEvent::MODIFIER_SHIFT : KeyEvent::MODIFIER_NONE));
+-        if(key != KeyEvent::GIBBON_KEY_UNKNOWN){
+-            GibbonApplication::instance()->eventLoop()->startAutoRepeat(key, keyCodeToString(code, sShiftPressed), sShiftPressed ? KeyEvent::MODIFIER_SHIFT : KeyEvent::MODIFIER_NONE);
++        const string keyStr(keyCodeToString(code, sShiftPressed));
++        if ((key != KeyEvent::GIBBON_KEY_UNKNOWN) || (keyStr.empty() == false)) {
++            fprintf(stderr, "%s:%d Sending key pressed [%d] -> [%d] to Netflix\n", __FILE__, __LINE__, code, key);
++            GibbonApplication::instance()->sendEvent(new KeyEvent(InputEvent::Type_KeyPress, key, keyStr, sShiftPressed ? KeyEvent::MODIFIER_SHIFT : KeyEvent::MODIFIER_NONE));
++            if (key != KeyEvent::GIBBON_KEY_UNKNOWN){
++                GibbonApplication::instance()->eventLoop()->startAutoRepeat(key, keyStr, sShiftPressed ? KeyEvent::MODIFIER_SHIFT : KeyEvent::MODIFIER_NONE);
++            }
+         }
+         break;
+-    case released:
+-        fprintf(stderr, "%s:%d Sending key released [%d] -> [%d] to Netflix.\n", __FILE__, __LINE__, code, key);
++    }
++    case released: {
+         sShiftPressed = (key == KeyEvent::GIBBON_KEY_SHIFT ? false : sShiftPressed);
+-        GibbonApplication::instance()->eventLoop()->endAutoRepeat(false);
+-        GibbonApplication::instance()->sendEvent(new KeyEvent(InputEvent::Type_KeyRelease, key, keyCodeToString(code, sShiftPressed), sShiftPressed ? KeyEvent::MODIFIER_SHIFT : KeyEvent::MODIFIER_NONE));
++        const string keyStr(keyCodeToString(code, sShiftPressed));
++        if ((key != KeyEvent::GIBBON_KEY_UNKNOWN) || (keyStr.empty() == false)) {
++            fprintf(stderr, "%s:%d Sending key released [%d] -> [%d] to Netflix\n", __FILE__, __LINE__, code, key);
++            GibbonApplication::instance()->eventLoop()->endAutoRepeat(false);
++            GibbonApplication::instance()->sendEvent(new KeyEvent(InputEvent::Type_KeyRelease, key, keyStr, sShiftPressed ? KeyEvent::MODIFIER_SHIFT : KeyEvent::MODIFIER_NONE));
++        }
+         break;
++    }
+     default:
+-        return;
++        break;
+     }
+ }
+-- 
+2.25.1
+
