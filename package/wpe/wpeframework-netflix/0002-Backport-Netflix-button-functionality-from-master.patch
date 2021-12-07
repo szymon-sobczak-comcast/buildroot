@@ -1,12 +1,12 @@
-From b8e595edff294c7cfc8fb25693920f572ead75f2 Mon Sep 17 00:00:00 2001
-From: krp97 <k.plata@metrological.com>
-Date: Tue, 16 Nov 2021 15:47:15 +0000
+From b356ce11e68fbec00f0c01ef554d0acfe35e0106 Mon Sep 17 00:00:00 2001
+From: "k.plata" <k.plata@metrological.com>
+Date: Tue, 7 Dec 2021 14:21:43 +0100
 Subject: [PATCH] Backport Netflix button functionality from master
 
 ---
  Netflix.config            |  8 ++++++++
- NetflixImplementation.cpp | 22 ++++++++++++++++++++++
- 2 files changed, 30 insertions(+)
+ NetflixImplementation.cpp | 21 ++++++++++++++++++++-
+ 2 files changed, 28 insertions(+), 1 deletion(-)
 
 diff --git a/Netflix.config b/Netflix.config
 index 3a96197..6d69135 100644
@@ -28,7 +28,7 @@ index 3a96197..6d69135 100644
    key(iids)
    map()
 diff --git a/NetflixImplementation.cpp b/NetflixImplementation.cpp
-index 0dd6dce..ba3e7f9 100644
+index 0dd6dce..6bf6d56 100644
 --- a/NetflixImplementation.cpp
 +++ b/NetflixImplementation.cpp
 @@ -294,6 +294,8 @@ namespace Plugin {
@@ -58,7 +58,7 @@ index 0dd6dce..ba3e7f9 100644
  #ifdef SUPPORTS_IID
              IIDConfig iids;
  #endif
-@@ -606,6 +612,12 @@ namespace Plugin {
+@@ -606,6 +612,10 @@ namespace Plugin {
              if (_config.DeviceKeys.IsSet() == true){
                 Core::SystemInfo::SetEnvironment(_T("NETFLIX_VAULT"), _config.DeviceKeys.Value(), false);
              }
@@ -66,12 +66,19 @@ index 0dd6dce..ba3e7f9 100644
 +                Core::SystemInfo::SetEnvironment(_T("NF_DPI_KEYCODE_NETFLIX"), Core::ToString(_config.KeyCodeNetflix.Value()), false);
 +            }
 +
-+            SetDeviceCapabilities();
-+
              Core::SystemInfo::SetEnvironment(_T("NF_FPS_TARGET"), Core::NumberType<uint8_t>(_config.FPS.Value()).Text(), false);
              Core::SystemInfo::SetEnvironment(_T("NF_MEDIA_CACHE_CAPACITY"), Core::NumberType<uint32_t>(_config.MediaCache.Value()).Text(), false);
              Core::SystemInfo::SetEnvironment(_T("NF_RESOURCE_CACHE_CAPACITY"), Core::NumberType<uint32_t>(_config.ResourceCache.Value()).Text(), false);
-@@ -1215,6 +1227,7 @@ namespace Plugin {
+@@ -1132,7 +1142,7 @@ namespace Plugin {
+                 printf("ExternalTrigger: GibbonOEM_Started\n");
+                 if (_netflix == nullptr) {
+                     _netflix = netflix::nrdApp();
+-
++                    SetDeviceCapabilities();
+                     TRACE_L1("Netflix: %p", _netflix);
+ 
+ #ifdef NETFLIX_VERSION_5
+@@ -1215,6 +1225,7 @@ namespace Plugin {
          END_INTERFACE_MAP
  
      private:
@@ -79,15 +86,14 @@ index 0dd6dce..ba3e7f9 100644
          inline bool WaitForStateChange(netflix::Time& time, const PluginHost::IStateControl::command command)
          {
  
-@@ -1257,6 +1270,15 @@ namespace Plugin {
+@@ -1257,6 +1268,14 @@ namespace Plugin {
  
              return result;
          }
 +
 +        void SetDeviceCapabilities()
 +        {
-+            ASSERT(_netflix != nullptr);
-+            if (_config.HasNetflixButton.IsSet() == true) {
++            if (_netflix != nullptr && _config.HasNetflixButton.IsSet()) {
 +                _netflix->setDeviceCapability("hasNetflixButton", _config.HasNetflixButton.Value());
 +            }
 +        }
