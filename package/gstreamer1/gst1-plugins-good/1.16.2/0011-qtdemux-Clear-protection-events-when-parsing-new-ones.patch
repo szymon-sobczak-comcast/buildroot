@@ -1,0 +1,32 @@
+diff --git a/gst/isomp4/qtdemux.c b/gst/isomp4/qtdemux.c
+index e30145e..d379541 100644
+--- a/gst/isomp4/qtdemux.c
++++ b/gst/isomp4/qtdemux.c
+@@ -4354,7 +4354,12 @@ qtdemux_parse_moof (GstQTDemux * qtdemux, const guint8 * buffer, guint length,
+     traf_node = qtdemux_tree_get_sibling_by_type (traf_node, FOURCC_traf);
+   }
+ 
+-  /* parse any protection system info */
++  /* parse any protection system info. Unref old protection events. */
++  for (unsigned i = 0; i < QTDEMUX_N_STREAMS (qtdemux); i++) {
++    QtDemuxStream *stream = QTDEMUX_NTH_STREAM (qtdemux, i);
++    g_queue_foreach (&stream->protection_scheme_event_queue, (GFunc) gst_event_unref, NULL);
++    g_queue_clear (&stream->protection_scheme_event_queue);
++  }
+   pssh_node = qtdemux_tree_get_child_by_type (moof_node, FOURCC_pssh);
+   while (pssh_node) {
+     GST_LOG_OBJECT (qtdemux, "Parsing pssh box.");
+@@ -14551,7 +14556,12 @@ qtdemux_parse_tree (GstQTDemux * qtdemux)
+     GST_LOG_OBJECT (qtdemux, "No meta node found.");
+   }
+ 
+-  /* parse any protection system info */
++  /* parse any protection system info. Unref old protection events. */
++  for (unsigned i = 0; i < QTDEMUX_N_STREAMS (qtdemux); i++) {
++    QtDemuxStream *stream = QTDEMUX_NTH_STREAM (qtdemux, i);
++    g_queue_foreach (&stream->protection_scheme_event_queue, (GFunc) gst_event_unref, NULL);
++    g_queue_clear (&stream->protection_scheme_event_queue);
++  }
+   pssh = qtdemux_tree_get_child_by_type (qtdemux->moov_node, FOURCC_pssh);
+   while (pssh) {
+     GST_LOG_OBJECT (qtdemux, "Parsing pssh box.");
