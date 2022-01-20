@@ -1,0 +1,21 @@
+diff --git a/oemcrypto/level3/clear_cache_function.h b/oemcrypto/level3/clear_cache_function.h
+index 2c6d1b9..7de5b5b 100644
+--- a/oemcrypto/level3/clear_cache_function.h
++++ b/oemcrypto/level3/clear_cache_function.h
+@@ -113,8 +113,14 @@ void clear_cache_function(void *page, size_t len) {
+ 
+ #if defined(__arm__) || defined(__aarch64__)
+ #  pragma message "(info): inserting membarrier_function calls."
+-  membarrier_function(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE);
+-  membarrier_function(MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE);
++  // Note: On Arris, kernel 4.9 is being used. This widevine implementation 
++  // looks for kernel 4.16.
++  // On kernel 4.9, there is no calling process specific memory barrier 
++  // command available. It supports only MEMBARRIER_CMD_SHARED that provides 
++  // memory barrier for all running threads of all processes.
++
++  // membarrier_function(MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE);
++  // membarrier_function(MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE);
+ #endif  // defined(__arm__) || defined(__aarch64__)
+ }
+ 

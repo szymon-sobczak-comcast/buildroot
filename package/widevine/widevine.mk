@@ -13,6 +13,14 @@ WIDEVINE_DEPENDENCIES = protobuf wpeframework-clientlibraries host-python3
 
 WIDEVINE_INSTALL_STAGING = YES
 
+
+ifeq ($(BR2_PACKAGE_HAS_NEXUS),y)
+WIDEVINE_POST_PATCH_HOOKS += WIDEVINE_PATCHES
+define WIDEVINE_PATCHES
+    patch -d $(@D)/ -p1 < package/widevine/patches/0001-Disable-membarrier-for-Arris.patch
+endef
+endif
+
 ifeq ($(BR2_i386), y)
         WIDEVINE_TARGET_ARCH = x86
 else ifeq ($(BR2_x86_64), y)
