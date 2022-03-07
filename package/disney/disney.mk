@@ -56,11 +56,14 @@ define _DISNEY_INSTALL_TESTS
        $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/tests $(TARGET_DIR)/usr/bin/merlin-tests
 endef
 
+_DISNEY_DATA_DIR = /usr/share/WPEFramework/DisneyPlus
+
 define _DISNEY_INSTALL_RESOURCES
        @echo "Installing resources..."
        mkdir -p $(TARGET_DIR)/root/Disney/
-       cp -R $(@D)/certs $(TARGET_DIR)/root/Disney/
-       cp -R $(@D)/resource $(TARGET_DIR)/root/Disney/
+       cp -R $(@D)/certs $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       cp -R $(@D)/assets $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       cp -R $(@D)/resource $(TARGET_DIR)$(_DISNEY_DATA_DIR)
 endef
 endif
 
