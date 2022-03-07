@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-DISNEY_VERSION = 6654959b8074e9a76d9a98787715d4c8d15d207d
-DISNEY_SITE = git@github.com:Metrological/disney-adk.git
+DISNEY_VERSION = e903e539ac5f2ab72a9356562263974c022d5b0c
+DISNEY_SITE = git@github.com:Metrological/disneyplus-adk.git
 DISNEY_SITE_METHOD = git
 DISNEY_LICENSE = PROPRIETARY
 DISNEY_INSTALL_STAGING = YES
@@ -60,7 +60,7 @@ _DISNEY_DATA_DIR = /usr/share/WPEFramework/DisneyPlus
 
 define _DISNEY_INSTALL_RESOURCES
        @echo "Installing resources..."
-       mkdir -p $(TARGET_DIR)/root/Disney/
+       mkdir -p $(TARGET_DIR)$(_DISNEY_DATA_DIR)
        cp -R $(@D)/certs $(TARGET_DIR)$(_DISNEY_DATA_DIR)
        cp -R $(@D)/assets $(TARGET_DIR)$(_DISNEY_DATA_DIR)
        cp -R $(@D)/resource $(TARGET_DIR)$(_DISNEY_DATA_DIR)
