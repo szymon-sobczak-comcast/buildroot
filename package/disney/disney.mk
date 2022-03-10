@@ -13,10 +13,17 @@ DISNEY_DEPENDENCIES = libgles libegl
 
 _DISNEY_TARGET_NAME = undefined
 _DISNEY_PLATFORM_TYPE = undefined
+_DISNEY_PLAYER = null
 
 ifeq ($(BR2_PACKAGE_DISNEY_TARGET_WPE),y)
 _DISNEY_TARGET_NAME = wpe
 _DISNEY_PLATFORM_TYPE = stb_mtk
+endif
+
+ifeq ($(BR2_PACKAGE_DISNEY_PLAYER_UMA),y)
+_DISNEY_PLAYER = nve-prebuilt
+_DISNEY_CURL_HTTP = --curl-http2
+DISNEY_DEPENDENCIES = disney-uma
 endif
 
 _DISNEY_BUILD_TYPE = debug
@@ -47,9 +54,8 @@ endif
 
 ifeq ($(BR2_PACKAGE_DISNEY_LINK_LIBRARY),y)
 define _DISNEY_INSTALL_M5
-       @echo "Installing Mickey library"
-       $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/libm5.so $(TARGET_DIR)/usr/lib/libm5.so
-       $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/libm5.so $(STAGING_DIR)/usr/lib/libm5.so
+       @echo "Installing M5 library"
+       $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/libm5.so $(1)/usr/lib/libm5.so
 endef
 endif
 
@@ -76,8 +82,8 @@ endef
 endif
 
 define DISNEY_CONFIGURE_CMDS
-       cd $(@D) && CC="$(TARGET_CC)" CXX="$(TARGET_CXX)" PLATFORM="$(_DISNEY_TARGET_PLATFORM)" ARCH="$(KERNEL_ARCH)" \
-          ./premake5 --verbose --target=$(_DISNEY_TARGET_NAME) gmake2
+       cd $(@D) && CC="$(TARGET_CC)" CXX="$(TARGET_CXX)" GCC_PREFIX="$(TARGET_CROSS)" PLATFORM="$(_DISNEY_TARGET_PLATFORM)" ARCH="$(KERNEL_ARCH)" \
+          ./premake5 --verbose --target=$(_DISNEY_TARGET_NAME) --player=$(_DISNEY_PLAYER) $(_DISNEY_CURL_HTTP) gmake2
 endef
 
 define DISNEY_BUILD_CMDS
@@ -87,12 +93,19 @@ define DISNEY_BUILD_CMDS
        cd $(@D)/build && make config=$(_DISNEY_BUILD_CONFIG) $(_DISNEY_VERBOSE)
 endef
 
+define DISNEY_INSTALL_STAGING_CMDS
+       @echo "Installing binaries..."
+       $(call _DISNEY_INSTALL_M5, $(STAGING_DIR))
+endef
+
 define DISNEY_INSTALL_TARGET_CMDS
        @echo "Installing binaries..."
        $(call _DISNEY_INSTALL_MERLIN)
-       $(call _DISNEY_INSTALL_M5)
+       $(call _DISNEY_INSTALL_M5, $(TARGET_DIR))
        $(call _DISNEY_INSTALL_TESTS)
        $(call _DISNEY_INSTALL_RESOURCES)
 endef
 
 $(eval $(generic-package))
+
+include package/disney/*/*.mk

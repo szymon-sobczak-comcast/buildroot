@@ -1,0 +1,4 @@
+config BR2_PACKAGE_DISNEY_UMA
+    bool "disney-uma"
+    help
+        Disney+ UMA player
