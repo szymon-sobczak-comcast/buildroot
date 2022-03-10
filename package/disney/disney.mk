@@ -47,13 +47,21 @@ endif
 
 ifeq ($(BR2_PACKAGE_DISNEY_LINK_LIBRARY),y)
 define _DISNEY_INSTALL_M5
+       @echo "Installing Mickey library"
        $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/libm5.so $(TARGET_DIR)/usr/lib/libm5.so
+       $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/libm5.so $(STAGING_DIR)/usr/lib/libm5.so
 endef
 endif
 
 ifeq ($(BR2_PACKAGE_DISNEY_LINK_TESTS),y)
 define _DISNEY_INSTALL_TESTS
+       @echo "Installing unit tests resources..."
        $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/tests $(TARGET_DIR)/usr/bin/merlin-tests
+       mkdir -p -p $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       cp -R $(@D)/tests $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       cp -R $(@D)/target $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       cp -R $(@D)/source/adk/manifest/examples $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       touch $(TARGET_DIR)$(_DISNEY_DATA_DIR)/.gitignore
 endef
 
 _DISNEY_DATA_DIR = /usr/share/WPEFramework/DisneyPlus
