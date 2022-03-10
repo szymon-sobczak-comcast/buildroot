@@ -1,0 +1,71 @@
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    bool "DisneyPlus"
+    depends on BR2_PACKAGE_DISNEY
+    help
+        WPE Platform DisneyPlus plugin
+
+if BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_AUTOSTART
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    bool "autostart"
+    default n
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_DEVICE
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "device"
+    default "Metrological"
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_VENDOR
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "vendor"
+    default "Metrological"
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_REGION
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "region"
+    default "en"
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_ADVERTISING_ID
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    int "advertising id"
+    default 0
+
+choice BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_DISPLAY_MODE
+    default BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_DISPLAY_MODE_720P
+    prompt "display mode"
+    help
+      Select disneyplus output display mode
+
+config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_DISPLAY_MODE_720P
+    bool "720p"
+    help
+      720p (HD Ready)
+
+config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_DISPLAY_MODE_1080P
+    bool "1080p"
+    help
+      1080p (Full HD)
+
+config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_DISPLAY_MODE_2160P
+    bool "2160p"
+    help
+      2160p (4k)
+
+endchoice
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_VIDEO_MEMORY
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    int "video memory"
+    range 0 360
+    default 256
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_PERSONA_ID
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "persona ID"
+    default ""
+
+
+endif
+comment "DisneyPlus is dependent on the DisneyPlus-ADK package"
+    depends on !BR2_PACKAGE_DISNEY
