@@ -55,7 +55,7 @@ endif
 ifeq ($(BR2_PACKAGE_DISNEY_LINK_LIBRARY),y)
 define _DISNEY_INSTALL_M5
        @echo "Installing M5 library"
-       $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/libm5.so $(1)/usr/lib/libm5.so
+       $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/*.so $(1)/usr/lib/
 endef
 endif
 
