@@ -21,7 +21,7 @@ _DISNEY_PLATFORM_TYPE = stb_mtk
 endif
 
 ifeq ($(BR2_PACKAGE_DISNEY_PLAYER_UMA),y)
-_DISNEY_PLAYER = nve-prebuilt
+_DISNEY_PLAYER = nve-shared
 _DISNEY_CURL_HTTP = --curl-http2
 DISNEY_DEPENDENCIES = disney-uma
 endif
@@ -64,6 +64,7 @@ define _DISNEY_INSTALL_TESTS
        @echo "Installing unit tests resources..."
        $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/tests $(TARGET_DIR)/usr/bin/merlin-tests
        mkdir -p -p $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       cp -R $(@D)/bin $(TARGET_DIR)$(_DISNEY_DATA_DIR)
        cp -R $(@D)/tests $(TARGET_DIR)$(_DISNEY_DATA_DIR)
        cp -R $(@D)/target $(TARGET_DIR)$(_DISNEY_DATA_DIR)
        cp -R $(@D)/source/adk/manifest/examples $(TARGET_DIR)$(_DISNEY_DATA_DIR)
