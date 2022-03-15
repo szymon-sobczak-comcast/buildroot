@@ -19,16 +19,20 @@ DISNEY_LIBOPENSSL_SO_VERSION =
 ifeq ($(BR2_PACKAGE_DISNEY_TARGET_WPE),y)
 _DISNEY_TARGET_NAME = wpe
 _DISNEY_PLATFORM_TYPE = stb_mtk
+DISNEY_DEPENDENCIES += wpeframework-clientlibraries gstreamer1 gst1-plugins-base gst1-plugins-good
 endif
 
 ifeq ($(BR2_PACKAGE_DISNEY_PLAYER_UMA),y)
 _DISNEY_PLAYER = nve-shared
 _DISNEY_CURL_HTTP = --curl-http2
-DISNEY_DEPENDENCIES = disney-uma
+DISNEY_DEPENDENCIES += disney-uma
 endif
 
 ifeq ($(BR2_PACKAGE_DISNEY_LIBOPENSSL),y)
-DISNEY_DEPENDENCIES = disney-libopenssl
+# Using own SSL lib?
+DISNEY_DEPENDENCIES += disney-libopenssl
+else
+DISNEY_DEPENDENCIES += libopenssl
 endif
 
 _DISNEY_BUILD_TYPE = debug
@@ -88,8 +92,10 @@ endef
 endif
 
 define DISNEY_CONFIGURE_CMDS
-       cd $(@D) && CC="$(TARGET_CC)" CXX="$(TARGET_CXX)" GCC_PREFIX="$(TARGET_CROSS)" PLATFORM="$(_DISNEY_TARGET_PLATFORM)" ARCH="$(KERNEL_ARCH)" SSL_VERSION="$(DISNEY_LIBOPENSSL_SO_VERSION)" \
-          ./premake5 --verbose --target=$(_DISNEY_TARGET_NAME) --player=$(_DISNEY_PLAYER) $(_DISNEY_CURL_HTTP) gmake2
+       cd $(@D) && CC="$(TARGET_CC)" CXX="$(TARGET_CXX)" GCC_PREFIX="$(TARGET_CROSS)" PLATFORM="$(_DISNEY_TARGET_PLATFORM)" \
+          ARCH="$(KERNEL_ARCH)" SSL_VERSION="$(DISNEY_LIBOPENSSL_SO_VERSION)" SYSINCLUDEDIR="$(STAGING_DIR)/usr/include" \
+              SYSLIBDIR="$(STAGING_DIR)/usr/lib" \
+                 ./premake5 --verbose --target=$(_DISNEY_TARGET_NAME) --player=$(_DISNEY_PLAYER) $(_DISNEY_CURL_HTTP) gmake2
 endef
 
 define DISNEY_BUILD_CMDS
