@@ -5,7 +5,7 @@
 ################################################################################
 WESTEROS_VERSION = a13ce42ba4fbbae371411f63bd7dd65dccf15a0c
 WESTEROS_SITE_METHOD = git
-WESTEROS_SITE = git://github.com/rdkcmf/westeros
+WESTEROS_SITE = https://github.com/rdkcmf/westeros
 WESTEROS_INSTALL_STAGING = YES
 
 WESTEROS_DEPENDENCIES = host-pkgconf host-autoconf wayland \

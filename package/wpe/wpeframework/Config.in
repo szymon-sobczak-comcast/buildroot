@@ -88,7 +88,19 @@ config BR2_PACKAGE_WPEFRAMEWORK_PROXYSTUB_PATH
     string "proxystub path"
     default "/usr/lib/wpeframework/proxystubs"
 
+config BR2_PACKAGE_WPEFRAMEWORK_MESSAGING
+    bool "Use new messaging"
+    default n
+    help
+      Use a new version of messaging - tracing + logging
+
+config BR2_PACKAGE_WPEFRAMEWORK_MESSAGE_SETTINGS
+    depends on BR2_PACKAGE_WPEFRAMEWORK_MESSAGING
+    string "message settings"
+    default ""
+
 config BR2_PACKAGE_WPEFRAMEWORK_TRACE_SETTINGS
+    depends on !BR2_PACKAGE_WPEFRAMEWORK_MESSAGING
     string "trace settings"
     default ""
 
@@ -325,7 +337,6 @@ endmenu
 menu "Plugins"
 source "package/wpe/wpeframework-plugins/Config.in"
 source "package/wpe/wpeframework-amazon/Config.in"
-source "package/wpe/wpeframework-avs/Config.in"
 source "package/wpe/wpeframework-avnclient/Config.in"
 source "package/wpe/wpeframework-launcher/Config.in"
 source "package/wpe/wpeframework-netflix/Config.in"
