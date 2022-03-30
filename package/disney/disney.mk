@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-DISNEY_VERSION = e903e539ac5f2ab72a9356562263974c022d5b0c
+DISNEY_VERSION = e7cf232286f4d00f739ecae557c692257cdcc99a
 DISNEY_SITE = git@github.com:Metrological/disneyplus-adk.git
 DISNEY_SITE_METHOD = git
 DISNEY_LICENSE = PROPRIETARY
@@ -73,10 +73,10 @@ define _DISNEY_INSTALL_TESTS
        @echo "Installing unit tests resources..."
        $(INSTALL) -D -m 0755 $(@D)/build/bin/$(_DISNEY_TARGET_PLATFORM)/$(_DISNEY_BUILD_TYPE)/tests $(TARGET_DIR)/usr/bin/merlin-tests
        mkdir -p -p $(TARGET_DIR)$(_DISNEY_DATA_DIR)
-       cp -R $(@D)/bin $(TARGET_DIR)$(_DISNEY_DATA_DIR)
-       cp -R $(@D)/tests $(TARGET_DIR)$(_DISNEY_DATA_DIR)
-       cp -R $(@D)/target $(TARGET_DIR)$(_DISNEY_DATA_DIR)
-       cp -R $(@D)/source/adk/manifest/examples $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       rsync -a $(@D)/bin $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       rsync -a $(@D)/tests $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       rsync -a $(@D)/target $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       rsync -a $(@D)/source/adk/manifest/examples $(TARGET_DIR)$(_DISNEY_DATA_DIR)
        touch $(TARGET_DIR)$(_DISNEY_DATA_DIR)/.gitignore
 endef
 
@@ -85,9 +85,9 @@ _DISNEY_DATA_DIR = /usr/share/WPEFramework/DisneyPlus
 define _DISNEY_INSTALL_RESOURCES
        @echo "Installing resources..."
        mkdir -p $(TARGET_DIR)$(_DISNEY_DATA_DIR)
-       cp -R $(@D)/certs $(TARGET_DIR)$(_DISNEY_DATA_DIR)
-       cp -R $(@D)/assets $(TARGET_DIR)$(_DISNEY_DATA_DIR)
-       cp -R $(@D)/resource $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       rsync -a $(@D)/certs $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       rsync -a $(@D)/assets $(TARGET_DIR)$(_DISNEY_DATA_DIR)
+       rsync -a $(@D)/resource $(TARGET_DIR)$(_DISNEY_DATA_DIR)
 endef
 endif
 

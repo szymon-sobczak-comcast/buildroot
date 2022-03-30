@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-DISNEY_TOOLING_VERSION = 30f43c24c6f16394bef1192b5a48e252fec40fe2
+DISNEY_TOOLING_VERSION = 014bc64b420dec4cc6d4b04eadb7f977e97f24ab
 DISNEY_TOOLING_SITE = git@github.com:Metrological/disneyplus-tooling.git
 DISNEY_TOOLING_SITE_METHOD = git
 DISNEY_TOOLING_LICENSE = PROPRIETARY
