@@ -1,0 +1,1030 @@
+From 6c85d7eb12b3a1fc8bbfbbca407602561361de19 Mon Sep 17 00:00:00 2001
+From: "jer.noble@apple.com"
+ <jer.noble@apple.com@268f45cc-cd09-0410-ab3c-d52691b4dbfc>
+Date: Thu, 18 Oct 2018 23:02:15 +0000
+Subject: [PATCH 1/5] [MSE] timestampOffset can introduce floating-point
+ rounding errors to incoming samples
+ https://bugs.webkit.org/show_bug.cgi?id=190590 <rdar://problem/45275626>
+
+Reviewed by Eric Carlson.
+
+Source/WebCore:
+
+Test: media/media-source/media-source-timestampoffset-rounding-error.html
+
+SourceBuffer.timestampOffset is a double property, which, when added to a MediaTime will
+result in a double-backed MediaTime as PTS & DTS. This can introduce rounding errors when
+these samples are appended as overlapping existing samples. Rather than converting a MediaTime
+to double-backed when adding the timestampOffset, convert the offset to a multiple of the
+sample's timeBase.
+
+* Modules/mediasource/SourceBuffer.cpp:
+(WebCore::SourceBuffer::setTimestampOffset):
+(WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
+
+LayoutTests:
+
+* media/media-source/media-source-sequence-timestamps-expected.txt:
+* media/media-source/media-source-timestampoffset-rounding-error-expected.txt: Added.
+* media/media-source/media-source-timestampoffset-rounding-error.html: Added.
+* media/media-source/mock-media-source.js:
+(makeASample):
+
+git-svn-id: http://svn.webkit.org/repository/webkit/trunk@237274 268f45cc-cd09-0410-ab3c-d52691b4dbfc
+---
+ LayoutTests/ChangeLog                         | 14 ++++
+ ...ia-source-sequence-timestamps-expected.txt |  2 +-
+ .../media-source-timeoffset-expected.txt      | 12 +--
+ ...imestampoffset-rounding-error-expected.txt | 34 ++++++++
+ ...source-timestampoffset-rounding-error.html | 71 ++++++++++++++++
+ .../media/media-source/mock-media-source.js   |  6 +-
+ Source/WebCore/ChangeLog                      | 21 +++++
+ .../Modules/mediasource/SourceBuffer.cpp      | 80 ++++++++++++++-----
+ 8 files changed, 211 insertions(+), 29 deletions(-)
+ create mode 100644 LayoutTests/media/media-source/media-source-timestampoffset-rounding-error-expected.txt
+ create mode 100644 LayoutTests/media/media-source/media-source-timestampoffset-rounding-error.html
+
+diff --git a/LayoutTests/ChangeLog b/LayoutTests/ChangeLog
+index 515b41267ab5c..e674344b3c1b7 100644
+--- a/LayoutTests/ChangeLog
++++ b/LayoutTests/ChangeLog
+@@ -1,3 +1,17 @@
++2018-10-18  Jer Noble  <jer.noble@apple.com>
++
++        [MSE] timestampOffset can introduce floating-point rounding errors to incoming samples
++        https://bugs.webkit.org/show_bug.cgi?id=190590
++        <rdar://problem/45275626>
++
++        Reviewed by Eric Carlson.
++
++        * media/media-source/media-source-sequence-timestamps-expected.txt:
++        * media/media-source/media-source-timestampoffset-rounding-error-expected.txt: Added.
++        * media/media-source/media-source-timestampoffset-rounding-error.html: Added.
++        * media/media-source/mock-media-source.js:
++        (makeASample):
++
+ 2018-11-15  Youenn Fablet  <youenn@apple.com>
+ 
+         Update RTCPeerConnection JS built-ins to be closer to specWe
+diff --git a/LayoutTests/media/media-source/media-source-sequence-timestamps-expected.txt b/LayoutTests/media/media-source/media-source-sequence-timestamps-expected.txt
+index 286761d03716b..dc2bf4ee37e97 100644
+--- a/LayoutTests/media/media-source/media-source-sequence-timestamps-expected.txt
++++ b/LayoutTests/media/media-source/media-source-sequence-timestamps-expected.txt
+@@ -7,7 +7,7 @@ EVENT(updateend)
+ RUN(sourceBuffer.appendBuffer(samples))
+ EVENT(updateend)
+ EXPECTED (bufferedSamples.length == '6') OK
+-{PTS({0/1 = 0.000000}), DTS({0/1 = 0.000000}), duration({1000/1000 = 1.000000}), flags(1), generation(0)}
++{PTS({0/1000 = 0.000000}), DTS({0/1000 = 0.000000}), duration({1000/1000 = 1.000000}), flags(1), generation(0)}
+ {PTS({1000/1000 = 1.000000}), DTS({1000/1000 = 1.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
+ {PTS({2000/1000 = 2.000000}), DTS({2000/1000 = 2.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
+ {PTS({3000/1000 = 3.000000}), DTS({3000/1000 = 3.000000}), duration({1000/1000 = 1.000000}), flags(1), generation(0)}
+diff --git a/LayoutTests/media/media-source/media-source-timeoffset-expected.txt b/LayoutTests/media/media-source/media-source-timeoffset-expected.txt
+index 6f2ba31727657..9dd14fdec88ef 100644
+--- a/LayoutTests/media/media-source/media-source-timeoffset-expected.txt
++++ b/LayoutTests/media/media-source/media-source-timeoffset-expected.txt
+@@ -8,11 +8,11 @@ RUN(sourceBuffer.timestampOffset = 10)
+ RUN(sourceBuffer.appendBuffer(samples))
+ EVENT(updateend)
+ EXPECTED (bufferedSamples.length == '6') OK
+-{PTS({10.000000}), DTS({10.000000}), duration({1000/1000 = 1.000000}), flags(1), generation(0)}
+-{PTS({11.000000}), DTS({11.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
+-{PTS({12.000000}), DTS({12.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
+-{PTS({13.000000}), DTS({13.000000}), duration({1000/1000 = 1.000000}), flags(1), generation(0)}
+-{PTS({14.000000}), DTS({14.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
+-{PTS({15.000000}), DTS({15.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
++{PTS({10000/1000 = 10.000000}), DTS({10000/1000 = 10.000000}), duration({1000/1000 = 1.000000}), flags(1), generation(0)}
++{PTS({11000/1000 = 11.000000}), DTS({11000/1000 = 11.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
++{PTS({12000/1000 = 12.000000}), DTS({12000/1000 = 12.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
++{PTS({13000/1000 = 13.000000}), DTS({13000/1000 = 13.000000}), duration({1000/1000 = 1.000000}), flags(1), generation(0)}
++{PTS({14000/1000 = 14.000000}), DTS({14000/1000 = 14.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
++{PTS({15000/1000 = 15.000000}), DTS({15000/1000 = 15.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
+ END OF TEST
+ 
+diff --git a/LayoutTests/media/media-source/media-source-timestampoffset-rounding-error-expected.txt b/LayoutTests/media/media-source/media-source-timestampoffset-rounding-error-expected.txt
+new file mode 100644
+index 0000000000000..331e2f43cff94
+--- /dev/null
++++ b/LayoutTests/media/media-source/media-source-timestampoffset-rounding-error-expected.txt
+@@ -0,0 +1,34 @@
++
++EXPECTED (source.readyState == 'closed') OK
++EVENT(sourceopen)
++RUN(sourceBuffer = source.addSourceBuffer("video/mock; codecs=mock"))
++RUN(sourceBuffer.appendBuffer(makeVideo(0, 6)))
++EVENT(updateend)
++RUN(sourceBuffer.timestampOffset = 1)
++RUN(sourceBuffer.appendBuffer(makeVideo(1, 6)))
++EVENT(updateend)
++RUN(sourceBuffer.timestampOffset = 1.5)
++RUN(sourceBuffer.appendBuffer(makeVideo(2, 5)))
++EVENT(updateend)
++Buffered:
++{PTS({0/6 = 0.000000}), DTS({0/6 = 0.000000}), duration({1/6 = 0.166667}), flags(1), generation(0)}
++{PTS({1/6 = 0.166667}), DTS({1/6 = 0.166667}), duration({1/6 = 0.166667}), flags(0), generation(0)}
++{PTS({2/6 = 0.333333}), DTS({2/6 = 0.333333}), duration({1/6 = 0.166667}), flags(1), generation(0)}
++{PTS({3/6 = 0.500000}), DTS({3/6 = 0.500000}), duration({1/6 = 0.166667}), flags(0), generation(0)}
++{PTS({4/6 = 0.666667}), DTS({4/6 = 0.666667}), duration({1/6 = 0.166667}), flags(1), generation(0)}
++{PTS({5/6 = 0.833333}), DTS({5/6 = 0.833333}), duration({1/6 = 0.166667}), flags(0), generation(0)}
++{PTS({6/6 = 1.000000}), DTS({6/6 = 1.000000}), duration({1/6 = 0.166667}), flags(1), generation(1)}
++{PTS({7/6 = 1.166667}), DTS({7/6 = 1.166667}), duration({1/6 = 0.166667}), flags(0), generation(1)}
++{PTS({8/6 = 1.333333}), DTS({8/6 = 1.333333}), duration({1/6 = 0.166667}), flags(1), generation(1)}
++{PTS({15/10 = 1.500000}), DTS({15/10 = 1.500000}), duration({1/5 = 0.200000}), flags(1), generation(2)}
++{PTS({17/10 = 1.700000}), DTS({17/10 = 1.700000}), duration({1/5 = 0.200000}), flags(0), generation(2)}
++{PTS({19/10 = 1.900000}), DTS({19/10 = 1.900000}), duration({1/5 = 0.200000}), flags(1), generation(2)}
++{PTS({21/10 = 2.100000}), DTS({21/10 = 2.100000}), duration({1/5 = 0.200000}), flags(0), generation(2)}
++{PTS({23/10 = 2.300000}), DTS({23/10 = 2.300000}), duration({1/5 = 0.200000}), flags(1), generation(2)}
++{PTS({25/10 = 2.500000}), DTS({25/10 = 2.500000}), duration({1/5 = 0.200000}), flags(0), generation(2)}
++{PTS({27/10 = 2.700000}), DTS({27/10 = 2.700000}), duration({1/5 = 0.200000}), flags(1), generation(2)}
++{PTS({29/10 = 2.900000}), DTS({29/10 = 2.900000}), duration({1/5 = 0.200000}), flags(0), generation(2)}
++{PTS({31/10 = 3.100000}), DTS({31/10 = 3.100000}), duration({1/5 = 0.200000}), flags(1), generation(2)}
++{PTS({33/10 = 3.300000}), DTS({33/10 = 3.300000}), duration({1/5 = 0.200000}), flags(0), generation(2)}
++END OF TEST
++
+diff --git a/LayoutTests/media/media-source/media-source-timestampoffset-rounding-error.html b/LayoutTests/media/media-source/media-source-timestampoffset-rounding-error.html
+new file mode 100644
+index 0000000000000..6d40f264a86b2
+--- /dev/null
++++ b/LayoutTests/media/media-source/media-source-timestampoffset-rounding-error.html
+@@ -0,0 +1,71 @@
++<!DOCTYPE html>
++<html>
++<head>
++    <title>media-source-timestampoffset-rounding-error</title>
++    <script src="mock-media-source.js"></script>
++    <script src="../video-test.js"></script>
++    <script>
++    var source;
++    var sourceBuffer;
++    var initSegment;
++    var bufferedSamples;
++    var enqueuedSamples;
++
++    if (window.internals)
++        internals.initializeMockMediaSource();
++
++    function makeVideo(generation, timeScale) {
++        const init = makeAInit(2, [makeATrack(1, 'mock', TRACK_KIND.VIDEO)]);
++
++        const samples = [];
++        for (let time = 0; time < 2 * timeScale; time++)
++            samples.push(makeASample(time / timeScale, time / timeScale, 1 / timeScale, 1, time % 2 === 0 ? SAMPLE_FLAG.SYNC : SAMPLE_FLAG.NONE, generation, timeScale));
++
++        return concatenateSamples([init].concat(samples));
++    }
++
++    window.addEventListener('load', async () => {
++        findMediaElement();
++        source = new MediaSource();
++        testExpected('source.readyState', 'closed');
++        const sourceOpened = waitFor(source, 'sourceopen');
++
++        const videoSource = document.createElement('source');
++        videoSource.type = 'video/mock; codecs=mock';
++        videoSource.src = URL.createObjectURL(source);
++        video.appendChild(videoSource);
++
++        await sourceOpened;
++        run('sourceBuffer = source.addSourceBuffer("video/mock; codecs=mock")');
++
++        run('sourceBuffer.appendBuffer(makeVideo(0, 6))');
++        await waitFor(sourceBuffer, 'updateend');
++
++        bufferedSamples = internals.bufferedSamplesForTrackID(sourceBuffer, 1);
++        enqueuedSamples = internals.enqueuedSamplesForTrackID(sourceBuffer, 1);
++
++        run("sourceBuffer.timestampOffset = 1");
++        run('sourceBuffer.appendBuffer(makeVideo(1, 6))');
++        await waitFor(sourceBuffer, 'updateend');
++
++        bufferedSamples = internals.bufferedSamplesForTrackID(sourceBuffer, 1);
++        enqueuedSamples = internals.enqueuedSamplesForTrackID(sourceBuffer, 1);
++
++        run("sourceBuffer.timestampOffset = 1.5");
++        run('sourceBuffer.appendBuffer(makeVideo(2, 5))');
++        await waitFor(sourceBuffer, 'updateend');
++
++        bufferedSamples = internals.bufferedSamplesForTrackID(sourceBuffer, 1);
++        enqueuedSamples = internals.enqueuedSamplesForTrackID(sourceBuffer, 1);
++
++        consoleWrite("Buffered:");
++        bufferedSamples.forEach(consoleWrite);
++
++        endTest();
++    });
++    </script>
++</head>
++<body>
++    <video controls></video>
++</body>
++</html>
+diff --git a/LayoutTests/media/media-source/mock-media-source.js b/LayoutTests/media/media-source/mock-media-source.js
+index 28bbe4289c2b5..6fca21429700f 100644
+--- a/LayoutTests/media/media-source/mock-media-source.js
++++ b/LayoutTests/media/media-source/mock-media-source.js
+@@ -16,7 +16,9 @@ var SAMPLE_FLAG = {
+     DELAYED: 1 << 3,
+ };
+ 
+-function makeASample(presentationTime, decodeTime, duration, trackID, flags, generation) {
++function makeASample(presentationTime, decodeTime, duration, trackID, flags, generation, timeScale) {
++    if (typeof timeScale === 'undefined')
++        timeScale = 1000
+     var byteLength = 30;
+     var buffer = new ArrayBuffer(byteLength);
+     var array = new Uint8Array(buffer);
+@@ -24,8 +26,6 @@ function makeASample(presentationTime, decodeTime, duration, trackID, flags, gen
+ 
+     var view = new DataView(buffer);
+     view.setUint32(4, byteLength, true);
+-
+-    var timeScale = 1000;
+     view.setInt32(8, timeScale, true);
+     view.setInt32(12, presentationTime * timeScale, true);
+     view.setInt32(16, decodeTime * timeScale, true);
+diff --git a/Source/WebCore/ChangeLog b/Source/WebCore/ChangeLog
+index 22091066ad87e..6bcf2bae0a7e0 100644
+--- a/Source/WebCore/ChangeLog
++++ b/Source/WebCore/ChangeLog
+@@ -1,3 +1,24 @@
++2018-10-18  Jer Noble  <jer.noble@apple.com>
++
++        [MSE] timestampOffset can introduce floating-point rounding errors to incoming samples
++        https://bugs.webkit.org/show_bug.cgi?id=190590
++        <rdar://problem/45275626>
++
++        Reviewed by Eric Carlson.
++
++        Test: media/media-source/media-source-timestampoffset-rounding-error.html
++
++        SourceBuffer.timestampOffset is a double property, which, when added to a MediaTime will
++        result in a double-backed MediaTime as PTS & DTS. This can introduce rounding errors when
++        these samples are appended as overlapping existing samples. Rather than converting a MediaTime
++        to double-backed when adding the timestampOffset, convert the offset to a multiple of the
++        sample's timeBase.
++
++        * Modules/mediasource/SourceBuffer.cpp:
++        (WebCore::SourceBuffer::setTimestampOffset):
++        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
++
++
+ 2019-11-07  Kenneth Russell  <kbr@chromium.org>
+ 
+         Please support WEBGL_compressed_texture_etc1 extension (and possibly WEBGL_compressed_texture_etc too)
+diff --git a/Source/WebCore/Modules/mediasource/SourceBuffer.cpp b/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
+index 063f432bca165..c534f3115c70c 100644
+--- a/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
++++ b/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
+@@ -56,6 +56,7 @@
+ #include <JavaScriptCore/JSLock.h>
+ #include <JavaScriptCore/VM.h>
+ #include <limits>
++#include <wtf/CheckedArithmetic.h>
+ 
+ namespace WebCore {
+ 
+@@ -77,6 +78,8 @@ struct SourceBuffer::TrackBuffer {
+     MediaTime highestPresentationTimestamp;
+     MediaTime lastEnqueuedPresentationTime;
+     MediaTime lastEnqueuedDecodeEndTime;
++    MediaTime roundedTimestampOffset;
++    uint32_t lastFrameTimescale { 0 };
+     bool needRandomAccessFlag { true };
+     bool enabled { false };
+     bool needsReenqueueing { false };
+@@ -188,6 +191,11 @@ ExceptionOr<void> SourceBuffer::setTimestampOffset(double offset)
+     // 7. Update the attribute to the new value.
+     m_timestampOffset = newTimestampOffset;
+ 
++    for (auto& trackBuffer : m_trackBufferMap.values()) {
++        trackBuffer.lastFrameTimescale = 0;
++        trackBuffer.roundedTimestampOffset = MediaTime::invalidTime();
++    }
++
+     return { };
+ }
+ 
+@@ -1526,13 +1534,21 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+         MediaTime presentationTimestamp;
+         MediaTime decodeTimestamp;
+ 
++        // NOTE: this is out-of-order, but we need the timescale from the
++        // sample's duration for timestamp generation.
++        // 1.2 Let frame duration be a double precision floating point representation of the coded frame's
++        // duration in seconds.
++        MediaTime frameDuration = sample.duration();
++
+         if (m_shouldGenerateTimestamps) {
+             // ↳ If generate timestamps flag equals true:
+             // 1. Let presentation timestamp equal 0.
+-            presentationTimestamp = MediaTime::zeroTime();
++            // NOTE: Use the duration timscale for the presentation timestamp, as this will eliminate
++            // timescale rounding when generating timestamps.
++            presentationTimestamp = { 0, frameDuration.timeScale() };
+ 
+             // 2. Let decode timestamp equal 0.
+-            decodeTimestamp = MediaTime::zeroTime();
++            decodeTimestamp = { 0, frameDuration.timeScale() };
+         } else {
+             // ↳ Otherwise:
+             // 1. Let presentation timestamp be a double precision floating point representation of
+@@ -1544,15 +1560,16 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+             decodeTimestamp = sample.decodeTime();
+         }
+ 
+-        // 1.2 Let frame duration be a double precision floating point representation of the coded frame's
+-        // duration in seconds.
+-        MediaTime frameDuration = sample.duration();
+-
+         // 1.3 If mode equals "sequence" and group start timestamp is set, then run the following steps:
+         if (m_mode == AppendMode::Sequence && m_groupStartTimestamp.isValid()) {
+             // 1.3.1 Set timestampOffset equal to group start timestamp - presentation timestamp.
+             m_timestampOffset = m_groupStartTimestamp;
+ 
++            for (auto& trackBuffer : m_trackBufferMap.values()) {
++                trackBuffer.lastFrameTimescale = 0;
++                trackBuffer.roundedTimestampOffset = MediaTime::invalidTime();
++            }
++
+             // 1.3.2 Set group end timestamp equal to group start timestamp.
+             m_groupEndTimestamp = m_groupStartTimestamp;
+ 
+@@ -1564,15 +1581,7 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+             m_groupStartTimestamp = MediaTime::invalidTime();
+         }
+ 
+-        // 1.4 If timestampOffset is not 0, then run the following steps:
+-        if (m_timestampOffset) {
+-            // 1.4.1 Add timestampOffset to the presentation timestamp.
+-            presentationTimestamp += m_timestampOffset;
+-
+-            // 1.4.2 Add timestampOffset to the decode timestamp.
+-            decodeTimestamp += m_timestampOffset;
+-        }
+-
++        // NOTE: this is out-of-order, but we need TrackBuffer to be able to cache the results of timestamp offset rounding
+         // 1.5 Let track buffer equal the track buffer that the coded frame will be added to.
+         AtomicString trackID = sample.trackID();
+         auto it = m_trackBufferMap.find(trackID);
+@@ -1584,6 +1593,33 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+         }
+         TrackBuffer& trackBuffer = it->value;
+ 
++        MediaTime microsecond(1, 1000000);
++
++        auto roundTowardsTimeScaleWithRoundingMargin = [] (const MediaTime& time, uint32_t timeScale, const MediaTime& roundingMargin) {
++            while (true) {
++                MediaTime roundedTime = time.toTimeScale(timeScale);
++                if (abs(roundedTime - time) < roundingMargin || timeScale >= MediaTime::MaximumTimeScale)
++                    return roundedTime;
++
++                if (!WTF::safeMultiply(timeScale, 2, timeScale) || timeScale > MediaTime::MaximumTimeScale)
++                    timeScale = MediaTime::MaximumTimeScale;
++            }
++        };
++
++        // 1.4 If timestampOffset is not 0, then run the following steps:
++        if (m_timestampOffset) {
++            if (!trackBuffer.roundedTimestampOffset.isValid() || presentationTimestamp.timeScale() != trackBuffer.lastFrameTimescale) {
++                trackBuffer.lastFrameTimescale = presentationTimestamp.timeScale();
++                trackBuffer.roundedTimestampOffset = roundTowardsTimeScaleWithRoundingMargin(m_timestampOffset, trackBuffer.lastFrameTimescale, microsecond);
++            }
++
++            // 1.4.1 Add timestampOffset to the presentation timestamp.
++            presentationTimestamp += trackBuffer.roundedTimestampOffset;
++
++            // 1.4.2 Add timestampOffset to the decode timestamp.
++            decodeTimestamp += trackBuffer.roundedTimestampOffset;
++        }
++
+         // 1.6 ↳ If last decode timestamp for track buffer is set and decode timestamp is less than last
+         // decode timestamp:
+         // OR
+@@ -1622,11 +1658,13 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+         if (m_mode == AppendMode::Sequence) {
+             // Use the generated timestamps instead of the sample's timestamps.
+             sample.setTimestamps(presentationTimestamp, decodeTimestamp);
+-        } else if (m_timestampOffset) {
++        } else if (trackBuffer.roundedTimestampOffset) {
+             // Reflect the timestamp offset into the sample.
+-            sample.offsetTimestampsBy(m_timestampOffset);
++            sample.offsetTimestampsBy(trackBuffer.roundedTimestampOffset);
+         }
+ 
++        LOG(MediaSourceSamples, "SourceBuffer::sourceBufferPrivateDidReceiveSample(%p) - sample(%s)", this, toString(sample).utf8().data());
++
+         // 1.7 Let frame end timestamp equal the sum of presentation timestamp and frame duration.
+         MediaTime frameEndTimestamp = presentationTimestamp + frameDuration;
+ 
+@@ -1672,7 +1710,6 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+         // FIXME: Add support for sample splicing.
+ 
+         SampleMap erasedSamples;
+-        MediaTime microsecond(1, 1000000);
+ 
+         // 1.14 If last decode timestamp for track buffer is unset and presentation timestamp falls
+         // falls within the presentation interval of a coded frame in track buffer, then run the
+@@ -1838,8 +1875,13 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+             m_groupEndTimestamp = frameEndTimestamp;
+ 
+         // 1.22 If generate timestamps flag equals true, then set timestampOffset equal to frame end timestamp.
+-        if (m_shouldGenerateTimestamps)
++        if (m_shouldGenerateTimestamps) {
+             m_timestampOffset = frameEndTimestamp;
++            for (auto& trackBuffer : m_trackBufferMap.values()) {
++                trackBuffer.lastFrameTimescale = 0;
++                trackBuffer.roundedTimestampOffset = MediaTime::invalidTime();
++            }
++        }
+ 
+         // Eliminate small gaps between buffered ranges by coalescing
+         // disjoint ranges separated by less than a "fudge factor".
+
+From ffe70c23e283250531d1298caa12b1e47b74b4a8 Mon Sep 17 00:00:00 2001
+From: "jer.noble@apple.com"
+ <jer.noble@apple.com@268f45cc-cd09-0410-ab3c-d52691b4dbfc>
+Date: Mon, 12 Nov 2018 15:12:35 +0000
+Subject: [PATCH 2/5] [MSE] Frame re-ordering can cause iframes to never be
+ enqueued https://bugs.webkit.org/show_bug.cgi?id=191485
+
+Reviewed by Eric Carlson.
+
+Source/WebCore:
+
+Test: media/media-source/media-source-dropped-iframe.html
+
+Some frame re-ordering techniques result in files where the first frame has a
+decode timestamp < 0, but a presentation timestamp >= 0. When appending these
+samples to existing content, we can fail to enqueue the first frame because its
+DTS overlaps an existing sample, but the presentation timestamp does not.
+Rather than try to only enqueue samples whose decode timestamps are > than the
+greatest decode end timestamp (minus some fudge factor), allow all frames to be
+added to the decode queue if they are strictly ordered greater than the last
+enqueued frame.
+
+* Modules/mediasource/SourceBuffer.cpp:
+(WebCore::SourceBuffer::TrackBuffer::TrackBuffer):
+(WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
+(WebCore::SourceBuffer::provideMediaData):
+(WebCore::SourceBuffer::reenqueueMediaForTime):
+
+LayoutTests:
+
+* media/media-source/media-source-dropped-iframe-expected.txt: Added.
+* media/media-source/media-source-dropped-iframe.html: Added.
+
+git-svn-id: http://svn.webkit.org/repository/webkit/trunk@238086 268f45cc-cd09-0410-ab3c-d52691b4dbfc
+---
+ LayoutTests/ChangeLog                         | 10 +++
+ .../media-source-dropped-iframe-expected.txt  | 27 ++++++++
+ .../media-source-dropped-iframe.html          | 64 +++++++++++++++++++
+ Source/WebCore/ChangeLog                      | 24 +++++++
+ .../Modules/mediasource/SourceBuffer.cpp      | 31 +++++----
+ 5 files changed, 145 insertions(+), 11 deletions(-)
+ create mode 100644 LayoutTests/media/media-source/media-source-dropped-iframe-expected.txt
+ create mode 100644 LayoutTests/media/media-source/media-source-dropped-iframe.html
+
+diff --git a/LayoutTests/ChangeLog b/LayoutTests/ChangeLog
+index e674344b3c1b7..a65efd0848c6c 100644
+--- a/LayoutTests/ChangeLog
++++ b/LayoutTests/ChangeLog
+@@ -1,3 +1,13 @@
++2018-11-12  Jer Noble  <jer.noble@apple.com>
++
++        [MSE] Frame re-ordering can cause iframes to never be enqueued
++        https://bugs.webkit.org/show_bug.cgi?id=191485
++
++        Reviewed by Eric Carlson.
++
++        * media/media-source/media-source-dropped-iframe-expected.txt: Added.
++        * media/media-source/media-source-dropped-iframe.html: Added.
++
+ 2018-10-18  Jer Noble  <jer.noble@apple.com>
+ 
+         [MSE] timestampOffset can introduce floating-point rounding errors to incoming samples
+diff --git a/LayoutTests/media/media-source/media-source-dropped-iframe-expected.txt b/LayoutTests/media/media-source/media-source-dropped-iframe-expected.txt
+new file mode 100644
+index 0000000000000..f31c4fbc3b7b5
+--- /dev/null
++++ b/LayoutTests/media/media-source/media-source-dropped-iframe-expected.txt
+@@ -0,0 +1,27 @@
++
++EXPECTED (source.readyState == 'closed') OK
++EVENT(sourceopen)
++RUN(sourceBuffer = source.addSourceBuffer("video/mock; codecs=mock"))
++RUN(sourceBuffer.appendBuffer(initSegment))
++EVENT(updateend)
++RUN(sourceBuffer.appendBuffer(samples))
++EVENT(updateend)
++RUN(sourceBuffer.timestampOffset = 3)
++RUN(sourceBuffer.appendBuffer(samples))
++EVENT(updateend)
++Buffered:
++{PTS({0/1 = 0.000000}), DTS({0/1 = 0.000000}), duration({1/1 = 1.000000}), flags(1), generation(1)}
++{PTS({1/1 = 1.000000}), DTS({1/1 = 1.000000}), duration({1/1 = 1.000000}), flags(0), generation(1)}
++{PTS({2/1 = 2.000000}), DTS({2/1 = 2.000000}), duration({1/1 = 1.000000}), flags(0), generation(1)}
++{PTS({3/1 = 3.000000}), DTS({2/1 = 2.000000}), duration({1/1 = 1.000000}), flags(1), generation(2)}
++{PTS({5/1 = 5.000000}), DTS({3/1 = 3.000000}), duration({1/1 = 1.000000}), flags(0), generation(2)}
++{PTS({4/1 = 4.000000}), DTS({4/1 = 4.000000}), duration({1/1 = 1.000000}), flags(0), generation(2)}
++Enqueued:
++{PTS({0/1 = 0.000000}), DTS({0/1 = 0.000000}), duration({1/1 = 1.000000}), flags(1), generation(1)}
++{PTS({1/1 = 1.000000}), DTS({1/1 = 1.000000}), duration({1/1 = 1.000000}), flags(0), generation(1)}
++{PTS({2/1 = 2.000000}), DTS({2/1 = 2.000000}), duration({1/1 = 1.000000}), flags(0), generation(1)}
++{PTS({3/1 = 3.000000}), DTS({2/1 = 2.000000}), duration({1/1 = 1.000000}), flags(1), generation(2)}
++{PTS({5/1 = 5.000000}), DTS({3/1 = 3.000000}), duration({1/1 = 1.000000}), flags(0), generation(2)}
++{PTS({4/1 = 4.000000}), DTS({4/1 = 4.000000}), duration({1/1 = 1.000000}), flags(0), generation(2)}
++END OF TEST
++
+diff --git a/LayoutTests/media/media-source/media-source-dropped-iframe.html b/LayoutTests/media/media-source/media-source-dropped-iframe.html
+new file mode 100644
+index 0000000000000..65822f8bb09c9
+--- /dev/null
++++ b/LayoutTests/media/media-source/media-source-dropped-iframe.html
+@@ -0,0 +1,64 @@
++<!DOCTYPE html>
++<html>
++<head>
++    <title>media-source-dropped-iframe</title>
++    <script src="mock-media-source.js"></script>
++    <script src="../video-test.js"></script>
++    <script>
++    var source;
++    var sourceBuffer;
++    var initSegment;
++    var samples;
++
++    if (window.internals)
++        internals.initializeMockMediaSource();
++
++    async function runTest() {
++        findMediaElement();
++
++        source = new MediaSource();
++        testExpected('source.readyState', 'closed');
++
++        video.srcObject = source;
++        await waitFor(source, 'sourceopen');
++
++        run('sourceBuffer = source.addSourceBuffer("video/mock; codecs=mock")');
++        initSegment = makeAInit(8, [makeATrack(1, 'mock', TRACK_KIND.VIDEO)]);
++        run('sourceBuffer.appendBuffer(initSegment)');
++        await waitFor(sourceBuffer, 'updateend');
++
++        samples = concatenateSamples([
++            makeASample(0, 0, 1, 1, 1, SAMPLE_FLAG.SYNC, 1),
++            makeASample(1, 1, 1, 1, 1, SAMPLE_FLAG.NONE, 1),
++            makeASample(2, 2, 1, 1, 1, SAMPLE_FLAG.NONE, 1),
++        ]);
++        run('sourceBuffer.appendBuffer(samples)');
++        await waitFor(sourceBuffer, 'updateend');
++
++        run('sourceBuffer.timestampOffset = 3');
++        samples = concatenateSamples([
++            makeASample(0, -1, 1, 1, 1, SAMPLE_FLAG.SYNC, 2),
++            makeASample(2,  0, 1, 1, 1, SAMPLE_FLAG.NONE, 2),
++            makeASample(1,  1, 1, 1, 1, SAMPLE_FLAG.NONE, 2),
++        ]);
++        run('sourceBuffer.appendBuffer(samples)');
++        await waitFor(sourceBuffer, 'updateend');
++
++        bufferedSamples = internals.bufferedSamplesForTrackID(sourceBuffer, 1);
++        enqueuedSamples = internals.enqueuedSamplesForTrackID(sourceBuffer, 1);
++
++        consoleWrite("Buffered:");
++        bufferedSamples.forEach(consoleWrite);
++
++        consoleWrite("Enqueued:");
++        enqueuedSamples.forEach(consoleWrite);
++
++        endTest();
++    }
++    
++    </script>
++</head>
++<body onload="runTest().catch(failTest)">
++    <video></video>
++</body>
++</html>
+diff --git a/Source/WebCore/ChangeLog b/Source/WebCore/ChangeLog
+index 6bcf2bae0a7e0..7224297c35c19 100644
+--- a/Source/WebCore/ChangeLog
++++ b/Source/WebCore/ChangeLog
+@@ -1,3 +1,27 @@
++2018-11-12  Jer Noble  <jer.noble@apple.com>
++
++        [MSE] Frame re-ordering can cause iframes to never be enqueued
++        https://bugs.webkit.org/show_bug.cgi?id=191485
++
++        Reviewed by Eric Carlson.
++
++        Test: media/media-source/media-source-dropped-iframe.html
++
++        Some frame re-ordering techniques result in files where the first frame has a
++        decode timestamp < 0, but a presentation timestamp >= 0. When appending these
++        samples to existing content, we can fail to enqueue the first frame because its
++        DTS overlaps an existing sample, but the presentation timestamp does not.
++        Rather than try to only enqueue samples whose decode timestamps are > than the
++        greatest decode end timestamp (minus some fudge factor), allow all frames to be
++        added to the decode queue if they are strictly ordered greater than the last
++        enqueued frame.
++
++        * Modules/mediasource/SourceBuffer.cpp:
++        (WebCore::SourceBuffer::TrackBuffer::TrackBuffer):
++        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
++        (WebCore::SourceBuffer::provideMediaData):
++        (WebCore::SourceBuffer::reenqueueMediaForTime):
++
+ 2018-10-18  Jer Noble  <jer.noble@apple.com>
+ 
+         [MSE] timestampOffset can introduce floating-point rounding errors to incoming samples
+diff --git a/Source/WebCore/Modules/mediasource/SourceBuffer.cpp b/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
+index c534f3115c70c..f805f326baaa5 100644
+--- a/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
++++ b/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
+@@ -77,7 +77,8 @@ struct SourceBuffer::TrackBuffer {
+     MediaTime lastFrameDuration;
+     MediaTime highestPresentationTimestamp;
+     MediaTime lastEnqueuedPresentationTime;
+-    MediaTime lastEnqueuedDecodeEndTime;
++    DecodeOrderSampleMap::KeyType lastEnqueuedDecodeKey;
++    MediaTime lastEnqueuedDecodeDuration;
+     MediaTime roundedTimestampOffset;
+     uint32_t lastFrameTimescale { 0 };
+     bool needRandomAccessFlag { true };
+@@ -94,7 +95,8 @@ struct SourceBuffer::TrackBuffer {
+         , lastFrameDuration(MediaTime::invalidTime())
+         , highestPresentationTimestamp(MediaTime::invalidTime())
+         , lastEnqueuedPresentationTime(MediaTime::invalidTime())
+-        , lastEnqueuedDecodeEndTime(MediaTime::invalidTime())
++        , lastEnqueuedDecodeKey({MediaTime::invalidTime(), MediaTime::invalidTime()})
++        , lastEnqueuedDecodeDuration(MediaTime::invalidTime())
+     {
+     }
+ };
+@@ -1843,9 +1845,9 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+         // queue are "enqueued" (sent to the inner media framework) in `provideMediaData()`.
+         //
+         // In order to check whether a frame should be added to the decode queue we check whether it starts after the
+-        // lastEnqueuedDecodeEndTime or even a bit before that to accomodate files with imprecise timing information.
+-        if (trackBuffer.lastEnqueuedDecodeEndTime.isInvalid() || decodeTimestamp >= (trackBuffer.lastEnqueuedDecodeEndTime - contiguousFrameTolerance)) {
+-            DecodeOrderSampleMap::KeyType decodeKey(sample.decodeTime(), sample.presentationTime());
++        // lastEnqueuedDecodeKey.
++        DecodeOrderSampleMap::KeyType decodeKey(sample.decodeTime(), sample.presentationTime());
++        if (trackBuffer.lastEnqueuedDecodeKey.first.isInvalid() || decodeKey > trackBuffer.lastEnqueuedDecodeKey) {
+             trackBuffer.decodeQueue.insert(DecodeOrderSampleMap::MapType::value_type(decodeKey, &sample));
+         }
+ 
+@@ -2112,14 +2114,17 @@ void SourceBuffer::provideMediaData(TrackBuffer& trackBuffer, const AtomicString
+         // new current time without triggering this early return.
+         // FIXME(135867): Make this gap detection logic less arbitrary.
+         MediaTime oneSecond(1, 1);
+-        if (trackBuffer.lastEnqueuedDecodeEndTime.isValid() && sample->decodeTime() - trackBuffer.lastEnqueuedDecodeEndTime > oneSecond)
++        if (trackBuffer.lastEnqueuedDecodeKey.first.isValid()
++            && trackBuffer.lastEnqueuedDecodeDuration.isValid()
++            && sample->decodeTime() - trackBuffer.lastEnqueuedDecodeKey.first > oneSecond + trackBuffer.lastEnqueuedDecodeDuration)
+             break;
+ 
+         // Remove the sample from the decode queue now.
+         trackBuffer.decodeQueue.erase(trackBuffer.decodeQueue.begin());
+ 
+         trackBuffer.lastEnqueuedPresentationTime = sample->presentationTime();
+-        trackBuffer.lastEnqueuedDecodeEndTime = sample->decodeTime() + sample->duration();
++        trackBuffer.lastEnqueuedDecodeKey = {sample->decodeTime(), sample->presentationTime()};
++        trackBuffer.lastEnqueuedDecodeDuration = sample->duration();
+         m_private->enqueueSample(sample.releaseNonNull(), trackID);
+ #if !LOG_DISABLED
+         ++enqueuedSamples;
+@@ -2178,12 +2183,16 @@ void SourceBuffer::reenqueueMediaForTime(TrackBuffer& trackBuffer, const AtomicS
+     }
+ 
+     if (!trackBuffer.decodeQueue.empty()) {
+-        auto& lastSample = trackBuffer.decodeQueue.rbegin()->second;
+-        trackBuffer.lastEnqueuedPresentationTime = lastSample->presentationTime();
+-        trackBuffer.lastEnqueuedDecodeEndTime = lastSample->decodeTime();
++        auto lastSampleIter = trackBuffer.decodeQueue.rbegin();
++        auto lastSampleDecodeKey = lastSampleIter->first;
++        auto lastSampleDuration = lastSampleIter->second->duration();
++        trackBuffer.lastEnqueuedPresentationTime = lastSampleDecodeKey.second;
++        trackBuffer.lastEnqueuedDecodeKey = lastSampleDecodeKey;
++        trackBuffer.lastEnqueuedDecodeDuration = lastSampleDuration;
+     } else {
+         trackBuffer.lastEnqueuedPresentationTime = MediaTime::invalidTime();
+-        trackBuffer.lastEnqueuedDecodeEndTime = MediaTime::invalidTime();
++        trackBuffer.lastEnqueuedDecodeKey = {MediaTime::invalidTime(), MediaTime::invalidTime()};
++        trackBuffer.lastEnqueuedDecodeDuration = MediaTime::invalidTime();
+     }
+ 
+     // Fill the decode queue with the remaining samples.
+
+From 6fb12c767246c9cbf73c22600c3285c1b0d7a159 Mon Sep 17 00:00:00 2001
+From: "jer.noble@apple.com"
+ <jer.noble@apple.com@268f45cc-cd09-0410-ab3c-d52691b4dbfc>
+Date: Thu, 18 Oct 2018 22:48:29 +0000
+Subject: [PATCH 3/5] [MSE] Safari is not able to adapt between H264 streams
+ with EditList and without EditList
+ https://bugs.webkit.org/show_bug.cgi?id=190638 <rdar://problem/45342208>
+
+Reviewed by Eric Carlson.
+
+Source/WebCore:
+
+Test: media/media-source/media-source-append-overlapping-dts.html
+
+The MSE frame replacement algorithm does not take decode timestamps into account; this can
+lead to situations where the replacement algorithm may leave in place frames where the
+presentationTimestamp is less than the replacement frame, but whose decodeTimestamp is
+after the replacement frame. When re-enqueuing these frames, they may cause a decode error
+if they break the group-of-pictures sequence of the replaced range.
+
+* Modules/mediasource/SampleMap.cpp:
+(WebCore::DecodeOrderSampleMap::findSamplesBetweenDecodeKeys):
+* Modules/mediasource/SampleMap.h:
+* Modules/mediasource/SourceBuffer.cpp:
+(WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
+
+LayoutTests:
+
+* media/media-source/media-source-append-overlapping-dts-expected.txt: Added.
+* media/media-source/media-source-append-overlapping-dts.html: Added.
+
+git-svn-id: http://svn.webkit.org/repository/webkit/trunk@237271 268f45cc-cd09-0410-ab3c-d52691b4dbfc
+---
+ LayoutTests/ChangeLog                         | 11 ++++
+ ...source-append-overlapping-dts-expected.txt | 23 +++++++
+ .../media-source-append-overlapping-dts.html  | 63 +++++++++++++++++++
+ Source/WebCore/ChangeLog                      | 22 +++++++
+ .../WebCore/Modules/mediasource/SampleMap.cpp | 14 +++++
+ .../WebCore/Modules/mediasource/SampleMap.h   |  2 +
+ .../Modules/mediasource/SourceBuffer.cpp      |  8 +++
+ 7 files changed, 143 insertions(+)
+ create mode 100644 LayoutTests/media/media-source/media-source-append-overlapping-dts-expected.txt
+ create mode 100644 LayoutTests/media/media-source/media-source-append-overlapping-dts.html
+
+diff --git a/LayoutTests/ChangeLog b/LayoutTests/ChangeLog
+index a65efd0848c6c..7c0101d9fceef 100644
+--- a/LayoutTests/ChangeLog
++++ b/LayoutTests/ChangeLog
+@@ -1,3 +1,14 @@
++2018-10-18  Jer Noble  <jer.noble@apple.com>
++
++        Safari is not able to adapt between H264 streams with EditList and without EditList
++        https://bugs.webkit.org/show_bug.cgi?id=190638
++        <rdar://problem/45342208>
++
++        Reviewed by Eric Carlson.
++
++        * media/media-source/media-source-append-overlapping-dts-expected.txt: Added.
++        * media/media-source/media-source-append-overlapping-dts.html: Added.
++
+ 2018-11-12  Jer Noble  <jer.noble@apple.com>
+ 
+         [MSE] Frame re-ordering can cause iframes to never be enqueued
+diff --git a/LayoutTests/media/media-source/media-source-append-overlapping-dts-expected.txt b/LayoutTests/media/media-source/media-source-append-overlapping-dts-expected.txt
+new file mode 100644
+index 0000000000000..277315408815b
+--- /dev/null
++++ b/LayoutTests/media/media-source/media-source-append-overlapping-dts-expected.txt
+@@ -0,0 +1,23 @@
++This tests that an overlapping append of samples with reordered presentation timestamps will correctly remove previously appended non-reordered samples.
++
++RUN(video.src = URL.createObjectURL(source))
++EVENT(sourceopen)
++RUN(sourceBuffer = source.addSourceBuffer("video/mock; codecs=mock"))
++RUN(sourceBuffer.appendBuffer(initSegment))
++EVENT(updateend)
++RUN(sourceBuffer.appendBuffer(samples))
++EVENT(updateend)
++RUN(sourceBuffer.appendBuffer(samples))
++EVENT(updateend)
++EXPECTED (bufferedSamples.length == '9') OK
++{PTS({0/1000 = 0.000000}), DTS({0/1000 = 0.000000}), duration({1000/1000 = 1.000000}), flags(1), generation(0)}
++{PTS({1000/1000 = 1.000000}), DTS({1000/1000 = 1.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
++{PTS({2000/1000 = 2.000000}), DTS({2000/1000 = 2.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
++{PTS({3000/1000 = 3.000000}), DTS({3000/1000 = 3.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(0)}
++{PTS({4000/1000 = 4.000000}), DTS({4000/1000 = 4.000000}), duration({1000/1000 = 1.000000}), flags(1), generation(0)}
++{PTS({6000/1000 = 6.000000}), DTS({4000/1000 = 4.000000}), duration({1000/1000 = 1.000000}), flags(1), generation(1)}
++{PTS({7000/1000 = 7.000000}), DTS({5000/1000 = 5.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(1)}
++{PTS({4000/1000 = 4.000000}), DTS({6000/1000 = 6.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(1)}
++{PTS({5000/1000 = 5.000000}), DTS({7000/1000 = 7.000000}), duration({1000/1000 = 1.000000}), flags(0), generation(1)}
++END OF TEST
++
+diff --git a/LayoutTests/media/media-source/media-source-append-overlapping-dts.html b/LayoutTests/media/media-source/media-source-append-overlapping-dts.html
+new file mode 100644
+index 0000000000000..3be2bbec4aa80
+--- /dev/null
++++ b/LayoutTests/media/media-source/media-source-append-overlapping-dts.html
+@@ -0,0 +1,63 @@
++<!DOCTYPE html>
++<html>
++<head>
++    <title>media-source-append-overlapping-dts</title>
++    <script src="mock-media-source.js"></script>
++    <script src="../video-test.js"></script>
++    <script>
++    var source;
++    var sourceBuffer;
++    var initSegment;
++
++    if (window.internals)
++        internals.initializeMockMediaSource();
++
++    window.addEventListener('load', async event => {
++
++        findMediaElement();
++
++        source = new MediaSource();
++        run('video.src = URL.createObjectURL(source)');
++        await waitFor(source, 'sourceopen');
++
++        run('sourceBuffer = source.addSourceBuffer("video/mock; codecs=mock")');
++        initSegment = makeAInit(8, [makeATrack(1, 'mock', TRACK_KIND.VIDEO)]);
++        run('sourceBuffer.appendBuffer(initSegment)');
++
++        await waitFor(sourceBuffer, 'updateend');
++
++        samples = concatenateSamples([
++            makeASample(0, 0, 1, 1, SAMPLE_FLAG.SYNC, 0),
++            makeASample(1, 1, 1, 1, SAMPLE_FLAG.NONE, 0),
++            makeASample(2, 2, 1, 1, SAMPLE_FLAG.NONE, 0),
++            makeASample(3, 3, 1, 1, SAMPLE_FLAG.NONE, 0),
++            makeASample(4, 4, 1, 1, SAMPLE_FLAG.SYNC, 0),
++            makeASample(5, 5, 1, 1, SAMPLE_FLAG.NONE, 0),
++            makeASample(6, 6, 1, 1, SAMPLE_FLAG.NONE, 0),
++            makeASample(7, 7, 1, 1, SAMPLE_FLAG.NONE, 0),
++        ]);
++        run('sourceBuffer.appendBuffer(samples)');
++        await waitFor(sourceBuffer, 'updateend');
++
++        samples = concatenateSamples([
++            makeASample(6, 4, 1, 1, SAMPLE_FLAG.SYNC, 1),
++            makeASample(7, 5, 1, 1, SAMPLE_FLAG.NONE, 1),
++            makeASample(4, 6, 1, 1, SAMPLE_FLAG.NONE, 1),
++            makeASample(5, 7, 1, 1, SAMPLE_FLAG.NONE, 1),
++        ]);
++        run('sourceBuffer.appendBuffer(samples)');
++        await waitFor(sourceBuffer, 'updateend');
++
++        bufferedSamples = internals.bufferedSamplesForTrackID(sourceBuffer, 1);
++        testExpected("bufferedSamples.length", 9);
++        bufferedSamples.forEach(consoleWrite);
++        endTest();
++
++    }, {once: true});
++    </script>
++</head>
++<body>
++    <div>This tests that an overlapping append of samples with reordered presentation timestamps will correctly remove previously appended non-reordered samples.</div>
++    <video></video>
++</body>
++</html>
+diff --git a/Source/WebCore/ChangeLog b/Source/WebCore/ChangeLog
+index 7224297c35c19..fbf9b8840f6e9 100644
+--- a/Source/WebCore/ChangeLog
++++ b/Source/WebCore/ChangeLog
+@@ -1,3 +1,25 @@
++2018-10-18  Jer Noble  <jer.noble@apple.com>
++
++        Safari is not able to adapt between H264 streams with EditList and without EditList
++        https://bugs.webkit.org/show_bug.cgi?id=190638
++        <rdar://problem/45342208>
++
++        Reviewed by Eric Carlson.
++
++        Test: media/media-source/media-source-append-overlapping-dts.html
++
++        The MSE frame replacement algorithm does not take decode timestamps into account; this can
++        lead to situations where the replacement algorithm may leave in place frames where the 
++        presentationTimestamp is less than the replacement frame, but whose decodeTimestamp is
++        after the replacement frame. When re-enqueuing these frames, they may cause a decode error
++        if they break the group-of-pictures sequence of the replaced range.
++
++        * Modules/mediasource/SampleMap.cpp:
++        (WebCore::DecodeOrderSampleMap::findSamplesBetweenDecodeKeys):
++        * Modules/mediasource/SampleMap.h:
++        * Modules/mediasource/SourceBuffer.cpp:
++        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
++
+ 2018-11-12  Jer Noble  <jer.noble@apple.com>
+ 
+         [MSE] Frame re-ordering can cause iframes to never be enqueued
+diff --git a/Source/WebCore/Modules/mediasource/SampleMap.cpp b/Source/WebCore/Modules/mediasource/SampleMap.cpp
+index afade7af2d7e7..07cf5d7c09ad3 100644
+--- a/Source/WebCore/Modules/mediasource/SampleMap.cpp
++++ b/Source/WebCore/Modules/mediasource/SampleMap.cpp
+@@ -307,4 +307,18 @@ DecodeOrderSampleMap::reverse_iterator_range DecodeOrderSampleMap::findDependent
+     return reverse_iterator_range(currentDecodeIter, nextSyncSample);
+ }
+ 
++DecodeOrderSampleMap::iterator_range DecodeOrderSampleMap::findSamplesBetweenDecodeKeys(const KeyType& beginKey, const KeyType& endKey)
++{
++    if (beginKey > endKey)
++        return { end(), end() };
++
++    // beginKey is inclusive, so use lower_bound to include samples wich start exactly at beginKey.
++    // endKey is not inclusive, so use lower_bound to exclude samples which start exactly at endKey.
++    auto lower_bound = m_samples.lower_bound(beginKey);
++    auto upper_bound = m_samples.lower_bound(endKey);
++    if (lower_bound == upper_bound)
++        return { end(), end() };
++    return { lower_bound, upper_bound };
++}
++
+ }
+diff --git a/Source/WebCore/Modules/mediasource/SampleMap.h b/Source/WebCore/Modules/mediasource/SampleMap.h
+index f27faad57bb23..f783082e6f1a2 100644
+--- a/Source/WebCore/Modules/mediasource/SampleMap.h
++++ b/Source/WebCore/Modules/mediasource/SampleMap.h
+@@ -79,6 +79,7 @@ class DecodeOrderSampleMap {
+     typedef MapType::const_iterator const_iterator;
+     typedef MapType::reverse_iterator reverse_iterator;
+     typedef MapType::const_reverse_iterator const_reverse_iterator;
++    typedef std::pair<iterator, iterator> iterator_range;
+     typedef std::pair<reverse_iterator, reverse_iterator> reverse_iterator_range;
+     typedef MapType::value_type value_type;
+ 
+@@ -98,6 +99,7 @@ class DecodeOrderSampleMap {
+     WEBCORE_EXPORT iterator findSyncSampleAfterPresentationTime(const MediaTime&, const MediaTime& threshold = MediaTime::positiveInfiniteTime());
+     WEBCORE_EXPORT iterator findSyncSampleAfterDecodeIterator(iterator);
+     WEBCORE_EXPORT reverse_iterator_range findDependentSamples(MediaSample*);
++    WEBCORE_EXPORT iterator_range findSamplesBetweenDecodeKeys(const KeyType&, const KeyType&);
+ 
+ private:
+     MapType m_samples;
+diff --git a/Source/WebCore/Modules/mediasource/SourceBuffer.cpp b/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
+index f805f326baaa5..3af86e1dd915f 100644
+--- a/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
++++ b/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
+@@ -1809,6 +1809,14 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+             auto nextSyncIter = trackBuffer.samples.decodeOrder().findSyncSampleAfterDecodeIterator(lastDecodeIter);
+             dependentSamples.insert(firstDecodeIter, nextSyncIter);
+ 
++            // NOTE: in the case of b-frames, the previous step may leave in place samples whose presentation
++            // timestamp < presentationTime, but whose decode timestamp >= decodeTime. These will eventually cause
++            // a decode error if left in place, so remove these samples as well.
++            DecodeOrderSampleMap::KeyType decodeKey(sample.decodeTime(), sample.presentationTime());
++            auto samplesWithHigherDecodeTimes = trackBuffer.samples.decodeOrder().findSamplesBetweenDecodeKeys(decodeKey, erasedSamples.decodeOrder().begin()->first);
++            if (samplesWithHigherDecodeTimes.first != samplesWithHigherDecodeTimes.second)
++                dependentSamples.insert(samplesWithHigherDecodeTimes.first, samplesWithHigherDecodeTimes.second);
++
+             PlatformTimeRanges erasedRanges = removeSamplesFromTrackBuffer(dependentSamples, trackBuffer, this, "sourceBufferPrivateDidReceiveSample", false);
+ 
+             // Only force the TrackBuffer to re-enqueue if the removed ranges overlap with enqueued and possibly
+
+From 5eda1bff2bec20d53a5f17eb1a726dd1a0d96c6d Mon Sep 17 00:00:00 2001
+From: Ievgen Mutavchi <Ievgen_Mutavchi@comcast.com>
+Date: Sat, 25 Apr 2020 00:07:17 -0400
+Subject: [PATCH 4/5] [MSE] Fix build
+
+---
+ Source/WebCore/Modules/mediasource/SourceBuffer.cpp | 13 -------------
+ 1 file changed, 13 deletions(-)
+
+diff --git a/Source/WebCore/Modules/mediasource/SourceBuffer.cpp b/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
+index 3af86e1dd915f..af5a372ed032b 100644
+--- a/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
++++ b/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
+@@ -1917,19 +1917,6 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+     // duration set to the maximum of the current duration and the group end timestamp.
+     if (m_groupEndTimestamp > m_source->duration())
+         m_source->setDurationInternal(m_groupEndTimestamp);
+-
+-    // To avoid playback pipeline starvation start providing media data as soon as we can
+-    const auto& trackID = sample.trackID();
+-    auto it = m_trackBufferMap.find(trackID);
+-    if (it != m_trackBufferMap.end() && m_private->isReadyForMoreSamples(trackID)) {
+-        TrackBuffer& trackBuffer = it->value;
+-        if (!trackBuffer.needsReenqueueing
+-            && trackBuffer.lastEnqueuedDecodeEndTime.isValid()
+-            && trackBuffer.lastDecodeTimestamp.isValid()
+-            && abs(trackBuffer.lastEnqueuedDecodeEndTime - trackBuffer.lastDecodeTimestamp) > MediaTime::createWithDouble(0.350)) {
+-            provideMediaData(trackBuffer, trackID);
+-        }
+-    }
+ }
+ 
+ bool SourceBuffer::hasAudio() const
+
+From 7b74a3f51bc479f18d97af7eb1a5e03fda6bad6f Mon Sep 17 00:00:00 2001
+From: Ievgen Mutavchi <Ievgen_Mutavchi@comcast.com>
+Date: Wed, 3 Jun 2020 17:46:37 -0400
+Subject: [PATCH 5/5] [MSE] Don't apply invalid timestamp offset
+
+SB invalidates the roundedTimestampOffset when app sets
+timestampOffset back to zero.
+---
+ Source/WebCore/Modules/mediasource/SourceBuffer.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Source/WebCore/Modules/mediasource/SourceBuffer.cpp b/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
+index af5a372ed032b..bff46d58df6d6 100644
+--- a/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
++++ b/Source/WebCore/Modules/mediasource/SourceBuffer.cpp
+@@ -1660,7 +1660,7 @@ void SourceBuffer::sourceBufferPrivateDidReceiveSample(MediaSample& sample)
+         if (m_mode == AppendMode::Sequence) {
+             // Use the generated timestamps instead of the sample's timestamps.
+             sample.setTimestamps(presentationTimestamp, decodeTimestamp);
+-        } else if (trackBuffer.roundedTimestampOffset) {
++        } else if (trackBuffer.roundedTimestampOffset.isValid() && trackBuffer.roundedTimestampOffset) {
+             // Reflect the timestamp offset into the sample.
+             sample.offsetTimestampsBy(trackBuffer.roundedTimestampOffset);
+         }
