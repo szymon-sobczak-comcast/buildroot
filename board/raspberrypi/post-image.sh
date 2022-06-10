@@ -123,9 +123,9 @@ dtoverlay=vc4-fkms-v3d
 __EOF__
 		fi
 		;;
-		--add-vc4-kms-v3d-overlay)
+		--add-vc4-kms-v3d-overlay-pi4)
 		# Enable VC4 overlay
-		echo "Adding 'dtoverlay=vc4-kms-v3d' to config.txt."
+		echo "Adding 'dtoverlay=vc4-kms-v3d-pi4' to config.txt."
 		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
 
 # Add VC4 GPU support
