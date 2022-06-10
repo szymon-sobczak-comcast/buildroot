@@ -40,10 +40,6 @@ else
     LIBDRM_EXAMPLES_CPPFLAGS += -DNDEBUG
 endif
 
-ifeq ($(BR2_PACKAGE_LIBDRM_EXAMPLES_QUIRKS)x,yx)
-    LIBDRM_EXAMPLES_CPPFLAGS += -D_QUIRKS
-endif
-
 define LIBDRM_EXAMPLES_CONFIGURE_CMDS
 @echo "Nothing to be done"
 endef
@@ -54,8 +50,15 @@ $(MAKE) -f $(@D)/Makefile CC="$(TARGET_CROSS)cc" CXX="$(TARGET_CROSS)c++" CPPFLA
 popd;
 endef
 
+define LIBDRM_EXAMPLES_BUILD_DRM_VIEWPORT_ANALYSIS
+pushd $(@D); \
+$(MAKE) -f $(@D)/Makefile CC="$(TARGET_CROSS)cc" CXX="$(TARGET_CROSS)c++" CPPFLAGS="$(LIBDRM_EXAMPLES_CPPFLAGS)" CFLAGS="$(LIBDRM_EXAMPLES_CFLAGS)" CXXFLAGS="$(LIBDRM_EXAMPLES_CXXFLAGS)" LDFLAGS="$(LIBDRM_EXAMPLES_LDFLAGS)" drm-viewport-analysis; \
+popd;
+endef
+
+
 define LIBDRM_EXAMPLES_BUILD_CMDS
-$(call LIBDRM_EXAMPLES_BUILD_DRM_PRIME_MULTI)
+$(call LIBDRM_EXAMPLES_BUILD_DRM_VIEWPORT_ANALYSIS)
 endef
 
 define LIBDRM_EXAMPLES_INSTALL_STAGING_CMDS
@@ -63,7 +66,7 @@ define LIBDRM_EXAMPLES_INSTALL_STAGING_CMDS
 endef
 
 define LIBDRM_EXAMPLES_INSTALL_TARGET_CMDS
-[ -f $(@D)/.bin/drm-prime-multi ] && $(INSTALL) -D -m 755 $(@D)/.bin/drm-prime-multi $(TARGET_DIR)/usr/bin/drm-prime-multi
+[ -f $(@D)/.bin/drm-viewport-analysis ] && $(INSTALL) -D -m 755 $(@D)/.bin/drm-viewport-analysis $(TARGET_DIR)/usr/bin/drm-viewport-analysis
 endef
 
 $(eval $(generic-package))

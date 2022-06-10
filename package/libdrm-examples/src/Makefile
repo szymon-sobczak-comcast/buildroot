@@ -68,13 +68,13 @@ rebuild = touch $(sources);
 
 # The main target(s)
 all:
-	$(error "Specify drm-prime-multi as target")
+	$(error "Specify drm-viewport-analysis as target")
 
 #https://www.gnu.org/software/make/manual/make.html#Target_002dspecific
-drm-prime-multi: EXTRA_FLAGS=-DNO_FLAGS
+drm-viewport-analysis: EXTRA_FLAGS=-DNO_FLAGS
 
 # Generate the binaries
-drm-prime-multi: $(objects) | $(bindir)
+drm-viewport-analysis: $(objects) | $(bindir)
 
 	$(call build)
 
