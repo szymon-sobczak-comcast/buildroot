@@ -18,26 +18,32 @@ _DISNEY_UMA_PLATFORM = *45*
 # It is needed for installing certificates in the correct place
 _DISNEY_DATA_DIR = /usr/share/WPEFramework/DisneyPlus
 
-define _DISNEY_UMA_INSTALL
-       @echo "Installing player library"
-       rsync -a $(@D)/partner/prebuilt-libs/$(_DISNEY_UMA_PLATFORM)/stripped/ship/*.so $(1)/usr/lib/
+define _DISNEY_UMA_INSTALL_PLAYER
+    @echo "Installing player library"
+    rsync -a $(@D)/partner/prebuilt-libs/$(_DISNEY_UMA_PLATFORM)/stripped/ship/libnve-api.so $(1)/usr/lib/libnve-api.so
 endef
 
 ifeq ($(BR2_PACKAGE_DISNEY_INSTALL_CERTIFICATES),y)
 define _DISNEY_UMA_INSTALL_CERTIFICATES
-       @echo "Installing tooling certificates"
-       mkdir -p "$(TARGET_DIR)$(_DISNEY_DATA_DIR)/shield_runtime/shield_agent_data/certs/client"
-       rsync -a  $(@D)/certificates/$(_DISNEY_UMA_PLATFORM)/dss_portal_device.pem $(TARGET_DIR)$(_DISNEY_DATA_DIR)/shield_runtime/shield_agent_data/certs/client
+    @echo "Installing tooling certificates"
+    mkdir -p "$(TARGET_DIR)$(_DISNEY_DATA_DIR)/shield_runtime/shield_agent_data/certs/client"
+    rsync -a  $(@D)/certificates/$(_DISNEY_UMA_PLATFORM)/dss_portal_device.pem "$(TARGET_DIR)$(_DISNEY_DATA_DIR)/shield_runtime/shield_agent_data/certs/client"
 endef
 endif
 
+define _DISNEY_UMA_INSTALL_PERSONAS
+    @echo "Installing personas"
+    rsync -a "$(@D)/partner/resource/" "$(TARGET_DIR)/${_DISNEY_DATA_DIR}/resource"
+endef
+
 define DISNEY_UMA_INSTALL_STAGING_CMDS
-       $(call _DISNEY_UMA_INSTALL, $(STAGING_DIR))
+    $(call _DISNEY_UMA_INSTALL_PLAYER, $(STAGING_DIR))
 endef
 
 define DISNEY_UMA_INSTALL_TARGET_CMDS
-       $(call _DISNEY_UMA_INSTALL, $(TARGET_DIR))
-       $(call _DISNEY_UMA_INSTALL_CERTIFICATES)
+    $(call _DISNEY_UMA_INSTALL_PLAYER, $(TARGET_DIR))
+    $(call _DISNEY_UMA_INSTALL_CERTIFICATES)
+    $(call _DISNEY_UMA_INSTALL_PERSONAS)
 endef
 
 $(eval $(generic-package))
