@@ -225,12 +225,6 @@ endif
 
 endif
 
-config BR2_PACKAGE_WPEFRAMEWORK_CECCONTROL
-  bool "CEC Control"
-  default n
-  help
-    Thunder CEC Control plugin
-
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_CDMI
     bool "CDMi"
     select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
@@ -1146,9 +1140,8 @@ config BR2_PACKAGE_WPEFRAMEWORK_SECURITYAGENT
         system (Reference implementation) 
 
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_SPARK
-    select BR2_PACKAGE_SPARK
-    select BR2_PACKAGE_SPARK_LIB
     bool "Spark"
+    depends on BR2_PACKAGE_SPARK_LIB
     help
         SparkEngine plugin
 

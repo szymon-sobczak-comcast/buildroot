@@ -42,5 +42,4 @@ define LIBDASH_INSTALL_TARGET_CMDS
    $(INSTALL) -D -m 0755 $(@D)/bin/libdash.so $(TARGET_DIR)/usr/lib/
 endef
 
-
 $(eval $(cmake-package))
