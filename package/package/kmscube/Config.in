@@ -1,0 +1,24 @@
+config BR2_PACKAGE_KMSCUBE
+	bool "kmscube"
+	# requires libgbm from mesa3d
+	depends on BR2_PACKAGE_MESA3D_OPENGL_EGL
+	depends on BR2_PACKAGE_MESA3D_OPENGL_ES
+	help
+	  kmscube is an application to test kms/drm drivers.
+
+	  https://gitlab.freedesktop.org/mesa/kmscube
+
+if BR2_PACKAGE_KMSCUBE
+config BR2_PACKAGE_KMSCUBE_LIBEPOXY
+	depends on BR2_PACKAGE_LIBEPOXY
+	bool "kmscube-libepoxy"
+	default n
+	help
+	  Build kmscube using libepoxy
+
+comment "BR2_PACKAGE_KMSCUBE_LIBEPOXY requires BR2_PACKAGE_LIBEPOXY"
+	depends on !BR2_PACKAGE_LIBEPOXY
+endif
+if !BR2_PACKAGE_KMSCUBE
+comment "BR2_PACKAGE_KMSCUBE_LIBEPOXY requires BR2_PACKAGE_KMSCUBE"
+endif
