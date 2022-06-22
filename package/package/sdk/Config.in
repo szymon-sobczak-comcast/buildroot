@@ -1,6 +1,0 @@
-config BR2_PACKAGE_HAS_SDK
-	bool
-
-config BR2_PACKAGE_SDK_INSTALL
-	depends on BR2_PACKAGE_HAS_SDK
-	string

@@ -1,2 +1,0 @@
-[websettings]
-enable-non-composited-webgl=false
