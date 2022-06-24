@@ -1,0 +1,137 @@
+config BR2_PACKAGE_DISNEY
+    bool "disney-adk"
+    help
+        Disney+ development kit
+
+if BR2_PACKAGE_DISNEY
+menu "Extra options"
+
+choice
+    bool "Build type"
+    default BR2_PACKAGE_DISNEY_BUILD_DEBUG
+config BR2_PACKAGE_DISNEY_BUILD_DEBUG
+    bool "Debug"
+config BR2_PACKAGE_DISNEY_BUILD_RELEASE
+    bool "Release"
+config BR2_PACKAGE_DISNEY_BUILD_PRODUCTION
+    bool "Production"
+endchoice
+
+choice
+    bool "Build target"
+    default BR2_PACKAGE_DISNEY_TARGET_WPE
+config BR2_PACKAGE_DISNEY_TARGET_WPE
+    bool "WPE"
+endchoice
+
+choice
+    bool "Player library"
+    default BR2_PACKAGE_DISNEY_PLAYER_NONE
+config BR2_PACKAGE_DISNEY_PLAYER_NONE
+    bool "No player"
+config BR2_PACKAGE_DISNEY_PLAYER_UMA
+    select BR2_PACKAGE_DISNEY_UMA
+    select BR2_PACKAGE_DISNEY_LIBOPENSSL
+    bool "UMA"
+endchoice
+
+config BR2_PACKAGE_DISNEY_VERBOSE
+    bool "Verbose output"
+    default n
+
+choice
+    bool "WPE version"
+    default BR2_PACKAGE_DISNEY_WPE_R3
+config BR2_PACKAGE_DISNEY_WPE_R3
+    bool "R3"
+config BR2_PACKAGE_DISNEY_WPE_R2
+    bool "R2"
+endchoice
+
+config BR2_PACKAGE_DISNEY_NON_DEBUG_TRACES
+    bool "Enable traces on all builds"
+    default n
+    help
+        Enable debug logs on release/ship builds
+
+config BR2_PACKAGE_DISNEY_NATIVE_AUDIO
+    bool "Native audio"
+    default n
+    help
+        Enforce using native audio formats only
+
+config BR2_PACKAGE_DISNEY_NATIVE_VIDEO
+    bool "Native video"
+    default y
+    help
+        Enforce using native video formats only
+
+config BR2_PACKAGE_DISNEY_LINK_LIBRARY
+    bool "Build M5 library"
+    default y
+    help
+        Disney+ M5 shared library
+
+config BR2_PACKAGE_DISNEY_LINK_EXECUTABLE
+    bool "Build Merlin executable"
+    default n
+    help
+        Disney+ Merlin executable
+
+menu "Test tools"
+    config BR2_PACKAGE_DISNEY_LINK_TESTS
+    bool "Build ADK test suite"
+    default n
+    help
+        Disney+ tests
+
+    config BR2_PACKAGE_DISNEY_TOOLING_SHIELD_AGENT
+    select BR2_PACKAGE_DISNEY_TOOLING
+    bool "Build SHIELD Agent"
+    default n
+    help
+        Build SHIELD Agent (Development tool)
+    comment "SHIELD Agent depens on disney-tooling"
+        depends on !BR2_PACKAGE_DISNEY_TOOLING
+
+    config BR2_PACKAGE_DISNEY_TOOLING_SHIELD_EXTENSION
+    select BR2_PACKAGE_DISNEY_TOOLING
+    bool "Build SHIELD Extension"
+    default n
+    help
+        Build SHIELD Extension (Integration test tool)
+    comment "SHIELD Extension depens on disney-tooling"
+        depends on !BR2_PACKAGE_DISNEY_TOOLING
+
+    config BR2_PACKAGE_DISNEY_TOOLING_SHIELD_ASSISTANT
+    bool "Build SHIELD assistant"
+    default n
+    help
+        Build SHIELD assistant - our component enahncing running morgana and shield-agent.
+    depends on BR2_PACKAGE_DISNEY_TOOLING && BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS && (BR2_PACKAGE_DISNEY_TOOLING_SHIELD_AGENT || BR2_PACKAGE_DISNEY_TOOLING_SHIELD_EXTENSION)
+
+    config BR2_PACKAGE_DISNEY_INSTALL_CERTIFICATES
+    bool "Install tooling certificates"
+    default n
+    help
+        Install certificates to connect to the disney platform
+    comment "Installing certificates depends on disney-uma"
+        depends on !BR2_PACKAGE_DISNEY_UMA
+
+    config BR2_PACKAGE_DISNEY_MORGANA_SHARED_LIB
+    bool "Morgana sharedlib"
+    default n
+    help
+        Build morgana as .so instead of normal executable
+    comment "SHIELD Agent depens on disney-tooling"
+        depends on !BR2_PACKAGE_DISNEY_TOOLING
+endmenu
+
+
+endmenu
+endif
+
+source "package/disney/disney-uma/Config.in"
+source "package/disney/disney-libopenssl/Config.in"
+source "package/disney/disney-tooling/Config.in"
+

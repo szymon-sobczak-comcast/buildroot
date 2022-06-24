@@ -1,0 +1,330 @@
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    bool "DisneyPlus"
+    depends on BR2_PACKAGE_DISNEY
+    help
+        WPE Platform DisneyPlus plugin
+
+if BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_AUTOSTART
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    bool "autostart"
+    default n
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_DEVICE
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "device"
+    default "Metrological"
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_VENDOR
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "vendor"
+    default "Metrological"
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_REGION
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "region"
+    default "US"
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_LANGUAGE
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "language"
+    default "en"
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_ADVERTISING_ID
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "advertising id"
+    default ""
+
+choice BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_GRAPHICS_MODE
+    default BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_GRAPHICS_MODE_720P
+    prompt "graphics mode"
+    help
+      Select disneyplus output graphics mode
+
+config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_GRAPHICS_MODE_720P
+    bool "720p"
+    help
+      720p (HD Ready)
+
+config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_GRAPHICS_MODE_1080P
+    bool "1080p"
+    help
+      1080p (Full HD)
+
+config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_GRAPHICS_MODE_2160P
+    bool "2160p"
+    help
+      2160p (4k)
+
+endchoice
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_VIDEO_MEMORY
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    int "video memory"
+    range 0 360
+    default 256
+    help
+        Override max video memory (left as 0 to get from displayinfo)
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_PERSONA_ID
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "persona ID"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_STACK_SIZE
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    int "ADK stack size"
+    default 0
+    help
+      Set stack size for the thread running ADK (0 will use the default value specified in the Thunder Core)
+
+choice BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAX_VIDEO_RESOLUTION
+    default BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAX_VIDEO_RESOLUTION_1080P60
+    prompt "Max video resolution"
+    help
+      Select max decoder resolution
+
+config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAX_VIDEO_RESOLUTION_SD
+    bool "SD"
+    help
+      SD resolution
+
+config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAX_VIDEO_RESOLUTION_720P60
+    bool "720p60"
+    help
+      720p@60Hz
+
+config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAX_VIDEO_RESOLUTION_1080P60
+    bool "1080p60"
+    help
+      1080p@60Hz
+
+config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAX_VIDEO_RESOLUTION_2160P60
+    bool "2160p60"
+    help
+      2160p@60Hz
+
+endchoice
+
+menu "Audio codecs"
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_AUDIO_CODECS_AAC
+    bool "AAC"
+    default y
+    help
+        AAC codec
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_AUDIO_CODECS_AC3
+    bool "AC3"
+    default n
+    help
+        AC3 codec
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_AUDIO_CODECS_EAC3
+    bool "EAC3"
+    default n
+    help
+        EAC3 codec
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_AUDIO_CODECS_ATMOS
+    bool "Atmos"
+    default n
+    help
+        Atmos codec
+
+endmenu
+
+menu "Video profiles"
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_VIDEO_PROFILE_H264_MAIN
+    bool "H264 Main"
+    default y
+    help
+        H264 main profile
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_VIDEO_PROFILE_H264_HIGH
+    bool "H264 High"
+    default y
+    help
+        H264 high profile
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_VIDEO_PROFILE_HEVC_MAIN
+    bool "HEVC main"
+    default n
+    help
+        HEVC main
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_VIDEO_PROFILE_HEVC_MAIN_10
+    bool "HEVC main 10"
+    default n
+    help
+        HEVC main 10
+
+endmenu
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_DISTRIBUTION_PARTNER
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "distribution partner"
+    default ""
+
+menu "Launch point mappings"
+    comment "Type in mappings, as: placement,placementDetail"
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_DIAL
+    string "dial"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_DEDICATED_BUTTON
+    string "dedicated button"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_DEDICATED_ICON
+    string "dedicated icon"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_APPLICATION_LIST
+    string "application list"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_INTEGRATED_TILE
+    string "integrated title"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_SEARCH_RESULT
+    string "search result"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_SEARCH_CONTINUATION
+    string "search continuation"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_VOICE_CONTROL
+    string "voice control"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_VOICE_SEARCH_RESULT
+    string "voice search result"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_VISUAL_GESTURE
+    string "visual gesture"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_TOUCH_GESTURE
+    string "touch gesture"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_EPG_GRID
+    string "epg grid"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_CHANNEL_NUMBER
+    string "channel number"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_CHANNEL_ZAP
+    string "channel zap"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_CHANNEL_BAR
+    string "channel bar"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_WEB_BROWSER
+    string "web browser"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_POWER_ON
+    string "power on"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_POWER_ON_FROM_DEDICATED_BUTTON
+    string "power on from dedicated button"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_SUSPENDED_POWER_ON
+    string "suspended power on"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_RESTART
+    string "restart"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_SUSPENDED_RESTART
+    string "suspended restart"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_RESUMED_FROM_SCREEN_SAVER
+    string "resumed from screen saver"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_RESUMED_FROM_STANDBY
+    string "resumed from standby"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_RESUMED_BANNER_AD
+    string "resumed from banner ad"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_RESUMED_TITLE_RECOMMENDATION
+    string "title recommendation"
+    default ""
+
+    config BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS_MAPPING_RESUMED_APPLICATION_PROMOTION
+    string "application promotion"
+    default ""
+
+
+endmenu
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_SOFTWARE_NAME
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "software name"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_SOFTWARE_REVISION
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "software revision"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_FIRMWARE_VERSION
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "firmware version"
+    default ""
+    help
+        Must be in format x.y.z eg. 1.2.3
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_AUDIO_BUFFER
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    int "audio buffer"
+    default 1048576
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_VIDEO_BUFFER
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    int "video buffer"
+    default 8388608
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_CUSTOM_ARGS
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "custom arguments passed to ADK"
+    default ""
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_PERSISTENT_DIR
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    string "override persistent directory path"
+    default ""
+    help
+        Leave empty to take from framework
+
+config BR2_PACKAGE_WPEFRAMEWORK_PLUGIN_DISNEYPLUS_MORGANA_PLUGIN
+    depends on BR2_PACKAGE_WPEFRAMEWORK_DISNEYPLUS
+    depends on BR2_PACKAGE_DISNEY_MORGANA_SHARED_LIB
+    bool "Morgana plugin"
+    default n
+    help
+        Build morgana as a plugin (generate configuration and link with libmorgana.so)
+    comment "Morgana plugin requires libmorgana.so"
+        depends on !BR2_PACKAGE_DISNEY_MORGANA_SHARED_LIB
+
+endif
+comment "DisneyPlus is dependent on the DisneyPlus-ADK package"
+    depends on !BR2_PACKAGE_DISNEY
