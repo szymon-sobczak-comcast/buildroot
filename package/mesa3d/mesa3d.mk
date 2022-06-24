@@ -184,6 +184,11 @@ MESA3D_DEPENDENCIES += \
 	xorgproto \
 	libxcb
 MESA3D_PLATFORMS += x11
+else
+MESA3D_POST_INSTALL_STAGING_HOOKS += MESA3D_INJECT_NO_X11_PREPROCESSOR_DEFINE
+define MESA3D_INJECT_NO_X11_PREPROCESSOR_DEFINE
+for i in `find $(STAGING_DIR)/usr/include/{EGL,GLES} -name egl.h`; do $(SED) 's/\(#include.*eglplatform\.h\)/#ifndef EGL_NO_X11\n#define EGL_NO_X11\n#endif\n\1/g' $$i $i; done
+endef
 endif
 ifeq ($(BR2_PACKAGE_WAYLAND),y)
 MESA3D_DEPENDENCIES += wayland wayland-protocols
@@ -197,6 +202,10 @@ MESA3D_CONF_OPTS += \
 ifeq ($(BR2_PACKAGE_MESA3D_GBM),y)
 MESA3D_CONF_OPTS += \
 	-Dgbm=enabled
+MESA3D_POST_INSTALL_STAGING_HOOKS += MESA3D_INJECT_GBM_PREPROCESSOR_DEFINE
+define MESA3D_INJECT_GBM_PREPROCESSOR_DEFINE
+for i in `find $(STAGING_DIR)/usr/include/{EGL,GLES} -name egl.h`; do $(SED) 's/\(#include.*eglplatform\.h\)/#ifndef __GBM__\n#define __GBM__\n#endif\n\1/g' $$i $i; done
+endef
 else
 MESA3D_CONF_OPTS += \
 	-Dgbm=disabled

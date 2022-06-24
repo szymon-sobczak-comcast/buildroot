@@ -50,10 +50,21 @@ LIBEPOXY_CFLAGS += -DGLX_LIB_NAME=libGL.so.1 \
                    -DGLES2_LIB_NAME=libGLESv2.so.2
 endif
 
+ifeq ($(BR2_PACKAGE_MESA3D_GBM),y)
+LIBEPOXY_PRE_BUILD_HOOKS += LIBEPOXY_INJECT_GBM_PREPROCESSOR_DEFINE
+define LIBEPOXY_INJECT_GBM_PREPROCESSOR_DEFINE
+for i in `find $(BUILD_DIR)/libepoxy* -name egl.h`; do $(SED) 's/\(#include.*common\.h\)/#ifndef __GBM__\n#define __GBM__\n#endif\n\1/g' $$i $i; done
+endef
+endif
+
 ifeq ($(BR2_PACKAGE_HAS_LIBGL)$(BR2_PACKAGE_XLIB_LIBX11),yy)
 LIBEPOXY_CONF_OPTS += -Dglx=yes -Dx11=true
 LIBEPOXY_DEPENDENCIES += libgl xlib_libX11
 else
+LIBEPOXY_PRE_BUILD_HOOKS += LIBEPOXY_INJECT_NO_X11_PREPROCESSOR_DEFINE
+define LIBEPOXY_INJECT_NO_X11_PREPROCESSOR_DEFINE
+for i in `find $(BUILD_DIR)/libepoxy* -name egl.h`; do $(SED) 's/\(#include.*common\.h\)/#ifndef EGL_NO_X11\n#define EGL_NO_X11\n#endif\n\1/g' $$i $i; done
+endef
 LIBEPOXY_CONF_OPTS += -Dglx=no -Dx11=false
 endif
 
