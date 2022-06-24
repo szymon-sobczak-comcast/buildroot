@@ -3,7 +3,7 @@
 # wpeframework-plugins
 #
 ################################################################################
-WPEFRAMEWORK_PLUGINS_VERSION = 861dceb2997add707f45b07faeaaf69a86369f86
+WPEFRAMEWORK_PLUGINS_VERSION = ca38f675c300ebb7f637799dd62aab14232b8698
 WPEFRAMEWORK_PLUGINS_SITE = $(call github,rdkcentral,ThunderNanoServices,$(WPEFRAMEWORK_PLUGINS_VERSION))
 WPEFRAMEWORK_PLUGINS_INSTALL_STAGING = YES
 WPEFRAMEWORK_PLUGINS_DEPENDENCIES = wpeframework wpeframework-interfaces wpeframework-clientlibraries libpng
