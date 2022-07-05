@@ -4,11 +4,11 @@
 #
 ################################################################################
 
-COBALT_VERSION = 1ce72e8929579921868c9d87a0ba4128cc88d9e9
+COBALT_VERSION = 2cfdc7c0313f897d20f5a09860fe287200357cda
 COBALT_SITE_METHOD = git
 COBALT_SITE = git@github.com:Metrological/cobalt
 COBALT_INSTALL_STAGING = YES
-COBALT_DEPENDENCIES = gst1-plugins-good gst1-plugins-bad host-bison host-ninja wpeframework-clientlibraries
+COBALT_DEPENDENCIES = gst1-plugins-good gst1-plugins-bad host-bison host-ninja wpeframework-clientlibraries host-python-six host-gn
 
 export COBALT_STAGING_DIR=$(STAGING_DIR)
 export COBALT_TOOLCHAIN_PREFIX=$(TARGET_CROSS)
@@ -57,12 +57,13 @@ export COBALT_EXECUTABLE_TYPE = executable
 endif
 
 define COBALT_BUILD_CMDS
-    $(@D)/src/cobalt/build/gyp_cobalt -C $(COBALT_BUILD_TYPE) $(COBALT_PLATFORM)
-    $(HOST_DIR)/usr/bin/ninja -C $(@D)/src/out/$(COBALT_PLATFORM)_$(COBALT_BUILD_TYPE) cobalt_deploy
+    export PYTHONPATH="$(PYTHONPATH):$(@D)"; \
+    cd $(@D) && $(HOST_DIR)/usr/bin/gn gen out/$(COBALT_PLATFORM)_$(COBALT_BUILD_TYPE) --script-executable=python3 --args='target_platform="$(COBALT_PLATFORM)" build_type="$(COBALT_BUILD_TYPE)" target_cpu="arm" is_clang=false'
+    $(HOST_DIR)/usr/bin/ninja -C $(@D)/out/$(COBALT_PLATFORM)_$(COBALT_BUILD_TYPE) cobalt
 endef
 
 define COBALT_INSTALL_TARGET_CMDS
-    cp -a $(@D)/src/out/$(COBALT_PLATFORM)_$(COBALT_BUILD_TYPE)/content $(TARGET_DIR)/usr/share
+    cp -a $(@D)/out/$(COBALT_PLATFORM)_$(COBALT_BUILD_TYPE)/content $(TARGET_DIR)/usr/share
 endef
 
 
