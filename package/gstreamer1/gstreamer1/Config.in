@@ -22,6 +22,24 @@ config BR2_PACKAGE_GSTREAMER1_GIT
  help
    Use git snapshot version of master branch.
 
+choice
+        bool "version"
+        default BR2_PACKAGE_GSTREAMER1_10
+
+        help
+          Choose the GStreamer version to be built.
+
+config BR2_PACKAGE_GSTREAMER1_16
+        bool "1.16"
+        help
+          1.16.X (stable)
+
+config BR2_PACKAGE_GSTREAMER1_18
+        bool "1.18"
+        help
+          1.18.X
+endchoice
+
 config BR2_PACKAGE_GSTREAMER1_CHECK
 	bool "enable unit test libraries"
 	help

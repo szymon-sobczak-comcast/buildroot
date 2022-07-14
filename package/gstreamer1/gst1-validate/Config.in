@@ -7,6 +7,7 @@ config BR2_PACKAGE_GST1_VALIDATE
 	select BR2_PACKAGE_PYTHON3_PYEXPAT if BR2_PACKAGE_PYTHON3
 	# cairo is autodetected but needs PNG support
 	select BR2_PACKAGE_CAIRO_PNG if BR2_PACKAGE_CAIRO
+	select BR2_PACKAGE_GSTREAMER1_CHECK
 	help
 	  GstValidate is a tool that allows GStreamer developers to
 	  check that the GstElements they write behave the way they
@@ -17,3 +18,6 @@ config BR2_PACKAGE_GST1_VALIDATE
 comment "gst1-validate depends on python"
 	depends on !BR2_PACKAGE_PYTHON
 	depends on !BR2_PACKAGE_PYTHON3
+
+comment "gst1-validate depends on GSTREAMER1_CHECK"
+	depends on BR2_PACKAGE_GSTREAMER1_CHECK
