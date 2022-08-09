@@ -10,6 +10,14 @@ DBUS_LICENSE = AFL-2.1 or GPL-2.0+ (library, tools), GPL-2.0+ (tools)
 DBUS_LICENSE_FILES = COPYING
 DBUS_INSTALL_STAGING = YES
 
+ifeq ($(BR2_PACKAGE_PARODUS2CCSP),y)
+DBUS_POST_PATCH_HOOKS += DBUS_PATCHES
+define DBUS_PATCHES
+	patch -d $(@D)/ -p1 < package/dbus/$(DBUS_VERSION)/0004-dbus-include-ccsp-support.patch.ccsp
+endef
+
+endif
+
 define DBUS_PERMISSIONS
 	/usr/libexec/dbus-daemon-launch-helper f 4755 0 0 - - - - -
 endef
@@ -18,7 +26,7 @@ define DBUS_USERS
 	dbus -1 dbus -1 * /var/run/dbus - dbus DBus messagebus user
 endef
 
-DBUS_DEPENDENCIES = host-pkgconf expat
+DBUS_DEPENDENCIES = host-pkgconf expat host-autoconf host-automake host-autoconf-archive
 
 DBUS_CONF_OPTS = \
 	--with-dbus-user=dbus \
@@ -26,6 +34,8 @@ DBUS_CONF_OPTS = \
 	--disable-asserts \
 	--disable-xml-docs \
 	--disable-doxygen-docs \
+	--disable-libaudit \
+	--disable-checks \
 	--with-xml=expat \
 	--with-system-socket=/var/run/dbus/system_bus_socket \
 	--with-system-pid-file=/var/run/messagebus.pid

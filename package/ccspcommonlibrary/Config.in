@@ -1,0 +1,8 @@
+config BR2_PACKAGE_CCSPCOMMONLIBRARY
+    bool "CCSP Common Library"
+    select BR2_PACKAGE_DBUS
+    select BR2_PACKAGE_RBUS
+    select BR2_PACKAGE_SAFECLIB
+    default n
+    help
+       Ccsp common library
