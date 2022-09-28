@@ -5,6 +5,12 @@ menu "Linux Kernel Tools"
 config BR2_PACKAGE_LINUX_TOOLS
 	bool
 
+config BR2_PACKAGE_LINUX_TOOLS_EDID
+    bool "edid"
+	select BR2_PACKAGE_LINUX_TOOLS
+    help
+      Generate custom EDID binary blobs
+
 config BR2_PACKAGE_LINUX_TOOLS_CPUPOWER
 	bool "cpupower"
 	select BR2_PACKAGE_LINUX_TOOLS
