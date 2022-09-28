@@ -11,6 +11,16 @@ config BR2_PACKAGE_LINUX_TOOLS_EDID
     help
       Generate custom EDID binary blobs
 
+if BR2_PACKAGE_LINUX_TOOLS_EDID
+
+config BR2_PACKAGE_LINUX_TOOLS_EDID_BLOB
+    string "EDID blob to load"
+    default "1920x1080.bin"
+    help
+      Specify the binary blob to load as alternative EDID
+
+endif
+
 config BR2_PACKAGE_LINUX_TOOLS_CPUPOWER
 	bool "cpupower"
 	select BR2_PACKAGE_LINUX_TOOLS

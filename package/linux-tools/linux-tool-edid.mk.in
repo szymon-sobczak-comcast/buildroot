@@ -37,6 +37,21 @@ endef
 define EDID_INSTALL_STAGING_CMDS
 endef
 
+EDID_BLOB_FILENAME=$(subst ",,$(BR2_PACKAGE_LINUX_TOOLS_EDID_BLOB))
+
 define EDID_INSTALL_TARGET_CMDS
-	$(INSTALL) -m 0444 -D $(LINUX_DIR)/tools/edid/*.bin $(TARGET_DIR)/lib/firmware/
+	if test -f $(LINUX_DIR)/tools/edid/$(EDID_BLOB_FILENAME) ; then \
+		$(INSTALL) -m 0444 -D $(LINUX_DIR)/tools/edid/$(EDID_BLOB_FILENAME) $(TARGET_DIR)/lib/firmware/ ; \
+	fi;
 endef
+
+# No connector specified, all connectors apply
+ifeq ($(BR2_RPI_FIRMWARE)y,y)
+LINUX_TOOLS_POST_BUILD_HOOKS += EDID_POST_BUILD_HOOK
+EDID_DEPENDENCIES += rpi-firmware
+define EDID_POST_BUILD_HOOK
+	if test -f $(O)/images/rpi-firmware/cmdline.txt ; then \
+		$(SED) '1,1{s/$$/ drm_kms_helper.edid_firmware=edid\/$(EDID_BLOB_FILENAME)/}' $(O)/images/rpi-firmware/cmdline.txt ; \
+	fi;
+endef
+endif
