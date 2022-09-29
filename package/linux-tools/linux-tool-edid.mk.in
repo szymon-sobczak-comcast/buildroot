@@ -10,10 +10,10 @@ EDID_VERSION = $(LINUX_VERSION)
 
 EDID_DEPENDENCIES = linux host-util-linux
 
-EDID_MAKE_OPTS = CROSS=$(TARGET_CROSS)
+EDID_MAKE_OPTS =
 
 # dos2unix objcopy hexdump head tail cc
-# Debian: apt-get install build-essential bsdmainutils
+# Debian: apt-get install build-essential bsdmainutils dos2unix
 
 LINUX_TOOLS_POST_PATCH_HOOKS += EDID_POST_PATCH_HOOK 
 define EDID_POST_PATCH_HOOK 
@@ -31,6 +31,10 @@ define EDID_BUILD_CMDS
 
 	$(TARGET_MAKE_ENV) $(MAKE) -C $(LINUX_DIR)/tools/edid \
 		$(EDID_MAKE_OPTS) \
+		clean
+
+	$(TARGET_MAKE_ENV) $(MAKE) -C $(LINUX_DIR)/tools/edid \
+		$(EDID_MAKE_OPTS) \
 		all
 endef
 
@@ -41,7 +45,7 @@ EDID_BLOB_FILENAME=$(subst ",,$(BR2_PACKAGE_LINUX_TOOLS_EDID_BLOB))
 
 define EDID_INSTALL_TARGET_CMDS
 	if test -f $(LINUX_DIR)/tools/edid/$(EDID_BLOB_FILENAME) ; then \
-		$(INSTALL) -m 0444 -D $(LINUX_DIR)/tools/edid/$(EDID_BLOB_FILENAME) $(TARGET_DIR)/lib/firmware/ ; \
+		$(INSTALL) -m 0444 -D $(LINUX_DIR)/tools/edid/$(EDID_BLOB_FILENAME) $(TARGET_DIR)/lib/firmware/$(EDID_BLOB_FILENAME) ; \
 	fi;
 endef
 
