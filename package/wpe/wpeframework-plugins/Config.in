@@ -124,6 +124,61 @@ if BR2_PACKAGE_WPEFRAMEWORK_AVS
   endif
 endif
 
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE
+    bool "BackOffice"
+    help
+        BackOffice Plugin
+if BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE
+config BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE_AUTOSTART
+    bool "Start Automatically"
+    default y
+    help
+      Select this to start the plugin automatically when starting WPEFramework
+
+config BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE_SERVER_ADDRESS
+    string "Server Address"
+    default "localhost"
+
+config BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE_SERVER_PORT
+    string "Server Port"
+    default "80"
+
+config BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE_CUSTOMER
+    string "Customer"
+    default "Metrological"
+
+config BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE_PLATFORM
+    string "Platform"
+    default "RPI"
+
+config BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE_COUNTRY
+    string "Country"
+    default "US"
+
+config BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE_TYPE
+    string "Type"
+    default "App"
+
+config BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE_SESSION
+    string "Session"
+    default "1234"
+
+config BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE_CALLSIGN_MAPPING
+    string "Callsign Mapping"
+    default ""
+    help
+      Set callsign mapping in the format "Callsign1,DomainName1:Callsign2,DomainName2".
+      Example "DisneyPlus,com.metrological.app.DisneyPlus;AmazonPrime,com.metrological.app.AmazonPrime"
+
+config BR2_PACKAGE_WPEFRAMEWORK_BACKOFFICE_STATE_MAPPING
+    string "State Mapping"
+    default "Activated,load;Deactivated,unload;Resumed,open;Suspended,close"
+    help
+      Set state mapping in the format "PluginState1,Action1;PluginState2,Action2".
+      Example "Activated,load;Deactivated,unload;Resumed,open;Suspended,close"
+
+endif
+
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTH
     bool "BluetoothControl"
     select BR2_PACKAGE_WPEFRAMEWORK_LIBRARIES
@@ -249,7 +304,7 @@ if BR2_PACKAGE_WPEFRAMEWORK_CDMI
 
 config BR2_PACKAGE_WPEFRAMEWORK_CDMI_GROUP
     string "group"
-    default ""
+    default BR2_PACKAGE_WPEFRAMEWORK_CDMI_USER
     help
         run OpenCDM as this group, leave empty to use the same as
         WPEframework
@@ -317,7 +372,7 @@ config BR2_PACKAGE_WPEFRAMEWORK_COBALT_USER
 
 config BR2_PACKAGE_WPEFRAMEWORK_COBALT_GROUP
     string "group"
-    default ""
+    default BR2_PACKAGE_WPEFRAMEWORK_COBALT_USER
     help
         run Cobalt under this group, leave empty to use the same as
         WPEframework
@@ -981,7 +1036,7 @@ if BR2_PACKAGE_WPEFRAMEWORK_STREAMER
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_STREAMER_AAMP
     bool "AAMP"
     select BR2_PACKAGE_GST1_AAMP
-    default n
+    default y
     help
       Enable AAMP player
 
@@ -1330,7 +1385,7 @@ config BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_USER
 
 config BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_GROUP
     string "group"
-    default ""
+    default BR2_PACKAGE_WPEFRAMEWORK_WEBKITBROWSER_USER
     help
         run WebKitBrowser as this group, leave empty to use the same as
         WPEframework
@@ -1571,10 +1626,16 @@ config BR2_PACKAGE_WPEFRAMEWORK_WEBPA_CERTPATH
     default "/etc/ssl/certs/ca-certificates.crt"
 endif
 
-config BR2_PACKAGE_WPEFRAMEWORK_WEBPA_CCSP
-        bool "webpa ccsp client"
+choice BR2_PACKAGE_WPEFRAMEWORK_WEBPA_PLATFORM
+    bool "Client"
+    default BR2_PACKAGE_WPEFRAMEWORK_WEBPA_GENERIC_ADAPTER
+    config BR2_PACKAGE_WPEFRAMEWORK_WEBPA_GENERIC_ADAPTER
+        bool "Generic adapter client"
+    config BR2_PACKAGE_WPEFRAMEWORK_WEBPA_CCSP
         select BR2_PACKAGE_PARODUS2CCSP
-        default n
+        select BR2_PACKAGE_CCSPCR
+        bool "CCSP client"
+endchoice
 
 if BR2_PACKAGE_WPEFRAMEWORK_WEBPA_CCSP
 config BR2_PACKAGE_WPEFRAMEWORK_WEBPA_CCSPCLIENTURL
@@ -1585,12 +1646,9 @@ config BR2_PACKAGE_WPEFRAMEWORK_WEBPA_CCSP_DATAFILE
     default ""
 config BR2_PACKAGE_WPEFRAMEWORK_WEBPA_CCSP_CONFIGFILE
     string "Config File for CCSP Client"
-    default "/etc/webpa_cfg.json"
+    default "/usr/ccsp/ccsp_msg.cfg"
 endif
 
-config BR2_PACKAGE_WPEFRAMEWORK_WEBPA_GENERIC_ADAPTER
-        bool "webpa generic adapter client"
-        default y
 
 if BR2_PACKAGE_WPEFRAMEWORK_WEBPA_GENERIC_ADAPTER
 config BR2_PACKAGE_WPEFRAMEWORK_WEBPA_GENERICCLIENTURL
