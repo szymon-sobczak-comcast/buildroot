@@ -10,10 +10,8 @@ HOST_GN_SITE = https://cobalt.googlesource.com/third_party/gn
 HOST_GN_INSTALL_STAGING = YES
 HOST_GN_DEPENDENCIES = host-python3
 
-export CXX=g++
-
 define HOST_GN_BUILD_CMDS
-    $(HOST_DIR)/usr/bin/python3 $(@D)/build/gen.py --no-last-commit-position
+    export CXX=g++; $(HOST_DIR)/usr/bin/python3 $(@D)/build/gen.py --no-last-commit-position
     $(HOST_DIR)/usr/bin/ninja -C $(@D)/out
 endef
 
