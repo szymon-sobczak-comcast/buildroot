@@ -87,9 +87,14 @@ COG_CONF_OPTS_CMAKE += -DCOG_PLATFORM_DRM=OFF
 endif
 
 ifeq ($(BR2_PACKAGE_COG_USE_SYSTEM_DBUS),y)
+ifeq ($(BR2_PACKAGE_WPEWEBKIT2_38),y)
+COG_DBUS_POLICY_FILE = $(@D)/build/com.igalia.Cog.conf
+else
+COG_DBUS_POLICY_FILE = $(@D)/com.igalia.Cog.conf
+endif
 define COG_INSTALL_DBUS_POLICY
 	$(RM) $(TARGET_DIR)/etc/dbus-1/systemd.d/com.igalia.Cog.conf
-	$(INSTALL) -D -m 0644 $(@D)/com.igalia.Cog.conf $(TARGET_DIR)/usr/share/dbus-1/system.d/
+	$(INSTALL) -D -m 0644 $(COG_DBUS_POLICY_FILE) $(TARGET_DIR)/usr/share/dbus-1/system.d/
 endef
 COG_POST_INSTALL_TARGET_HOOKS += COG_INSTALL_DBUS_POLICY
 COG_CONF_OPTS_CMAKE += -DCOG_DBUS_SYSTEM_BUS=ON
