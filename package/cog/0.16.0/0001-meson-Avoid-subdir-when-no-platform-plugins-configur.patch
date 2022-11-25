@@ -1,0 +1,32 @@
+From 38e438a5b875aeeb23b44951a5e48e6bab6d92c7 Mon Sep 17 00:00:00 2001
+From: Adrian Perez de Castro <aperez@igalia.com>
+Date: Fri, 14 Oct 2022 01:54:52 +0300
+Subject: [PATCH] meson: Avoid subdir when no platform plugins configured
+
+This avoids a few dependency checks and makes it easier to build
+Cog when targeting a generic WPE backend.
+
+Signed-off-by: Adrian Perez de Castro <aperez@igalia.com>
+---
+ meson.build | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/meson.build b/meson.build
+index ca7bade..e4b4e8c 100644
+--- a/meson.build
++++ b/meson.build
+@@ -147,7 +147,10 @@ wpe_dep = dependency('wpe-1.0')
+ manette_dep = dependency('manette-0.2', version: '>=0.2.4', required: false)
+ 
+ subdir('core')
+-subdir('platform')
++
++if platform_plugins.length() > 0
++    subdir('platform')
++endif
+ 
+ if get_option('documentation')
+     subdir('docs')
+-- 
+2.38.0
+

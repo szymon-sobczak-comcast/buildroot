@@ -12,12 +12,13 @@ config BR2_PACKAGE_WPEWEBKIT_ARCH_SUPPORTS
 	depends on BR2_TOOLCHAIN_HAS_SYNC_4
 	depends on BR2_PACKAGE_LIBGPG_ERROR_ARCH_SUPPORTS # libgcrypt
 
-comment "wpewebkit needs a toolchain w/ C++, wchar, threads, dynamic library, gcc >= 7"
+comment "wpewebkit needs a toolchain w/ C++, wchar, threads, dynamic library, gcc >= 7, host gcc >= 4.9"
 	depends on BR2_PACKAGE_WPEWEBKIT_ARCH_SUPPORTS
 	depends on !BR2_BINFMT_FLAT
 	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_USE_WCHAR \
 		|| !BR2_TOOLCHAIN_HAS_THREADS || BR2_STATIC_LIBS \
-		|| !BR2_TOOLCHAIN_GCC_AT_LEAST_7
+		|| !BR2_TOOLCHAIN_GCC_AT_LEAST_7 \
+		|| !BR2_HOST_GCC_AT_LEAST_4_9
 
 comment "wpewebkit needs OpenGL ES and EGL"
 	depends on BR2_PACKAGE_WPEWEBKIT_ARCH_SUPPORTS
@@ -29,6 +30,7 @@ config BR2_PACKAGE_WPEWEBKIT
 	default y
 	depends on !BR2_STATIC_LIBS # wayland
 	depends on !BR2_BINFMT_FLAT # icu
+	depends on BR2_HOST_GCC_AT_LEAST_4_9 # icu, host-ruby
 	depends on BR2_INSTALL_LIBSTDCPP # harfbuzz, icu
 	depends on BR2_TOOLCHAIN_HAS_THREADS # wayland, icu, libsoup
 	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_7
@@ -36,23 +38,29 @@ config BR2_PACKAGE_WPEWEBKIT
 	depends on BR2_PACKAGE_HAS_LIBGLES # libepoxy
 	depends on BR2_PACKAGE_HAS_LIBEGL # libepoxy
 	depends on BR2_PACKAGE_WPEWEBKIT_ARCH_SUPPORTS
-	select BR2_PACKAGE_WPEBACKEND
-	select BR2_PACKAGE_WPEBACKEND_RDK
-	select BR2_PACKAGE_LIBEPOXY
 	select BR2_PACKAGE_CAIRO
 	select BR2_PACKAGE_CAIRO_PNG
-	select BR2_PACKAGE_JPEG
-	select BR2_PACKAGE_LIBPNG
 	select BR2_PACKAGE_HARFBUZZ
 	select BR2_PACKAGE_ICU
-	select BR2_PACKAGE_WEBP
-	select BR2_PACKAGE_WEBP_DEMUX
+	select BR2_PACKAGE_JPEG
+	select BR2_PACKAGE_LIBEPOXY
+	select BR2_PACKAGE_LIBGCRYPT
+	select BR2_PACKAGE_LIBPNG
 	select BR2_PACKAGE_LIBSOUP
 	select BR2_PACKAGE_LIBSOUP_SSL
-	select BR2_PACKAGE_LIBGCRYPT
 	select BR2_PACKAGE_LIBXSLT
-	select BR2_PACKAGE_XKEYBOARD_CONFIG
 	select BR2_PACKAGE_OPENJPEG
+        select BR2_PACKAGE_XKEYBOARD_CONFIG
+	select BR2_PACKAGE_WEBP
+	select BR2_PACKAGE_WEBP_DEMUX
+	select BR2_PACKAGE_WPEBACKEND
+	select BR2_PACKAGE_WPEBACKEND_RDK
+	help
+	  WPE (Web Platform for Embedded) port of the WebKit engine,
+	  to allow embedders to create simple and performant systems
+	  based on Web platform technologies.
+
+	  https://wpewebkit.org/
 
 if BR2_PACKAGE_WPEWEBKIT
 
@@ -64,14 +72,26 @@ choice
 
 config BR2_PACKAGE_WPEWEBKIT2_22
         bool "2.22"
+        depends on BR2_PACKAGE_LIBSOUP_VERSION_2
         help
           Build WPEWEBKIT 2.22
 
+comment "version 2.22 depends on libsoup2"
+	depends on !BR2_PACKAGE_LIBSOUP_VERSION_2
+
 config BR2_PACKAGE_WPEWEBKIT2_28
         bool "2.28"
-        select BR2_PACKAGE_LIBSOUP_VERSION_3
+        depends on BR2_PACKAGE_LIBSOUP_VERSION_3
         help
           Build WPEWEBKIT 2.28
+
+comment "version 2.28 depends on libsoup3"
+	depends on !BR2_PACKAGE_LIBSOUP_VERSION_3
+
+config BR2_PACKAGE_WPEWEBKIT2_38
+	bool "2.38"
+	help
+	  Build WPE WebKit 2.38.x
 
 endchoice
 
@@ -155,6 +175,20 @@ config BR2_PACKAGE_WPEWEBKIT_USE_GSTREAMER_WEBKIT_HTTP_SRC
 	help
 	  Use the WebKit network resource loader to download Media data over HTTP(S)
 
+config BR2_PACKAGE_WPEWEBKIT_ENABLE_TEXT_SINK
+	bool "Enable text sink"
+	default y
+	help
+	  Defines ENABLE_TEXT_SINK=ON
+
+config BR2_PACKAGE_WPEWEBKIT_WEBDRIVER
+	bool
+	default y
+
+endif
+
+if BR2_PACKAGE_WPEWEBKIT2_22 || BR2_PACKAGE_WPEWEBKIT2_38
+
 config BR2_PACKAGE_WPEWEBKIT_ENABLE_NATIVE_VIDEO
 	bool "Enable native video"
 	default y
@@ -167,15 +201,31 @@ config BR2_PACKAGE_WPEWEBKIT_ENABLE_NATIVE_AUDIO
 	help
 	  Defines ENABLE_NATIVE_AUDIO=ON
 
-config BR2_PACKAGE_WPEWEBKIT_ENABLE_TEXT_SINK
-	bool "Enable text sink"
-	default y
-	help
-	  Defines ENABLE_TEXT_SINK=ON
-
 endif
 
-if BR2_PACKAGE_WPEWEBKIT2_28
+config BR2_PACKAGE_WPEWEBKIT2_38_GST_DEPS
+	bool
+	default n
+	select BR2_PACKAGE_GST1_PLUGINS_BAD
+	select BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_DEBUGUTILS
+	select BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_MPEGTSDEMUX
+	select BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_SUBENC
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_ALSA
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_APP
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_AUDIOCONVERT
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_AUDIORESAMPLE
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_PLAYBACK
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_VIDEOCONVERT
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_VIDEOSCALE
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_VOLUME
+	select BR2_PACKAGE_GST1_PLUGINS_GOOD_PLUGIN_AUDIOFX
+	select BR2_PACKAGE_GST1_PLUGINS_GOOD_PLUGIN_AUTODETECT
+	select BR2_PACKAGE_GST1_PLUGINS_GOOD_PLUGIN_ISOMP4
+	select BR2_PACKAGE_GST1_PLUGINS_GOOD_PLUGIN_MATROSKA
+	select BR2_PACKAGE_GST1_PLUGINS_GOOD_PLUGIN_RTSP
+	select BR2_PACKAGE_GST1_PLUGINS_GOOD_PLUGIN_VPX
+
+if BR2_PACKAGE_WPEWEBKIT2_28 || BR2_PACKAGE_WPEWEBKIT2_38
 
 config BR2_PACKAGE_WPEWEBKIT_MULTIMEDIA
 	bool "multimedia support"
@@ -183,6 +233,7 @@ config BR2_PACKAGE_WPEWEBKIT_MULTIMEDIA
 	select BR2_PACKAGE_GSTREAMER1
 	select BR2_PACKAGE_GST1_PLUGINS_BASE
 	select BR2_PACKAGE_GST1_PLUGINS_GOOD
+	select BR2_PACKAGE_WPEWEBKIT2_38_GST_DEPS if BR2_PACKAGE_WPEWEBKIT2_38
 	# Needed for WebAudio, to enable "audiointerleave" from audiomixer
 	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_AUDIOMIXER
 	help
