@@ -12,6 +12,7 @@ EXPLORA_SDK_DEPENDENCIES += openssl
 
 define EXPLORA_SDK_INSTALL_STAGING_CMDS
 	$(INSTALL) -d $(STAGING_DIR)/usr/lib
+	$(INSTALL) -d $(STAGING_DIR)/UserApps/metrological
 	$(INSTALL) -D -m 0644 $(@D)/libs/* $(STAGING_DIR)/usr/lib/
 
 	$(INSTALL) -d $(STAGING_DIR)/usr/lib/pkgconfig
@@ -28,6 +29,7 @@ endef
 
 define EXPLORA_SDK_INSTALL_TARGET_CMDS
 #	$(INSTALL) -d $(TARGET_DIR)/usr/lib
+	$(INSTALL) -d $(TARGET_DIR)/UserApps/metrological
 #	$(INSTALL) -D -m 0644 $(@D)/libs/* $(TARGET_DIR)/usr/lib/
 #	$(INSTALL) -d $(TARGET_DIR)/etc/init.d
 #	$(INSTALL) -D -m 0750 $(@D)/bin/S40boxinfo $(TARGET_DIR)/etc/init.d
