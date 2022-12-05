@@ -1,0 +1,45 @@
+diff -Naur wpeframework-cdmi-widevine-nexus-svp.orig/HostImplementation.cpp wpeframework-cdmi-widevine-nexus-svp/HostImplementation.cpp
+--- wpeframework-cdmi-widevine-nexus-svp.orig/HostImplementation.cpp	2021-02-11 18:00:07.000000000 +0000
++++ wpeframework-cdmi-widevine-nexus-svp/HostImplementation.cpp	2022-12-05 16:43:15.511299275 +0000
+@@ -43,6 +43,7 @@
+  ###############################################################################
+ */
+ 
++#include "Module.h"
+ #include "HostImplementation.h"
+ 
+ using namespace widevine;
+diff -Naur wpeframework-cdmi-widevine-nexus-svp.orig/MediaSession.cpp wpeframework-cdmi-widevine-nexus-svp/MediaSession.cpp
+--- wpeframework-cdmi-widevine-nexus-svp.orig/MediaSession.cpp	2021-02-11 18:00:07.000000000 +0000
++++ wpeframework-cdmi-widevine-nexus-svp/MediaSession.cpp	2022-12-05 16:44:09.608710871 +0000
+@@ -43,6 +43,7 @@
+  ###############################################################################
+  */
+ 
++#include "Module.h"
+ #include "MediaSession.h"
+ #include "Policy.h"
+ 
+diff -Naur wpeframework-cdmi-widevine-nexus-svp.orig/MediaSystem.cpp wpeframework-cdmi-widevine-nexus-svp/MediaSystem.cpp
+--- wpeframework-cdmi-widevine-nexus-svp.orig/MediaSystem.cpp	2021-02-11 18:00:07.000000000 +0000
++++ wpeframework-cdmi-widevine-nexus-svp/MediaSystem.cpp	2022-12-05 16:43:41.215969631 +0000
+@@ -43,6 +43,7 @@
+  ###############################################################################
+  */
+ 
++#include "Module.h"
+ #include "MediaSession.h"
+ #include "HostImplementation.h"
+ 
+diff -Naur wpeframework-cdmi-widevine-nexus-svp.orig/Module.h wpeframework-cdmi-widevine-nexus-svp/Module.h
+--- wpeframework-cdmi-widevine-nexus-svp.orig/Module.h	1970-01-01 00:00:00.000000000 +0000
++++ wpeframework-cdmi-widevine-nexus-svp/Module.h	2022-12-05 16:42:11.393630324 +0000
+@@ -0,0 +1,8 @@
++#pragma once
++
++#ifndef MODULE_NAME
++#define MODULE_NAME OCDM_Widevine
++#endif
++
++#include <core/core.h>
++

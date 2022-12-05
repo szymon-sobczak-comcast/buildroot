@@ -1,0 +1,9 @@
+diff -Naur rdkservices.orig/OpenCDMi/OCDM.config rdkservices/OpenCDMi/OCDM.config
+--- rdkservices.orig/OpenCDMi/OCDM.config	2022-03-29 17:20:11.000000000 +0000
++++ rdkservices/OpenCDMi/OCDM.config	2022-12-05 18:19:39.475472433 +0000
+@@ -1,5 +1,4 @@
+ set(autostart ${PLUGIN_OPENCDMI_AUTOSTART})
+-set(preconditions Provisioning)
+ 
+ if(PLUGIN_OPENCDMI_PLAYREADY_NEXUS OR PLUGIN_OPENCDMI_PLAYREADY_NEXUS_SVP OR PLUGIN_OPENCDMI_NAGRA)
+     set(preconditions ${preconditions} Platform)

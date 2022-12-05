@@ -1,0 +1,1243 @@
+diff -Naur ThunderNanoServices.orig/Cobalt/Cobalt.cpp ThunderNanoServices/Cobalt/Cobalt.cpp
+--- ThunderNanoServices.orig/Cobalt/Cobalt.cpp	2022-05-20 08:17:56.000000000 +0000
++++ ThunderNanoServices/Cobalt/Cobalt.cpp	2022-12-05 19:51:22.771453345 +0000
+@@ -2,7 +2,7 @@
+  * If not stated otherwise in this file or this component's LICENSE file the
+  * following copyright and licenses apply:
+  *
+- * Copyright 2020 RDK Management
++ * Copyright 2020 Metrological
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -22,7 +22,54 @@
+ namespace WPEFramework {
+ namespace Cobalt {
+ 
+-extern Exchange::IMemory* MemoryObserver(const RPC::IRemoteConnection* connection);
++class MemoryObserverImpl: public Exchange::IMemory {
++private:
++    MemoryObserverImpl();
++    MemoryObserverImpl(const MemoryObserverImpl&);
++    MemoryObserverImpl& operator=(const MemoryObserverImpl&);
++
++    public:
++    MemoryObserverImpl(const RPC::IRemoteConnection* connection) :
++        _main(connection == nullptr ? Core::ProcessInfo().Id() : connection->RemoteId())
++    {
++    }
++    ~MemoryObserverImpl() override = default;
++
++    public:
++    uint64_t Resident() const override
++    {
++        return _main.Resident();
++    }
++    uint64_t Allocated() const override
++    {
++        return _main.Allocated();
++    }
++    uint64_t Shared() const override
++    {
++        return _main.Shared();
++    }
++    uint8_t Processes() const override
++    {
++        return (IsOperational() ? 1 : 0);
++    }
++
++    bool const IsOperational() const override
++    {
++        return _main.IsActive();
++    }
++
++    BEGIN_INTERFACE_MAP (MemoryObserverImpl)INTERFACE_ENTRY (Exchange::IMemory)END_INTERFACE_MAP
++
++private:
++    Core::ProcessInfo _main;
++    };
++
++    Exchange::IMemory* MemoryObserver(const RPC::IRemoteConnection* connection)
++    {
++        ASSERT(connection != nullptr);
++        Exchange::IMemory* result = Core::Service<MemoryObserverImpl>::Create<Exchange::IMemory>(connection);
++        return (result);
++    }
+ }
+ 
+ namespace Plugin {
+@@ -32,12 +79,14 @@
+ static Core::ProxyPoolType<Web::TextBody> _textBodies(2);
+ static Core::ProxyPoolType<Web::JSONBodyType<Cobalt::Data>> jsonBodyDataFactory(2);
+ 
+-/* encapsulated class Thread  */
+-/* virtual */const string Cobalt::Initialize(PluginHost::IShell *service) {
++const string Cobalt::Initialize(PluginHost::IShell *service)
++{
+     Config config;
+     string message;
+ 
++    ASSERT(service != nullptr);
+     ASSERT(_service == nullptr);
++    ASSERT(_connectionId == 0);
+     ASSERT(_cobalt == nullptr);
+     ASSERT(_application == nullptr);
+     ASSERT(_memory == nullptr);
+@@ -45,8 +94,8 @@
+     config.FromString(service->ConfigLine());
+     _persistentStoragePath = service->PersistentPath();
+ 
+-    _connectionId = 0;
+     _service = service;
++    _service->AddRef();
+     _skipURL = _service->WebPrefix().length();
+ 
+     // Register the Connection::Notification stuff. The Remote process might die
+@@ -58,79 +107,99 @@
+             > (_connectionId, 2000, _T("CobaltImplementation"));
+ 
+     if (_cobalt != nullptr) {
+-
++        _cobalt->Register(&_notification);
+         PluginHost::IStateControl *stateControl(
+                 _cobalt->QueryInterface<PluginHost::IStateControl>());
++
+         if (stateControl == nullptr) {
+-            _cobalt->Release();
+-            _cobalt = nullptr;
++            message = _T("Cobalt StateControl could not be Obtained.");
+         } else {
+-
+-            RPC::IRemoteConnection* remoteConnection = _service->RemoteConnection(_connectionId);
+-            _memory = WPEFramework::Cobalt::MemoryObserver(remoteConnection);
+-            ASSERT(_memory != nullptr);
+-            remoteConnection->Release();
+-
+-            _cobalt->Register(&_notification);
+             stateControl->Register(&_notification);
+             stateControl->Configure(_service);
+             stateControl->Release();
+             _application = _cobalt->QueryInterface<Exchange::IApplication>();
++            if (_application != nullptr) {
++
++                RegisterAll();
++                Exchange::JApplication::Register(*this, _application);
++
++                RPC::IRemoteConnection* remoteConnection = _service->RemoteConnection(_connectionId);
++                if (remoteConnection != nullptr) {
++                    _memory = WPEFramework::Cobalt::MemoryObserver(remoteConnection);
++                    ASSERT(_memory != nullptr);
++                    remoteConnection->Release();
++                }
++            } else {
++                message = _T("Cobalt IApplication could not be Obtained.");
++            }
+         }
++    } else {
++        message = _T("Cobalt could not be instantiated.");
+     }
+ 
+-    if (_cobalt == nullptr) {
+-        message = _T("Cobalt could not be instantiated.");
+-        _service->Unregister(&_notification);
+-        _service = nullptr;
+-        ConnectionTermination(_connectionId);
++    if (message.length() != 0) {
++       Deinitialize(service);
+     }
+ 
+     return message;
+ }
+ 
+-/* virtual */void Cobalt::Deinitialize(PluginHost::IShell *service) {
++void Cobalt::Deinitialize(PluginHost::IShell *service VARIABLE_IS_NOT_USED)
++{
+     ASSERT(_service == service);
+-    ASSERT(_cobalt != nullptr);
+-    ASSERT(_application != nullptr);
+-    ASSERT(_memory != nullptr);
+-
+-    PluginHost::IStateControl *stateControl(
+-            _cobalt->QueryInterface<PluginHost::IStateControl>());
+ 
+-    // Make sure the Activated and Deactivated are no longer called before we
+-    // start cleaning up..
+     _service->Unregister(&_notification);
+-    _cobalt->Unregister(&_notification);
+-    _memory->Release();
+-    _application->Release();
+-
+-    // In case Cobalt crashed, there is no access to the statecontrol interface,
+-    // check it !!
+-    if (stateControl != nullptr) {
+-        stateControl->Unregister(&_notification);
+-        stateControl->Release();
+-    } else {
+-        // On behalf of the crashed process, we will release the notification sink.
+-        _notification.Release();
+-    }
+-
+-    _cobalt->Release();
+ 
+-    ConnectionTermination(_connectionId);
++    if (_cobalt != nullptr) {
++        _cobalt->Unregister(&_notification);
++        PluginHost::IStateControl *stateControl(_cobalt->QueryInterface<PluginHost::IStateControl>());
++        // Make sure the Activated and Deactivated are no longer called before we
++        // start cleaning up..
++        // In case Cobalt crashed, there is no access to the statecontrol interface,
++        // check it !!
++        if (stateControl != nullptr) {
++            stateControl->Unregister(&_notification);
++            stateControl->Release();
++        } else {
++            // On behalf of the crashed process, we will release the notification sink.
++            _notification.Release();
++        }
++        if (_memory != nullptr) {
++            _memory->Release();
++            _memory = nullptr;
++        }
++        if (_application != nullptr) {
++            Exchange::JApplication::Unregister(*this);
++            UnregisterAll();
++            _application->Release();
++            _application = nullptr;
++        }
+ 
+-    // Deinitialize what we initialized..
+-    _memory = nullptr;
+-    _cobalt = nullptr;
++        RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));
++        VARIABLE_IS_NOT_USED uint32_t result = _cobalt->Release();
++        _cobalt = nullptr;
++        ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);
++
++        // The connection can disappear in the meantime...
++        if (connection != nullptr) {
++            // But if it did not dissapear in the meantime, forcefully terminate it. Shoot to kill :-)
++            connection->Terminate();
++            connection->Release();
++        }
++    }
++    _service->Release();
+     _service = nullptr;
++    _connectionId = 0;
+ }
+ 
+-/* virtual */string Cobalt::Information() const {
++string Cobalt::Information() const
++{
+     // No additional info to report.
+     return (string());
+ }
+ 
+-/* virtual */void Cobalt::Inbound(Web::Request &request) {
++void Cobalt::Inbound(Web::Request &request)
++{
+     if (request.Verb == Web::Request::HTTP_POST) {
+         // This might be a "launch" application thingy, make sure we receive the
+         // proper info.
+@@ -139,8 +208,8 @@
+     }
+ }
+ 
+-/* virtual */Core::ProxyType<Web::Response> Cobalt::Process(
+-        const Web::Request &request) {
++Core::ProxyType<Web::Response> Cobalt::Process(const Web::Request &request)
++{
+     ASSERT(_skipURL <= request.Path.length());
+     TRACE(Trace::Information, (string(_T("Received cobalt request"))));
+ 
+@@ -184,7 +253,8 @@
+     return result;
+ }
+ 
+-void Cobalt::LoadFinished(const string &URL) {
++void Cobalt::LoadFinished(const string &URL)
++{
+     string message(
+             string("{ \"url\": \"") + URL + string("\", \"loaded\":true }"));
+     TRACE(Trace::Information, (_T("LoadFinished: %s"), message.c_str()));
+@@ -193,7 +263,8 @@
+     event_urlchange(URL, true);
+ }
+ 
+-void Cobalt::URLChanged(const string &URL) {
++void Cobalt::URLChanged(const string &URL)
++{
+     string message(string("{ \"url\": \"") + URL + string("\" }"));
+     TRACE(Trace::Information, (_T("URLChanged: %s"), message.c_str()));
+     _service->Notify(message);
+@@ -201,7 +272,8 @@
+     event_urlchange(URL, false);
+ }
+ 
+-void Cobalt::Hidden(const bool hidden) {
++void Cobalt::Hidden(const bool hidden)
++{
+     TRACE(Trace::Information,
+             (_T("Hidden: %s }"), (hidden ? "true" : "false")));
+     string message(
+@@ -213,7 +285,23 @@
+     event_visibilitychange(hidden);
+ }
+ 
+-void Cobalt::StateChange(const PluginHost::IStateControl::state state) {
++uint32_t Cobalt::DeleteDir(const string& path)
++{
++    uint32_t result = Core::ERROR_NONE;
++    if (path.empty() == false) {
++        string fullPath = _persistentStoragePath + path;
++        Core::Directory dir(fullPath.c_str());
++        if (!dir.Destroy(false)) {
++            TRACE(Trace::Error, (_T("Failed to delete %s\n"), fullPath.c_str()));
++            result = Core::ERROR_UNKNOWN_KEY;
++        }
++    }
++
++    return result;
++}
++
++void Cobalt::StateChange(const PluginHost::IStateControl::state state)
++{
+     switch (state) {
+     case PluginHost::IStateControl::RESUMED:
+         TRACE(Trace::Information,
+@@ -242,7 +330,8 @@
+     }
+ }
+ 
+-void Cobalt::Deactivated(RPC::IRemoteConnection *connection) {
++void Cobalt::Deactivated(RPC::IRemoteConnection *connection)
++{
+     if (connection->Id() == _connectionId) {
+ 
+         ASSERT(_service != nullptr);
+diff -Naur ThunderNanoServices.orig/Cobalt/Cobalt.h ThunderNanoServices/Cobalt/Cobalt.h
+--- ThunderNanoServices.orig/Cobalt/Cobalt.h	2022-05-20 08:17:56.000000000 +0000
++++ ThunderNanoServices/Cobalt/Cobalt.h	2022-12-05 19:51:30.339657536 +0000
+@@ -2,7 +2,7 @@
+  * If not stated otherwise in this file or this component's LICENSE file the
+  * following copyright and licenses apply:
+  *
+- * Copyright 2020 RDK Management
++ * Copyright 2020 Metrological
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -25,6 +25,7 @@
+ #include <interfaces/IMemory.h>
+ #include <interfaces/json/JsonData_Browser.h>
+ #include <interfaces/json/JsonData_StateControl.h>
++#include <interfaces/json/JApplication.h>
+ 
+ namespace WPEFramework {
+ namespace Plugin {
+@@ -33,54 +34,55 @@
+         public PluginHost::IWeb,
+         public PluginHost::JSONRPC {
+ private:
+-    Cobalt(const Cobalt&);
+-    Cobalt& operator=(const Cobalt&);
+ 
+     class Notification: public RPC::IRemoteConnection::INotification,
+             public PluginHost::IStateControl::INotification,
+             public Exchange::IBrowser::INotification {
+ 
+-    private:
++    public:
+         Notification() = delete;
+         Notification(const Notification&) = delete;
+         Notification& operator=(const Notification&) = delete;
+ 
+     public:
+-        explicit Notification(Cobalt *parent) :
+-                _parent(*parent) {
++        explicit Notification(Cobalt* parent)
++            : _parent(*parent)
++        {
+             ASSERT(parent != nullptr);
+         }
+-        ~Notification() {
+-        }
++        ~Notification() override = default;
+ 
+     public:
+         BEGIN_INTERFACE_MAP (Notification)
+         INTERFACE_ENTRY (PluginHost::IStateControl::INotification)
+         INTERFACE_ENTRY (Exchange::IBrowser::INotification)
+-        INTERFACE_ENTRY (RPC::IRemoteConnection::INotification)END_INTERFACE_MAP
++        INTERFACE_ENTRY (RPC::IRemoteConnection::INotification)
++        END_INTERFACE_MAP
+ 
+     private:
+-        virtual void StateChange(
+-                const PluginHost::IStateControl::state state) override {
++        void StateChange(const PluginHost::IStateControl::state state) override
++        {
+             _parent.StateChange(state);
+         }
+-        // Signal changes on the subscribed namespace..
+-        virtual void LoadFinished(const string &URL) override {
++        void LoadFinished(const string &URL) override
++        {
+             _parent.LoadFinished(URL);
+         }
+-        virtual void URLChanged(const string &URL) override {
++        void URLChanged(const string &URL) override
++        {
+             _parent.URLChanged(URL);
+         }
+-        virtual void Hidden(const bool hidden) override {
++        void Hidden(const bool hidden) override
++        {
+             _parent.Hidden(hidden);
+         }
+-        virtual void Closure() override
++        void Closure() override
+         {
+         }
+-        virtual void Activated(RPC::IRemoteConnection*) override
++        void Activated(RPC::IRemoteConnection*) override
+         {
+         }
+-        virtual void Deactivated(RPC::IRemoteConnection *connection) override
++        void Deactivated(RPC::IRemoteConnection *connection) override
+         {
+             _parent.Deactivated(connection);
+         }
+@@ -91,21 +93,24 @@
+ 
+ public:
+     class Data: public Core::JSON::Container {
+-    private:
++    public:
+         Data(const Data&) = delete;
+         Data& operator=(const Data&) = delete;
+ 
+     public:
+-        Data() :
+-            Core::JSON::Container(), URL(),
+-                  FPS(), Suspended(false), Hidden(false) {
++        Data()
++            : Core::JSON::Container()
++            , URL()
++            , FPS()
++            , Suspended(false)
++            , Hidden(false)
++        {
+             Add(_T("url"), &URL);
+             Add(_T("fps"), &FPS);
+             Add(_T("suspended"), &Suspended);
+             Add(_T("hidden"), &Hidden);
+         }
+-        ~Data() {
+-        }
++        ~Data() override = default;
+ 
+     public:
+         Core::JSON::String URL;
+@@ -115,20 +120,27 @@
+     };
+ 
+ public:
+-    Cobalt() :
+-            _skipURL(0), _hidden(false), _cobalt(nullptr), _application(nullptr),
+-            _memory(nullptr), _service(nullptr), _notification(this) {
+-        RegisterAll();
+-    }
+-    virtual ~Cobalt() {
+-        UnregisterAll();
++    Cobalt(const Cobalt&);
++    Cobalt& operator=(const Cobalt&);
++    Cobalt()
++        : _skipURL(0)
++        , _connectionId(0)
++        , _hidden(false)
++        , _cobalt(nullptr)
++        , _application(nullptr)
++        , _memory(nullptr)
++        , _service(nullptr)
++        , _notification(this) {
+     }
++    ~Cobalt() override = default;
+ 
+ public:
+     BEGIN_INTERFACE_MAP (Cobalt)
+     INTERFACE_ENTRY (PluginHost::IPlugin)
+     INTERFACE_ENTRY (PluginHost::IWeb)
+-    INTERFACE_ENTRY (PluginHost::IDispatcher)INTERFACE_AGGREGATE(PluginHost::IStateControl, _cobalt)
++    INTERFACE_ENTRY (PluginHost::IDispatcher)
++    INTERFACE_AGGREGATE(PluginHost::IStateControl, _cobalt)
++    INTERFACE_AGGREGATE(Exchange::IApplication, _application)
+     INTERFACE_AGGREGATE(Exchange::IBrowser, _cobalt)
+     INTERFACE_AGGREGATE(Exchange::IMemory, _memory)
+     END_INTERFACE_MAP
+@@ -136,14 +148,14 @@
+ public:
+     //  IPlugin methods
+     // -------------------------------------------------------------------------------------------------------
+-    virtual const string Initialize(PluginHost::IShell* service);
+-    virtual void Deinitialize(PluginHost::IShell *service);
+-    virtual string Information() const;
++    const string Initialize(PluginHost::IShell* service) override;
++    void Deinitialize(PluginHost::IShell *service) override;
++    string Information() const override;
+ 
+     //  IWeb methods
+     // -------------------------------------------------------------------------------------------------------
+-    virtual void Inbound(Web::Request &request);
+-    virtual Core::ProxyType<Web::Response> Process(const Web::Request &request);
++    void Inbound(Web::Request &request) override;
++    Core::ProxyType<Web::Response> Process(const Web::Request &request) override;
+ 
+ private:
+     void Deactivated(RPC::IRemoteConnection *connection);
+@@ -153,17 +165,6 @@
+     void Hidden(const bool hidden);
+     void Closure();
+ 
+-    inline void ConnectionTermination(uint32_t connectionId)
+-    {
+-        if (connectionId != 0) {
+-            RPC::IRemoteConnection* connection(_service->RemoteConnection(connectionId));
+-            if (connection != nullptr) {
+-                connection->Terminate();
+-                connection->Release();
+-            }
+-        }
+-    }
+-
+     // JsonRpc
+     void RegisterAll();
+     void UnregisterAll();
+@@ -179,7 +180,7 @@
+     uint32_t set_state(
+             const Core::JSON::EnumType<JsonData::StateControl::StateType> &param); // StateControl
+     uint32_t endpoint_delete(const JsonData::Browser::DeleteParamsData& params);
+-    uint32_t delete_dir(const string& path);
++    uint32_t DeleteDir(const string& path);
+     uint32_t set_deeplink(const Core::JSON::String &param); // Application
+     void event_urlchange(const string &url, const bool &loaded); // Browser
+     void event_visibilitychange(const bool &hidden); // Browser
+diff -Naur ThunderNanoServices.orig/Cobalt/CobaltImplementation.cpp ThunderNanoServices/Cobalt/CobaltImplementation.cpp
+--- ThunderNanoServices.orig/Cobalt/CobaltImplementation.cpp	2022-05-20 08:17:56.000000000 +0000
++++ ThunderNanoServices/Cobalt/CobaltImplementation.cpp	2022-12-05 19:51:22.771453345 +0000
+@@ -2,7 +2,7 @@
+  * If not stated otherwise in this file or this component's LICENSE file the
+  * following copyright and licenses apply:
+  *
+- * Copyright 2020 RDK Management
++ * Copyright 2020 Metrological
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -49,19 +49,14 @@
+         Config()
+             : Core::JSON::Container()
+             , Url()
++            , LogLevel()
+             , Inspector()
+             , Width(1280)
+             , Height(720)
+             , RepeatStart()
+             , RepeatInterval()
+             , ClientIdentifier()
+-            , ManufacturerName()
+-            , ChipsetModelNumber()
+-            , FirmwareVersion()
+-            , ModelName()
+-            , ModelYear()
+             , OperatorName()
+-            , FriendlyName()
+             , CertificationScope()
+             , CertificationSecret()
+             , Language()
+@@ -69,43 +64,32 @@
+             , PlaybackRates(true)
+         {
+             Add(_T("url"), &Url);
++            Add(_T("loglevel"), &LogLevel);
+             Add(_T("inspector"), &Inspector);
+             Add(_T("width"), &Width);
+             Add(_T("height"), &Height);
+             Add(_T("repeatstart"), &RepeatStart);
+             Add(_T("repeatinterval"), &RepeatInterval);
+             Add(_T("clientidentifier"), &ClientIdentifier);
+-            Add(_T("manufacturername"), &ManufacturerName);
+-            Add(_T("chipsetmodelnumber"), &ChipsetModelNumber);
+-            Add(_T("firmwareversion"), &FirmwareVersion);
+-            Add(_T("modelname"), &ModelName);
+-            Add(_T("modelyear"), &ModelYear);
+             Add(_T("operatorname"), &OperatorName);
+-            Add(_T("friendlyname"), &FriendlyName);
+             Add(_T("scope"), &CertificationScope);
+             Add(_T("secret"), &CertificationSecret);
+             Add(_T("language"), &Language);
+             Add(_T("connection"), &Connection);
+             Add(_T("playbackrates"), &PlaybackRates);
+         }
+-        ~Config() {
+-        }
++        ~Config() override = default;
+ 
+     public:
+         Core::JSON::String Url;
++        Core::JSON::String LogLevel;
+         Core::JSON::String Inspector;
+         Core::JSON::DecUInt16 Width;
+         Core::JSON::DecUInt16 Height;
+         Core::JSON::DecUInt32 RepeatStart;
+         Core::JSON::DecUInt32 RepeatInterval;
+         Core::JSON::String ClientIdentifier;
+-        Core::JSON::String ManufacturerName;
+-        Core::JSON::String ChipsetModelNumber;
+-        Core::JSON::String FirmwareVersion;
+-        Core::JSON::String ModelName;
+-        Core::JSON::String ModelYear;
+         Core::JSON::String OperatorName;
+-        Core::JSON::String FriendlyName;
+         Core::JSON::String CertificationScope;
+         Core::JSON::String CertificationSecret;
+         Core::JSON::String Language;
+@@ -120,24 +104,29 @@
+         NotificationSink& operator=(const NotificationSink&) = delete;
+ 
+     public:
+-        NotificationSink(CobaltImplementation &parent) :
+-                _parent(parent), _waitTime(0), _command(
+-                        PluginHost::IStateControl::SUSPEND) {
++        NotificationSink(CobaltImplementation &parent)
++            : _parent(parent)
++            , _waitTime(0)
++            , _command(PluginHost::IStateControl::SUSPEND)
++        {
+         }
+-        virtual ~NotificationSink() {
++        ~NotificationSink() override
++        {
+             Stop();
+             Wait(Thread::STOPPED | Thread::BLOCKED, Core::infinite);
+         }
+ 
+     public:
+         void RequestForStateChange(
+-                const PluginHost::IStateControl::command command) {
++                const PluginHost::IStateControl::command command)
++        {
+             _command = command;
+             Run();
+         }
+ 
+     private:
+-        virtual uint32_t Worker() {
++        uint32_t Worker() override
++        {
+             bool success = false;
+ 
+             if ((IsRunning() == true) && (success == false)) {
+@@ -160,21 +149,25 @@
+         CobaltWindow& operator=(const CobaltWindow&) = delete;
+ 
+     public:
+-        CobaltWindow()
++        CobaltWindow(CobaltImplementation &parent)
+             : Core::Thread(0, _T("Cobalt"))
++            , _parent(parent)
+             , _url{"https://www.youtube.com/tv"}
++            , _logLevel("info")
++            , _language()
+             , _debugListenIp("0.0.0.0")
+             , _debugPort()
+         {
+         }
+-        virtual ~CobaltWindow()
++        ~CobaltWindow() override
+         {
+             Block();
+-            Signal(SIGQUIT);
++            third_party::starboard::wpe::shared::Stop();
+             Wait(Thread::BLOCKED | Thread::STOPPED | Thread::STOPPING, Core::infinite);
+         }
+ 
+-        uint32_t Configure(PluginHost::IShell* service) {
++        uint32_t Configure(PluginHost::IShell* service)
++        {
+             uint32_t result = Core::ERROR_NONE;
+ 
+             Config config;
+@@ -211,34 +204,10 @@
+                 Core::SystemInfo::SetEnvironment(_T("COBALT_KEY_REPEAT_INTERVAL"), repeatInterval);
+             }
+ 
+-            if (config.ManufacturerName.IsSet() == true) {
+-                Core::SystemInfo::SetEnvironment(_T("COBALT_MANUFACTURER_NAME"), config.ManufacturerName.Value());
+-            }
+-
+-            if (config.ChipsetModelNumber.IsSet() == true) {
+-                Core::SystemInfo::SetEnvironment(_T("COBALT_CHIPSET_MODEL_NUMBER"), config.ChipsetModelNumber.Value());
+-            }
+-
+-            if (config.FirmwareVersion.IsSet() == true) {
+-                Core::SystemInfo::SetEnvironment(_T("COBALT_FIRMWARE_VERSION"), config.FirmwareVersion.Value());
+-            }
+-
+-            if (config.ModelName.IsSet() == true) {
+-                Core::SystemInfo::SetEnvironment(_T("COBALT_MODEL_NAME"), config.ModelName.Value());
+-            }
+-
+-            if (config.ModelYear.IsSet() == true) {
+-                Core::SystemInfo::SetEnvironment(_T("COBALT_MODEL_YEAR"), config.ModelYear.Value());
+-            }
+-
+             if (config.OperatorName.IsSet() == true) {
+                 Core::SystemInfo::SetEnvironment(_T("COBALT_OPERATOR_NAME"), config.OperatorName.Value());
+             }
+ 
+-            if (config.FriendlyName.IsSet() == true) {
+-                Core::SystemInfo::SetEnvironment(_T("COBALT_FRIENDLY_NAME"), config.FriendlyName.Value());
+-            }
+-
+             if (config.CertificationScope.IsSet() == true) {
+                 Core::SystemInfo::SetEnvironment(_T("COBALT_CERTIFICATION_SCOPE"), config.CertificationScope.Value());
+             }
+@@ -248,8 +217,7 @@
+             }
+ 
+             if (config.Language.IsSet() == true) {
+-                Core::SystemInfo::SetEnvironment(_T("LANG"), config.Language.Value().c_str());
+-                Core::SystemInfo::SetEnvironment(_T("LANGUAGE"), config.Language.Value().c_str());
++                Language(config.Language.Value());
+             }
+ 
+             if ( (config.Connection.IsSet() == true) && (config.Connection == CobaltImplementation::connection::WIRELESS) ) {
+@@ -261,7 +229,11 @@
+             }
+ 
+             if (config.Url.IsSet() == true) {
+-              _url = config.Url.Value();
++                _url = config.Url.Value();
++            }
++
++            if (config.LogLevel.IsSet() == true) {
++                _logLevel = config.LogLevel.Value();
+             }
+ 
+             if (config.Inspector.Value().empty() == false) {
+@@ -288,32 +260,36 @@
+             return (true);
+         }
+ 
+-        string Url() const { return _url; }
+-
+-    private:
+-        bool Initialize() override
++        inline string Url() const { return _url; }
++        inline void Language(string& language) const { language = _language; }
++        inline void Language(const string& language)
+         {
+-            sigset_t mask;
+-            sigemptyset(&mask);
+-            sigaddset(&mask, SIGQUIT);
+-            sigaddset(&mask, SIGUSR1);
+-            sigaddset(&mask, SIGCONT);
+-            pthread_sigmask(SIG_UNBLOCK, &mask, nullptr);
+-            return (true);
++            Core::SystemInfo::SetEnvironment(_T("LANG"), language.c_str());
++            Core::SystemInfo::SetEnvironment(_T("LANGUAGE"), language.c_str());
++            _language = language;
+         }
++
++    private:
+         uint32_t Worker() override
+         {
+             const std::string cmdURL = "--url=" + _url;
+             const std::string cmdDebugListenIp = "--dev_servers_listen_ip=" + _debugListenIp;
+             const std::string cmdDebugPort = "--remote_debugging_port=" + std::to_string(_debugPort);
+-            const char* argv[] = {"Cobalt", cmdURL.c_str(), cmdDebugListenIp.c_str(), cmdDebugPort.c_str()};
+-            while (IsRunning() == true) {
+-                StarboardMain(4, const_cast<char**>(argv));
++            const std::string cmdLogLevel = "--min_log_level=" + _logLevel;
++            const char* argv[] = {"Cobalt", cmdURL.c_str(), cmdDebugListenIp.c_str(), cmdDebugPort.c_str(), cmdLogLevel.c_str()};
++            if (IsRunning() == true) {
++                StarboardMain(5, const_cast<char**>(argv));
+             }
++            Block();
++            // Do plugin de-activation
++            _parent.StateChangeCompleted(false, static_cast<PluginHost::IStateControl::command>(~0));
+             return (Core::infinite);
+         }
+ 
++        CobaltImplementation &_parent;
+         string _url;
++        string _logLevel;
++        string _language;
+         string _debugListenIp;
+         uint16_t _debugPort;
+     };
+@@ -323,78 +299,192 @@
+     CobaltImplementation& operator=(const CobaltImplementation&) = delete;
+ 
+ public:
+-    CobaltImplementation() :
+-            _adminLock(),
+-            _state(PluginHost::IStateControl::UNINITIALIZED),
+-            _cobaltClients(),
+-            _stateControlClients(),
+-            _sink(*this) {
+-    }
+-
+-    virtual ~CobaltImplementation() {
++    CobaltImplementation()
++        : _language()
++        , _window(*this)
++        , _adminLock()
++        , _state(PluginHost::IStateControl::UNINITIALIZED)
++        , _cobaltBrowserClients()
++        , _stateControlClients()
++        , _sink(*this)
++        , _service(nullptr)
++    {
++    }
++
++    ~CobaltImplementation() override
++    {
++        if (_service) {
++            _service->Release();
++            _service = nullptr;
++        }
+     }
+ 
+-    virtual uint32_t Configure(PluginHost::IShell *service) {
++    uint32_t Configure(PluginHost::IShell *service) override
++    {
+         uint32_t result = _window.Configure(service);
+-        _window.Suspend(true);
+-        _state = PluginHost::IStateControl::SUSPENDED;
++        _window.Suspend(!service->Resumed());
++        _state = (!service->Resumed()) ? PluginHost::IStateControl::SUSPENDED : PluginHost::IStateControl::RESUMED;
++
++        _service = service;
++        if (_service) {
++            _service->AddRef();
++        }
+ 
+         return (result);
+     }
+ 
+-    virtual void SetURL(const string &URL) override {
++    void SetURL(const string &URL) override
++    {
+         third_party::starboard::wpe::shared::SetURL(URL.c_str());
+     }
+ 
+-    virtual string GetURL() const override {
++    string GetURL() const override
++    {
+         return _window.Url();
+     }
+ 
+-    virtual uint32_t GetFPS() const override {
++    uint32_t GetFPS() const override
++    {
+         return 0;
+     }
+ 
+-    virtual void Hide(const bool hidden) {
++    void Hide(VARIABLE_IS_NOT_USED const bool hidden) override
++    {
+     }
+ 
+-    virtual void Register(Exchange::IBrowser::INotification *sink) {
++    void Register(Exchange::IBrowser::INotification *sink) override
++    {
+         _adminLock.Lock();
+ 
+         // Make sure a sink is not registered multiple times.
+-        ASSERT(
+-                std::find(_cobaltClients.begin(), _cobaltClients.end(), sink)
+-                        == _cobaltClients.end());
++        ASSERT(std::find(_cobaltBrowserClients.begin(), _cobaltBrowserClients.end(), sink)
++               == _cobaltBrowserClients.end());
+ 
+-        _cobaltClients.push_back(sink);
++        _cobaltBrowserClients.push_back(sink);
+         sink->AddRef();
+ 
+         _adminLock.Unlock();
+     }
+ 
+-    virtual void Unregister(Exchange::IBrowser::INotification *sink) {
++    void Unregister(Exchange::IBrowser::INotification *sink)  override
++    {
+         _adminLock.Lock();
+ 
+         std::list<Exchange::IBrowser::INotification*>::iterator index(
+-                std::find(_cobaltClients.begin(), _cobaltClients.end(), sink));
++                std::find(_cobaltBrowserClients.begin(), _cobaltBrowserClients.end(), sink));
+ 
+         // Make sure you do not unregister something you did not register !!!
+-        ASSERT(index != _cobaltClients.end());
++        ASSERT(index != _cobaltBrowserClients.end());
+ 
+-        if (index != _cobaltClients.end()) {
++        if (index != _cobaltBrowserClients.end()) {
+             (*index)->Release();
+-            _cobaltClients.erase(index);
++            _cobaltBrowserClients.erase(index);
+         }
+ 
+         _adminLock.Unlock();
+     }
+ 
+-    virtual void Reset() { /*Not implemented yet!*/ }
++    void Register(VARIABLE_IS_NOT_USED Exchange::IApplication::INotification* sink) override
++    {
++        // Kept empty since visibility change is not supported
++    }
++
++    void Unregister(VARIABLE_IS_NOT_USED Exchange::IApplication::INotification* sink) override
++    {
++        // Kept empty since visibility change is not supported
++    }
++
++    uint32_t Reset(const resettype type) override
++    {
++        uint32_t status = Core::ERROR_GENERAL;
++        switch (type) {
++        case FACTORY:
++            if (third_party::starboard::wpe::shared::Reset(third_party::starboard::wpe::shared::ResetType::kFactory) == true) {
++                status = Core::ERROR_NONE;
++            }
++            break;
++        case CACHE:
++            if (third_party::starboard::wpe::shared::Reset(third_party::starboard::wpe::shared::ResetType::kCache) == true) {
++                status = Core::ERROR_NONE;
++            }
++            break;
++        case CREDENTIALS:
++            if (third_party::starboard::wpe::shared::Reset(third_party::starboard::wpe::shared::ResetType::kCredentials) == true) {
++                status = Core::ERROR_NONE;
++            }
++            break;
++        default:
++            status = Core::ERROR_NOT_SUPPORTED;
++            break;
++        }
++
++        return status;
++    }
++
++    uint32_t Identifier(string& id) const override
++    {
++        PluginHost::ISubSystem* subSystem = _service->SubSystems();
++        if (subSystem != nullptr) {
+ 
+-    virtual void DeepLink(const string& deepLink) {
+-        third_party::starboard::wpe::shared::DeepLink(deepLink.c_str());
++            const PluginHost::ISubSystem::IIdentifier* identifier(subSystem->Get<PluginHost::ISubSystem::IIdentifier>());
++            if (identifier != nullptr) {
++                uint8_t buffer[64];
++
++                buffer[0] = static_cast<const PluginHost::ISubSystem::IIdentifier*>(identifier)
++                            ->Identifier(sizeof(buffer) - 1, &(buffer[1]));
++
++                if (buffer[0] != 0) {
++                    id = Core::SystemInfo::Instance().Id(buffer, ~0);
++                }
++
++                identifier->Release();
++            }
++            subSystem->Release();
++        }
++
++        return Core::ERROR_NONE;
++    }
++
++    uint32_t ContentLink(const string& link) override
++    {
++        third_party::starboard::wpe::shared::DeepLink(link.c_str());
++        return Core::ERROR_NONE;
+     }
+ 
+-    virtual void Register(PluginHost::IStateControl::INotification *sink) {
++    uint32_t LaunchPoint(VARIABLE_IS_NOT_USED launchpointtype& point) const override
++    {
++        return Core::ERROR_UNAVAILABLE;
++    }
++
++    uint32_t LaunchPoint(VARIABLE_IS_NOT_USED const launchpointtype& point) override
++    {
++        return Core::ERROR_UNAVAILABLE;
++    }
++
++    uint32_t Visible(VARIABLE_IS_NOT_USED bool& visiblity) const override
++    {
++        return Core::ERROR_UNAVAILABLE;
++    }
++
++    uint32_t Visible(VARIABLE_IS_NOT_USED const bool& visiblity) override
++    {
++        return Core::ERROR_UNAVAILABLE;
++    }
++
++    uint32_t Language(string& language) const override
++    {
++        _window.Language(language);
++        return Core::ERROR_NONE;
++    }
++
++    uint32_t Language(const string& language) override
++    {
++        _window.Language(language);
++        return Core::ERROR_NONE;
++    }
++
++    void Register(PluginHost::IStateControl::INotification *sink) override
++    {
+         _adminLock.Lock();
+ 
+         // Make sure a sink is not registered multiple times.
+@@ -409,7 +499,8 @@
+         _adminLock.Unlock();
+     }
+ 
+-    virtual void Unregister(PluginHost::IStateControl::INotification *sink) {
++    void Unregister(PluginHost::IStateControl::INotification *sink) override
++    {
+         _adminLock.Lock();
+ 
+         std::list<PluginHost::IStateControl::INotification*>::iterator index(
+@@ -427,11 +518,13 @@
+         _adminLock.Unlock();
+     }
+ 
+-    virtual PluginHost::IStateControl::state State() const {
++    PluginHost::IStateControl::state State() const override
++    {
+         return (_state);
+     }
+ 
+-    virtual uint32_t Request(const PluginHost::IStateControl::command command) {
++    uint32_t Request(const PluginHost::IStateControl::command command) override
++    {
+         uint32_t result = Core::ERROR_ILLEGAL_STATE;
+ 
+         _adminLock.Lock();
+@@ -502,14 +595,15 @@
+     }
+ 
+     BEGIN_INTERFACE_MAP (CobaltImplementation)
+-        INTERFACE_ENTRY (Exchange::IBrowser)
+-        INTERFACE_ENTRY (PluginHost::IStateControl)
+-        INTERFACE_ENTRY (Exchange::IApplication)
++    INTERFACE_ENTRY (Exchange::IBrowser)
++    INTERFACE_ENTRY (PluginHost::IStateControl)
++    INTERFACE_ENTRY (Exchange::IApplication)
+     END_INTERFACE_MAP
+ 
+ private:
+     inline bool RequestForStateChange(
+-            const PluginHost::IStateControl::command command) {
++            const PluginHost::IStateControl::command command)
++    {
+         bool result = false;
+ 
+         switch (command) {
+@@ -532,7 +626,8 @@
+         return result;
+     }
+ 
+-    void StateChange(const PluginHost::IStateControl::state newState) {
++    void StateChange(const PluginHost::IStateControl::state newState)
++    {
+         _adminLock.Lock();
+ 
+         _state = newState;
+@@ -549,12 +644,14 @@
+     }
+ 
+ private:
++    string _language;
+     CobaltWindow _window;
+     mutable Core::CriticalSection _adminLock;
+     PluginHost::IStateControl::state _state;
+-    std::list<Exchange::IBrowser::INotification*> _cobaltClients;
++    std::list<Exchange::IBrowser::INotification*> _cobaltBrowserClients;
+     std::list<PluginHost::IStateControl::INotification*> _stateControlClients;
+     NotificationSink _sink;
++    PluginHost::IShell* _service;
+ };
+ 
+ SERVICE_REGISTRATION(CobaltImplementation, 1, 0);
+@@ -562,53 +659,6 @@
+ }
+ /* namespace Plugin */
+ 
+-namespace Cobalt {
+-
+-class MemoryObserverImpl: public Exchange::IMemory {
+-private:
+-    MemoryObserverImpl();
+-    MemoryObserverImpl(const MemoryObserverImpl&);
+-    MemoryObserverImpl& operator=(const MemoryObserverImpl&);
+-
+-    public:
+-    MemoryObserverImpl(const RPC::IRemoteConnection* connection) :
+-        _main(connection == nullptr ? Core::ProcessInfo().Id() : connection->RemoteId()) {
+-    }
+-    ~MemoryObserverImpl() {
+-    }
+-
+-    public:
+-    virtual uint64_t Resident() const {
+-        return _main.Resident();
+-    }
+-    virtual uint64_t Allocated() const {
+-        return _main.Allocated();
+-    }
+-    virtual uint64_t Shared() const {
+-        return _main.Shared();
+-    }
+-    virtual uint8_t Processes() const {
+-        return (IsOperational() ? 1 : 0);
+-    }
+-
+-    virtual const bool IsOperational() const {
+-        return _main.IsActive();
+-    }
+-
+-    BEGIN_INTERFACE_MAP (MemoryObserverImpl)INTERFACE_ENTRY (Exchange::IMemory)END_INTERFACE_MAP
+-
+-private:
+-    Core::ProcessInfo _main;
+-    };
+-
+-    Exchange::IMemory* MemoryObserver(const RPC::IRemoteConnection* connection) {
+-        ASSERT(connection != nullptr);
+-        Exchange::IMemory* result = Core::Service<MemoryObserverImpl>::Create<Exchange::IMemory>(connection);
+-        return (result);
+-    }
+-}
+-
+-
+ ENUM_CONVERSION_BEGIN(Plugin::CobaltImplementation::connection)
+ 
+     { Plugin::CobaltImplementation::connection::CABLE,    _TXT("cable")    },
+diff -Naur ThunderNanoServices.orig/Cobalt/CobaltJsonRpc.cpp ThunderNanoServices/Cobalt/CobaltJsonRpc.cpp
+--- ThunderNanoServices.orig/Cobalt/CobaltJsonRpc.cpp	2022-05-20 08:17:56.000000000 +0000
++++ ThunderNanoServices/Cobalt/CobaltJsonRpc.cpp	2022-12-05 19:51:22.771453345 +0000
+@@ -2,7 +2,7 @@
+  * If not stated otherwise in this file or this component's LICENSE file the
+  * following copyright and licenses apply:
+  *
+- * Copyright 2020 RDK Management
++ * Copyright 2020 Metrological
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -30,7 +30,8 @@
+ 
+ // Registration
+ //
+-void Cobalt::RegisterAll() {
++void Cobalt::RegisterAll()
++{
+     Property < Core::JSON::String
+             > (_T("url"), &Cobalt::get_url, &Cobalt::set_url, this); /* Browser */
+     Property < Core::JSON::EnumType
+@@ -46,7 +47,8 @@
+             > (_T("deeplink"), nullptr, &Cobalt::set_deeplink, this); /* Application */
+ }
+ 
+-void Cobalt::UnregisterAll() {
++void Cobalt::UnregisterAll()
++{
+     Unregister(_T("state"));
+     Unregister(_T("fps"));
+     Unregister(_T("visibility"));
+@@ -87,7 +89,8 @@
+ // Return codes:
+ //  - ERROR_NONE: Success
+ uint32_t Cobalt::get_visibility(
+-        Core::JSON::EnumType<VisibilityType> &response) const /* Browser */ {
++        VARIABLE_IS_NOT_USED Core::JSON::EnumType<VisibilityType> &response) const /* Browser */
++{
+     /*
+     response = (_hidden ? VisibilityType::HIDDEN : VisibilityType::VISIBLE);
+     return Core::ERROR_NONE;
+@@ -99,7 +102,8 @@
+ // Return codes:
+ //  - ERROR_NONE: Success
+ uint32_t Cobalt::set_visibility(
+-        const Core::JSON::EnumType<VisibilityType> &param) /* Browser */ {
++        VARIABLE_IS_NOT_USED const Core::JSON::EnumType<VisibilityType> &param) /* Browser */
++{
+     /*
+     ASSERT(_cobalt != nullptr);
+     uint32_t result = Core::ERROR_BAD_REQUEST;
+@@ -174,35 +178,19 @@
+ //  - ERROR_UNKNOWN_KEY: The given path was incorrect
+ uint32_t Cobalt::endpoint_delete(const DeleteParamsData& params)
+ {
+-    return delete_dir(params.Path.Value());
+-}
+-
+-uint32_t Cobalt::delete_dir(const string& path)
+-{
+-    uint32_t result = Core::ERROR_NONE;
+-
+-    if (path.empty() == false) {
+-        string fullPath = _persistentStoragePath + path;
+-        Core::Directory dir(fullPath.c_str());
+-        if (!dir.Destroy(true)) {
+-            TRACE(Trace::Error, (_T("Failed to delete %s\n"), fullPath.c_str()));
+-            result = Core::ERROR_UNKNOWN_KEY;
+-        }
+-    }
+-
+-    return result;
++    return DeleteDir(params.Path.Value());
+ }
+ 
+-// Property: deeplink - DeepLink loaded in the browser
++// Property: deeplink - ContentLink loaded in the browser
+ // Return codes:
+ //  - ERROR_NONE: Success
+-//  - ERROR_INCORRECT_URL: Incorrect DeepLink given
++//  - ERROR_INCORRECT_URL: Incorrect ContentLink given
+ uint32_t Cobalt::set_deeplink(const Core::JSON::String &param) /* Application */
+ {
+     ASSERT(_application != nullptr);
+     uint32_t result = Core::ERROR_INCORRECT_URL;
+     if (param.IsSet() && !param.Value().empty()) {
+-        _application->DeepLink(param.Value());
++        _application->ContentLink(param.Value());
+         result = Core::ERROR_NONE;
+     }
+     return result;
+diff -Naur ThunderNanoServices.orig/Cobalt/Module.cpp ThunderNanoServices/Cobalt/Module.cpp
+--- ThunderNanoServices.orig/Cobalt/Module.cpp	2022-05-20 08:17:56.000000000 +0000
++++ ThunderNanoServices/Cobalt/Module.cpp	2022-12-05 19:51:22.771453345 +0000
+@@ -2,7 +2,7 @@
+  * If not stated otherwise in this file or this component's LICENSE file the
+  * following copyright and licenses apply:
+  *
+- * Copyright 2020 RDK Management
++ * Copyright 2020 Metrological
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+diff -Naur ThunderNanoServices.orig/Cobalt/Module.h ThunderNanoServices/Cobalt/Module.h
+--- ThunderNanoServices.orig/Cobalt/Module.h	2022-05-20 08:17:56.000000000 +0000
++++ ThunderNanoServices/Cobalt/Module.h	2022-12-05 19:51:30.339657536 +0000
+@@ -2,7 +2,7 @@
+  * If not stated otherwise in this file or this component's LICENSE file the
+  * following copyright and licenses apply:
+  *
+- * Copyright 2020 RDK Management
++ * Copyright 2020 Metrological
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.

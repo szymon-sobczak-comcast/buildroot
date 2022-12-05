@@ -1,0 +1,114 @@
+diff -Naur cobalt.orig/src/third_party/starboard/wpe/shared/libraries.gypi cobalt/src/third_party/starboard/wpe/shared/libraries.gypi
+--- cobalt.orig/src/third_party/starboard/wpe/shared/libraries.gypi	2022-07-22 08:40:19.000000000 +0000
++++ cobalt/src/third_party/starboard/wpe/shared/libraries.gypi	2022-12-05 19:05:37.933280425 +0000
+@@ -24,7 +24,6 @@
+       'WPEFrameworkDefinitions',
+       'WPEFrameworkPlugins',
+       'compositorclient',
+-      'deviceinfo',
+       'gstreamer-1.0',
+       'gstreamer-app-1.0',
+       'gstreamer-base-1.0',
+diff -Naur cobalt.orig/src/third_party/starboard/wpe/shared/system/system_get_property.cc cobalt/src/third_party/starboard/wpe/shared/system/system_get_property.cc
+--- cobalt.orig/src/third_party/starboard/wpe/shared/system/system_get_property.cc	2022-07-22 08:40:19.000000000 +0000
++++ cobalt/src/third_party/starboard/wpe/shared/system/system_get_property.cc	2022-12-05 19:05:08.680490487 +0000
+@@ -22,7 +22,7 @@
+ #endif
+ 
+ #include <cstring>
+-#include <deviceinfo/deviceinfo.h>
++// #include <deviceinfo/deviceinfo.h>
+ 
+ namespace {
+ 
+@@ -60,10 +60,10 @@
+       char property_name[128];
+       uint8_t property_length = sizeof(property_name);
+       std::memset(property_name, 0, property_length);
+-      uint32_t ret = deviceinfo_chipset(property_name, &property_length);
++      /* uint32_t ret = deviceinfo_chipset(property_name, &property_length);
+       if ((ret == 0) && (property_length > 0)) {
+         return CopyStringAndTestIfSuccess(out_value, value_length, property_name);
+-      } else {
++      } else */ {
+         return CopyStringAndTestIfSuccess(out_value, value_length,
+             SB_PLATFORM_CHIPSET_MODEL_NUMBER_STRING);
+       }
+@@ -72,10 +72,10 @@
+       char property_name[128];
+       uint8_t property_length = sizeof(property_name);
+       std::memset(property_name, 0, property_length);
+-      uint32_t ret = deviceinfo_firmware_version(property_name, &property_length);
++      /* uint32_t ret = deviceinfo_firmware_version(property_name, &property_length);
+       if ((ret == 0) && (property_length > 0)) {
+         return CopyStringAndTestIfSuccess(out_value, value_length, property_name);
+-      } else {
++      } else */ {
+         return CopyStringAndTestIfSuccess(out_value, value_length,
+             SB_PLATFORM_FIRMWARE_VERSION_STRING);
+       }
+@@ -84,10 +84,10 @@
+       char property_name[128];
+       uint8_t property_length = sizeof(property_name);
+       std::memset(property_name, 0, property_length);
+-      uint32_t ret = deviceinfo_model_name(property_name, &property_length);
++      /* uint32_t ret = deviceinfo_model_name(property_name, &property_length);
+       if ((ret == 0) && (property_length > 0)) {
+         return CopyStringAndTestIfSuccess(out_value, value_length, property_name);
+-      } else {
++      } else */ {
+         return CopyStringAndTestIfSuccess(out_value, value_length,
+             SB_PLATFORM_MODEL_NAME);
+       }
+@@ -96,10 +96,10 @@
+       char property_name[128];
+       uint8_t property_length = sizeof(property_name);
+       std::memset(property_name, 0, property_length);
+-      uint32_t ret = deviceinfo_model_year(property_name, &property_length);
++      /* uint32_t ret = deviceinfo_model_year(property_name, &property_length);
+       if ((ret == 0) && (property_length > 0)) {
+         return CopyStringAndTestIfSuccess(out_value, value_length, property_name);
+-      } else {
++      } else */ {
+         return CopyStringAndTestIfSuccess(out_value, value_length,
+             std::to_string(SB_PLATFORM_MODEL_YEAR).c_str());
+       }
+@@ -115,10 +115,10 @@
+       char property_name[128];
+       uint8_t property_length = sizeof(property_name);
+       std::memset(property_name, 0, property_length);
+-      uint32_t ret = deviceinfo_system_integrator_name(property_name, &property_length);
++      /* uint32_t ret = deviceinfo_system_integrator_name(property_name, &property_length);
+       if ((ret == 0) && (property_length > 0)) {
+         return CopyStringAndTestIfSuccess(out_value, value_length, property_name);
+-      } else {
++      } else */ {
+         return CopyStringAndTestIfSuccess(out_value, value_length,
+             SB_PLATFORM_MANUFACTURER_NAME);
+       }
+@@ -130,10 +130,10 @@
+       char property_name[128];
+       uint8_t property_length = sizeof(property_name);
+       std::memset(property_name, 0, property_length);
+-      uint32_t ret = deviceinfo_friendly_name(property_name, &property_length);
++      /* uint32_t ret = deviceinfo_friendly_name(property_name, &property_length);
+       if ((ret == 0) && (property_length > 0)) {
+         return CopyStringAndTestIfSuccess(out_value, value_length, property_name);
+-      } else {
++      } else */ {
+         return CopyStringAndTestIfSuccess(out_value, value_length,
+             SB_PLATFORM_FRIENDLY_NAME);
+       }
+@@ -142,10 +142,10 @@
+       char property_name[128];
+       uint8_t property_length = sizeof(property_name);
+       std::memset(property_name, 0, property_length);
+-      uint32_t ret = deviceinfo_platform_name(property_name, &property_length);
++      /* uint32_t ret = deviceinfo_platform_name(property_name, &property_length);
+       if ((ret == 0) && (property_length > 0)) {
+         return CopyStringAndTestIfSuccess(out_value, value_length, property_name);
+-      } else {
++      } else */ {
+         return CopyStringAndTestIfSuccess(out_value, value_length, kPlatformName);
+       }
+     }
