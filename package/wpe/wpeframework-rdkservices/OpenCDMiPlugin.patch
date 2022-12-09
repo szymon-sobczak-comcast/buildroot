@@ -1,0 +1,2924 @@
+diff -Naur rdkservices.orig/OpenCDMi/CENCParser.h rdkservices/OpenCDMi/CENCParser.h
+--- rdkservices.orig/OpenCDMi/CENCParser.h	2022-03-29 17:20:11.000000000 +0000
++++ rdkservices/OpenCDMi/CENCParser.h	2022-12-08 18:50:55.100264410 +0000
+@@ -21,6 +21,7 @@
+ #define __CENCPARSER_H
+ 
+ #include "Module.h"
++#include "Protobuf.h"
+ 
+ namespace WPEFramework {
+ namespace Plugin {
+@@ -46,25 +47,25 @@
+             WIDEVINE = 0x0008
+         };
+ 
+-        class KeyId : public OCDM::KeyId {
++        class KeyId : public Exchange::KeyId {
+         public:
+             inline KeyId()
+-                : OCDM::KeyId()
++                : Exchange::KeyId()
+                 , _systems(0)
+             {
+             }
+             inline KeyId(const systemType type, const uint8_t kid[], const uint8_t length)
+-                : OCDM::KeyId(kid, length)
++                : Exchange::KeyId(kid, length)
+                 , _systems(type)
+             {
+             }
+             inline KeyId(const systemType type, const uint32_t a, const uint16_t b, const uint16_t c, const uint8_t d[])
+-                : OCDM::KeyId(a, b, c, d)
++                : Exchange::KeyId(a, b, c, d)
+                 , _systems(type)
+             {
+             }
+             inline KeyId(const KeyId& copy)
+-                : OCDM::KeyId(copy)
++                : Exchange::KeyId(copy)
+                 , _systems(copy._systems)
+             {
+             }
+@@ -74,23 +75,23 @@
+ 
+             inline KeyId& operator=(const KeyId& rhs)
+             {
+-                OCDM::KeyId::operator=(rhs);
++                Exchange::KeyId::operator=(rhs);
+                 _systems = rhs._systems;
+                 return (*this);
+             }
+ 
+         public:
+-            inline bool operator==(const OCDM::KeyId& rhs) const
++            inline bool operator==(const Exchange::KeyId& rhs) const
+             {
+-                return (OCDM::KeyId::operator== (rhs));
++                return (Exchange::KeyId::operator== (rhs));
+             }   
+-            inline bool operator!=(const OCDM::KeyId& rhs) const
++            inline bool operator!=(const Exchange::KeyId& rhs) const
+             {
+                 return (!operator==(rhs));
+             }
+             inline bool operator==(const KeyId& rhs) const
+             {
+-                return (OCDM::KeyId::operator== (rhs));
++                return (Exchange::KeyId::operator== (rhs));
+             }   
+             inline bool operator!=(const KeyId& rhs) const
+             {
+@@ -126,13 +127,13 @@
+         }
+ 
+     public:
+-        inline ::OCDM::ISession::KeyStatus Status() const
++        inline Exchange::ISession::KeyStatus Status() const
+         {
+-            return (_keyIds.size() > 0 ? _keyIds.begin()->Status() : ::OCDM::ISession::StatusPending);
++            return (_keyIds.size() > 0 ? _keyIds.begin()->Status() : Exchange::ISession::StatusPending);
+         }
+-        inline ::OCDM::ISession::KeyStatus Status(const KeyId& key) const
++        inline Exchange::ISession::KeyStatus Status(const KeyId& key) const
+         {
+-            ::OCDM::ISession::KeyStatus result(::OCDM::ISession::StatusPending);
++            Exchange::ISession::KeyStatus result(Exchange::ISession::StatusPending);
+             if (key.IsValid() == true) {
+                 std::list<KeyId>::const_iterator index(std::find(_keyIds.begin(), _keyIds.end(), key));
+                 if (index != _keyIds.end()) {
+@@ -145,7 +146,7 @@
+         {
+             return (Iterator(_keyIds));
+         }
+-        inline bool HasKeyId(const OCDM::KeyId& keyId) const
++        inline bool HasKeyId(const Exchange::KeyId& keyId) const
+         {
+             return (std::find(_keyIds.begin(), _keyIds.end(), keyId) != _keyIds.end());
+         }
+@@ -161,7 +162,7 @@
+                 index->Flag(key.Systems());
+             }
+         }
+-        inline const KeyId* UpdateKeyStatus(::OCDM::ISession::KeyStatus status, const KeyId& key)
++        inline const KeyId* UpdateKeyStatus(Exchange::ISession::KeyStatus status, const KeyId& key)
+         {
+             KeyId* entry = nullptr;
+ 
+@@ -256,87 +257,117 @@
+ 
+             do {
+                 // Check if this is a PSSH box...
+-                uint32_t size = (data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3];
+-                if (size == 0) {
+-                    TRACE(Trace::Information, (_T("While parsing CENC, found chunk of size 0, are you sure the data is valid? %d\n"), __LINE__));
+-                    break;
+-                }
+-
+-                if ((size <= static_cast<uint32_t>(length - offset)) && (memcmp(&(data[offset + 4]), PSSHeader, 4) == 0)) {
+-                    ParsePSSHBox(&(data[offset + 4 + 4]), size - 4 - 4);
+-                } else {
+-                    uint32_t XMLSize = (data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) | (data[offset + 3] << 24));
+-
+-                    if (XMLSize <= static_cast<uint32_t>(length - offset)) {
+-
+-                        uint16_t stringLength = (data[offset + 8] | (data[offset + 9] << 8));
+-                        if (stringLength <= (XMLSize - 10)) {
+-
+-                            // Seems like it is an XMLBlob, without PSSH header, we have seen that on PlayReady only..
+-                            ParseXMLBox(&(data[offset + 10]), stringLength);
+-                        }
+-
+-                        offset += XMLSize;
+-
+-                    } else if ((offset == 0) && (data[0] == '<') && (data[2] == 'W') && (data[4] == 'R') && (data[6] == 'M')) {
+-                        ParseXMLBox(data, size);
++                uint32_t sizeBE = ((data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3]);
++                if ((sizeBE <= static_cast<uint32_t>(length - offset)) && ((length - offset) >= 4)
++                        && (::memcmp(&(data[offset + 4]), PSSHeader, 4) == 0)) {
++                    TRACE(Trace::Information, (_T("Initdata contains a PSSH box")));
++                    ParsePSSHBox(&(data[offset + 4 + 4]), (sizeBE - 4 - 4));
++                    offset += sizeBE;
++                } else if (offset == 0) {
++                    uint32_t sizeLE = (data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) | (data[offset + 3] << 24));
++                    if ((data[0] == '<') && (data[2] == 'W') && (data[4] == 'R') && (data[6] == 'M')) {
++                        // Playready XML data without PSSH header and withouth Playready Rights Managment Header
++                        TRACE(Trace::Information, (_T("Initdata contains Playready XML data")));
++                        ParseXMLBox(data, length);
+                         offset = length;
+                     } else if (std::string(reinterpret_cast<const char*>(data), length).find(JSONKeyIds) != std::string::npos) {
+-                        /* keyids initdata type */
+-                        TRACE(Trace::Information, (_T("Initdata contains clearkey's key ids")));
+-
++                        // keyids initdata type
++                        TRACE(Trace::Information, (_T("Initdata contains ClearKey key IDs")));
+                         ParseJSONInitData(reinterpret_cast<const char*>(data), length);
+-                    } else {
+-                        TRACE(Trace::Information, (_T("Have no clue what this is!!! %d\n"), __LINE__));
++                        offset = length;
++                    } else if (sizeLE == length) {
++                        // Seems like it is an XMLBlob, without PSSH header, we have seen that on PlayReady only..
++                        TRACE(Trace::Information, (_T("Initdata contains Playready PSSH payload")));
++                        if (ParsePlayReadyPSSHData(&data[offset], length) == true) {
++                            offset = length;
++                        }
+                     }
++                    break;
++                } else {
++                    break;
+                 }
+-                offset += size;
+-
+             } while (offset < length);
++
++            if (offset != length) {
++                TRACE(Trace::Information, (_T("Have no clue what this is!!!")));
++            }
+         }
+ 
+         void ParsePSSHBox(const uint8_t data[], const uint16_t length)
+         {
+-            systemType system(COMMON);
+-            const uint8_t* psshData(&(data[KeyId::Length() + 4 /* flags */]));
+-            uint32_t count((psshData[0] << 24) | (psshData[1] << 16) | (psshData[2] << 8) | psshData[3]);
+-            uint16_t stringLength = (data[8] | (data[9] << 8));
+-
+-            if (::memcmp(&(data[4]), CommonEncryption, KeyId::Length()) == 0) {
+-                psshData += 4;
+-                TRACE(Trace::Information, (_T("Common detected [%d]\n"), __LINE__));
+-            } else if (::memcmp(&(data[4]), PlayReady, KeyId::Length()) == 0) {
+-                if (stringLength <= (length - 10)) {
+-                    ParseXMLBox(&(psshData[10]), count);
+-                    TRACE(Trace::Information, (_T("PlayReady XML detected [%d]\n"), __LINE__));
+-                    count = 0;
+-                } else {
+-                    TRACE(Trace::Information, (_T("PlayReady BIN detected [%d]\n"), __LINE__));
+-                    system = PLAYREADY;
+-                    psshData += 4;
+-                }
+-            } else if (::memcmp(&(data[4]), WideVine, KeyId::Length()) == 0) {
+-                TRACE(Trace::Information, (_T("WideVine detected [%d]\n"), __LINE__));
+-                system = WIDEVINE;
+-                psshData += 4 + 4 /* God knows what this uint32 means, we just skip it. */;
+-            } else if (::memcmp(&(data[4]), ClearKey, KeyId::Length()) == 0) {
+-                TRACE(Trace::Information, (_T("ClearKey detected [%d]\n"), __LINE__));
+-                system = CLEARKEY;
+-                psshData += 4;
+-            } else {
+-                TRACE(Trace::Information, (_T("Unknown system: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X.\n"), data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11]));
+-                count = 0;
+-            }
++            const uint16_t PSSH_HEADER_SIZE_V0 = 24;
++            const uint16_t PSSH_HEADER_SIZE_V1 = 28;
+ 
+-            if (data[0] != 1) {
+-                count /= KeyId::Length();
+-            }
++            if (length >= PSSH_HEADER_SIZE_V0) {
++                systemType system(COMMON);
++                const uint8_t version(data[0]);
++                const uint8_t* keyIdData(nullptr);
++                uint32_t keyIdCount(0);
++                const uint8_t* psshData(nullptr);
++                uint32_t psshDataSize(0);
++
++                auto Read32BE = [](const uint8_t ptr[]) -> uint32_t {
++                    return ((ptr[0] << 24) | (ptr[1] << 16) | (ptr[2] << 8) | ptr[3]);
++                };
++
++                if (version == 0) {
++                    psshData = &data[PSSH_HEADER_SIZE_V0];
++                    psshDataSize = Read32BE(psshData - 4);
++                    if ((psshDataSize + PSSH_HEADER_SIZE_V0) > length) {
++                        psshData = nullptr;
++                    }
++                } else if (version == 1) {
++                    /* Version 1 inserts raw key IDs before DRM system specific payload. */
++                    keyIdData = &data[PSSH_HEADER_SIZE_V0];
++                    keyIdCount = Read32BE(keyIdData - 4);
++                    if (((keyIdCount * KeyId::Length()) + PSSH_HEADER_SIZE_V1) > length) {
++                        keyIdData = nullptr;
++                    } else {
++                        psshData = &data[PSSH_HEADER_SIZE_V1 + (keyIdCount * KeyId::Length())];
++                        psshDataSize = Read32BE(psshData - 4);
++                        if (psshDataSize + PSSH_HEADER_SIZE_V1 + (keyIdCount * KeyId::Length()) > length) {
++                            psshData = nullptr;
++                        }
++                    }
++                } else {
++                    TRACE(Trace::Error, (_T("Unsupported PSSH version (%hhu)"), version));
++                }
+ 
+-            TRACE(Trace::Information, (_T("Adding %d keys from PSSH box\n"), count));
++                if ((keyIdData != nullptr) || (psshData != nullptr)) {
++                    if (::memcmp(&(data[4]), CommonEncryption, 16) == 0) {
++                        TRACE(Trace::Information, (_T("Common encryption detected")));
++                    } else if (::memcmp(&(data[4]), PlayReady, 16) == 0) {
++                        TRACE(Trace::Information, (_T("PlayReady detected")));
++                        system = PLAYREADY;
++                        if (psshData != nullptr) {
++                            ParsePlayReadyPSSHData(psshData, psshDataSize);
++                        }
++                    } else if (::memcmp(&(data[4]), WideVine, 16) == 0) {
++                        TRACE(Trace::Information, (_T("Widevine detected")));
++                        system = WIDEVINE;
++                        if (psshData != nullptr) {
++                            ParseWidevinePSSHData(psshData, psshDataSize);
++                        }
++                    } else if (::memcmp(&(data[4]), ClearKey, 16) == 0) {
++                        TRACE(Trace::Information, (_T("ClearKey detected")));
++                        system = CLEARKEY;
++                    } else {
++                        TRACE(Trace::Information, (_T("Unknown DRM system: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X"),
++                                data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11]));
++                    }
+ 
+-            while (count-- != 0) {
+-                AddKeyId(KeyId(system, psshData, KeyId::Length()));
+-                psshData += KeyId::Length();
++                    if (keyIdData != nullptr) {
++                        TRACE(Trace::Information, (_T("Adding %d keys from PSSHv1 box"), keyIdCount));
++                        while (keyIdCount-- != 0) {
++                            AddKeyId(KeyId(system, keyIdData, KeyId::Length()));
++                            keyIdData += KeyId::Length();
++                        }
++                    }
++                } else {
++                    TRACE(Trace::Error, (_T("Invalid PSSH data")));
++                }
++            } else {
++                TRACE(Trace::Error, (_T("Invalid PSSH box")));
+             }
+         }
+ 
+@@ -413,10 +444,10 @@
+                 while ((size > 0) && ((begin = FindInXML(slot, size, "<KID ", 5)) < size)) {
+                     uint16_t end = FindInXML(&(slot[begin + 10]), size - begin - 10, "</KID>", 6);
+ 
+-                    uint16_t keyValue = FindInXML(&(slot[begin + 10]), end, "VALUE", 5);  
++                    uint16_t keyValue = FindInXML(&(slot[begin + 10]), end, "VALUE", 5);
+                     uint16_t keyStart = FindInXML(&(slot[begin + 10 + keyValue + 10]), end - keyValue - 10, "\"", 1) + 2;
+                     uint16_t keyLength = FindInXML(&(slot[begin + 10 + keyValue + 10 + keyStart]), end - keyValue - 10 - keyStart - 2, "\"", 1) - 2;
+-                    
++
+                     if (end < (size - begin - 10)) {
+                         uint8_t byteArray[32];
+ 
+@@ -476,6 +507,101 @@
+             }
+         }
+ 
++        bool ParsePlayReadyPSSHData(const uint8_t data[], const uint16_t length)
++        {
++            auto Read16LE = [](const uint8_t ptr[]) -> uint16_t {
++                return (ptr[0] | (ptr[1] << 8));
++            };
++            auto Read32LE = [](const uint8_t ptr[]) -> uint32_t {
++                return (ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | (ptr[3] << 24));
++            };
++
++            bool result = false;
++
++            uint32_t size = Read32LE(data);
++            data += 4;
++            if (size == length) {
++                uint16_t count = Read16LE(data);
++                if (count > 0) {
++                    const uint8_t* dataEnd = (data + length);
++                    data += 2;
++                    while ((data + 4) < dataEnd) {
++                        const uint16_t recordType = Read16LE(data);
++                        const uint16_t recordLength = Read16LE(data + 2);
++                        data += 4;
++                        if ((data + recordLength) >= dataEnd) {
++                            break;
++                        }
++                        if (recordType == 1 /* rights management */) {
++                            ParseXMLBox(data, recordLength);
++                        }
++                        data += recordLength;
++                        if (--count == 0) {
++                            break;
++                        }
++                    }
++                }
++                result = (count == 0);
++            }
++
++            return (result);
++        }
++
++        bool ParseWidevinePSSHData(const uint8_t data[], const uint16_t length)
++        {
++            class WidevinePsshPB2 : public Protobuf::Message {
++            public:
++                enum class algorithm : Protobuf::UInt32::type {
++                    UNENCRYPTED,
++                    AES_CTR = 1
++                };
++
++            public:
++                WidevinePsshPB2()
++                {
++                    Add(1, &Algorithm);
++                    Add(2, &KeyIDs);
++                    Add(3, &Provider);
++                    Add(4, &ContentID);
++                    Add(5, &TrackType);
++                    Add(6, &Policy);
++                    Add(7, &CryptoPeriodIndex);
++                    Add(8, &GroupedLicense);
++                    Add(9, &ProtectionScheme);
++                    Add(10,&CryptoPeriodDuration);
++                }
++
++            public:
++                Protobuf::EnumType<algorithm> Algorithm;
++                Protobuf::RepeatedType<Protobuf::Bytes> KeyIDs;
++                Protobuf::Utf8String Provider;
++                Protobuf::Utf8String ContentID;
++                Protobuf::Utf8String TrackType;
++                Protobuf::Utf8String Policy;
++                Protobuf::UInt32 CryptoPeriodIndex;
++                Protobuf::Bytes GroupedLicense;
++                Protobuf::UInt32 ProtectionScheme;
++                Protobuf::UInt32 CryptoPeriodDuration;
++            };
++
++            bool result = false;
++
++            WidevinePsshPB2 wvpb2;
++            if ((wvpb2.FromBuffer(data, length) == true) && (wvpb2.IsValid() == true)) {
++                if (wvpb2.KeyIDs.IsSet() == true) {
++                    for (auto const& keyID : wvpb2.KeyIDs.Elements()) {
++                        AddKeyId(KeyId(WIDEVINE, keyID.Value().data(), keyID.Value().size()));
++                    }
++                } else {
++                    TRACE(Trace::Information, (_T("No key IDs specified in Widevine PSSH data")));
++                }
++
++                result = true;
++            }
++
++            return (result);
++        }
++
+     private:
+         std::list<KeyId> _keyIds;
+     };
+diff -Naur rdkservices.orig/OpenCDMi/CHANGELOG.md rdkservices/OpenCDMi/CHANGELOG.md
+--- rdkservices.orig/OpenCDMi/CHANGELOG.md	1970-01-01 00:00:00.000000000 +0000
++++ rdkservices/OpenCDMi/CHANGELOG.md	2022-12-08 18:50:25.539483735 +0000
+@@ -0,0 +1,25 @@
++# Changelog
++
++All notable changes to this RDK Service will be documented in this file.
++
++* Each RDK Service has a CHANGELOG file that contains all changes done so far. When version is updated, add a entry in the CHANGELOG.md at the top with user friendly information on what was changed with the new version. Please don't mention JIRA tickets in CHANGELOG. 
++
++* Please Add entry in the CHANGELOG for each version change and indicate the type of change with these labels:
++    * **Added** for new features.
++    * **Changed** for changes in existing functionality.
++    * **Deprecated** for soon-to-be removed features.
++    * **Removed** for now removed features.
++    * **Fixed** for any bug fixes.
++    * **Security** in case of vulnerabilities.
++
++* Changes in CHANGELOG should be updated when commits are added to the main or release branches. There should be one CHANGELOG entry per JIRA Ticket. This is not enforced on sprint branches since there could be multiple changes for the same JIRA ticket during development. 
++
++* For more details, refer to [versioning](https://github.com/rdkcentral/rdkservices#versioning) section under Main README.
++
++## [1.0.0] - 2022-05-11
++### Added
++- Add CHANGELOG
++
++### Change
++- Reset API version to 1.0.0
++- Change README to inform how to update changelog and API version
+\ No newline at end of file
+diff -Naur rdkservices.orig/OpenCDMi/CMakeLists.txt rdkservices/OpenCDMi/CMakeLists.txt
+--- rdkservices.orig/OpenCDMi/CMakeLists.txt	2022-03-29 17:20:11.000000000 +0000
++++ rdkservices/OpenCDMi/CMakeLists.txt	2022-12-08 18:50:55.100264410 +0000
+@@ -17,13 +17,15 @@
+ 
+ set(PLUGIN_NAME OCDM)
+ set(MODULE_NAME ${NAMESPACE}${PLUGIN_NAME})
++set(PLUGIN_OCDM_IMPLEMENTATION "${MODULE_NAME}Impl" CACHE STRING "Specify a library with a OCDM implementation." )
+ 
+ set(PLUGIN_OPENCDMI_AUTOSTART "true" CACHE STRING "Automatically start OpenCDMi plugin")
+ set(PLUGIN_OPENCDMI_MODE "Local" CACHE STRING "Controls if the plugin should run in its own process, in process or remote")
+ 
+ # deprecated/legacy flags support
+-if(PLUGIN_OPENCDMI_OOP)
+-    unset(PLUGIN_OPENCDMI_MODE CACHE)
++if(PLUGIN_OPENCDMI_OOP STREQUAL "false")
++    set(PLUGIN_OPENCDMI_MODE "Off" CACHE STRING "Process mode"  FORCE)
++    unset(PLUGIN_OPENCDMI_OOP CACHE)
+ elseif(PLUGIN_OPENCDMI_OUTOFPROCESS STREQUAL "false")
+     set(PLUGIN_OPENCDMI_MODE "Off" CACHE STRING "Process mode"  FORCE)
+     unset(PLUGIN_OPENCDMI_OUTOFPROCESS CACHE)
+@@ -33,13 +35,18 @@
+ find_package(${NAMESPACE}Plugins REQUIRED)
+ find_package(CompileSettingsDebug CONFIG REQUIRED)
+ 
+-add_library(${MODULE_NAME} SHARED 
++add_library(${MODULE_NAME} SHARED
+         OCDM.cpp
+         OCDMJsonRpc.cpp
++        Module.cpp)
++
++add_library(${PLUGIN_OCDM_IMPLEMENTATION} SHARED
+         CENCParser.cpp
+         FrameworkRPC.cpp
+         Module.cpp)
+ 
++add_dependencies(${MODULE_NAME} ${PLUGIN_OCDM_IMPLEMENTATION})
++
+ # avoid -as-needed flag being set, this will break linking to libocdm.so
+ string(REPLACE "-Wl,--as-needed" "" CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
+ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-as-needed")
+@@ -48,13 +55,25 @@
+         CXX_STANDARD 11
+         CXX_STANDARD_REQUIRED YES)
+ 
+-target_link_libraries(${MODULE_NAME} 
++set_target_properties(${PLUGIN_OCDM_IMPLEMENTATION} PROPERTIES
++        CXX_STANDARD 11
++        CXX_STANDARD_REQUIRED YES)
++
++target_link_libraries(${MODULE_NAME}
++        PRIVATE
++                CompileSettingsDebug::CompileSettingsDebug
++                ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
++target_link_libraries(${PLUGIN_OCDM_IMPLEMENTATION}
+         PRIVATE
+                 CompileSettingsDebug::CompileSettingsDebug
+-                ${NAMESPACE}Plugins::${NAMESPACE}Plugins 
++                ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+                 ocdm::ocdm)
++
+ # Library definition section
+-install(TARGETS ${MODULE_NAME} 
++install(TARGETS ${MODULE_NAME}
++        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)
++
++install(TARGETS ${PLUGIN_OCDM_IMPLEMENTATION}
+         DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${STORAGE_DIRECTORY}/plugins)
+ 
+ if("${CMAKE_FIND_ROOT_PATH}" STREQUAL "")
+diff -Naur rdkservices.orig/OpenCDMi/doc/OpenCDMiPlugin.md rdkservices/OpenCDMi/doc/OpenCDMiPlugin.md
+--- rdkservices.orig/OpenCDMi/doc/OpenCDMiPlugin.md	2022-03-29 17:20:11.000000000 +0000
++++ rdkservices/OpenCDMi/doc/OpenCDMiPlugin.md	1970-01-01 00:00:00.000000000 +0000
+@@ -1,193 +0,0 @@
+-<!-- Generated automatically, DO NOT EDIT! -->
+-<a name="head.OpenCDMi_Plugin"></a>
+-# OpenCDMi Plugin
+-
+-**Version: 1.0**
+-
+-**Status: :black_circle::black_circle::black_circle:**
+-
+-OCDM plugin for Thunder framework.
+-
+-### Table of Contents
+-
+-- [Introduction](#head.Introduction)
+-- [Description](#head.Description)
+-- [Configuration](#head.Configuration)
+-- [Properties](#head.Properties)
+-
+-<a name="head.Introduction"></a>
+-# Introduction
+-
+-<a name="head.Scope"></a>
+-## Scope
+-
+-This document describes purpose and functionality of the OCDM plugin. It includes detailed specification about its configuration and properties provided.
+-
+-<a name="head.Case_Sensitivity"></a>
+-## Case Sensitivity
+-
+-All identifiers of the interfaces described in this document are case-sensitive. Thus, unless stated otherwise, all keywords, entities, properties, relations and actions should be treated as such.
+-
+-<a name="head.Acronyms,_Abbreviations_and_Terms"></a>
+-## Acronyms, Abbreviations and Terms
+-
+-The table below provides and overview of acronyms used in this document and their definitions.
+-
+-| Acronym | Description |
+-| :-------- | :-------- |
+-| <a name="acronym.API">API</a> | Application Programming Interface |
+-| <a name="acronym.HTTP">HTTP</a> | Hypertext Transfer Protocol |
+-| <a name="acronym.JSON">JSON</a> | JavaScript Object Notation; a data interchange format |
+-| <a name="acronym.JSON-RPC">JSON-RPC</a> | A remote procedure call protocol encoded in JSON |
+-
+-The table below provides and overview of terms and abbreviations used in this document and their definitions.
+-
+-| Term | Description |
+-| :-------- | :-------- |
+-| <a name="term.callsign">callsign</a> | The name given to an instance of a plugin. One plugin can be instantiated multiple times, but each instance the instance name, callsign, must be unique. |
+-
+-<a name="head.References"></a>
+-## References
+-
+-| Ref ID | Description |
+-| :-------- | :-------- |
+-| <a name="ref.HTTP">[HTTP](http://www.w3.org/Protocols)</a> | HTTP specification |
+-| <a name="ref.JSON-RPC">[JSON-RPC](https://www.jsonrpc.org/specification)</a> | JSON-RPC 2.0 specification |
+-| <a name="ref.JSON">[JSON](http://www.json.org/)</a> | JSON specification |
+-| <a name="ref.Thunder">[Thunder](https://github.com/WebPlatformForEmbedded/Thunder/blob/master/doc/WPE%20-%20API%20-%20WPEFramework.docx)</a> | Thunder API Reference |
+-
+-<a name="head.Description"></a>
+-# Description
+-
+-The `OpenCDMi` plugin allows you view Open Content Decryption Module (OCDM) properties.
+-
+-The plugin is designed to be loaded and executed within the Thunder framework. For more information about the framework refer to [[Thunder](#ref.Thunder)].
+-
+-<a name="head.Configuration"></a>
+-# Configuration
+-
+-The table below lists configuration options of the plugin.
+-
+-| Name | Type | Description |
+-| :-------- | :-------- | :-------- |
+-| callsign | string | Plugin instance name (default: *OCDM*) |
+-| classname | string | Class name: *OCDM* |
+-| locator | string | Library name: *libWPEFrameworkOCDM.so* |
+-| autostart | boolean | Determines if the plugin shall be started automatically along with the framework |
+-| configuration | object | <sup>*(optional)*</sup>  |
+-| configuration?.location | string | <sup>*(optional)*</sup> The location |
+-| configuration?.connector | string | <sup>*(optional)*</sup> The connector |
+-| configuration?.sharepath | string | <sup>*(optional)*</sup> The sharepath |
+-| configuration?.sharesize | string | <sup>*(optional)*</sup> The sharesize |
+-| configuration?.systems | array | <sup>*(optional)*</sup> A list of key systems |
+-| configuration?.systems[#] | object | <sup>*(optional)*</sup> System properties |
+-| configuration?.systems[#]?.name | string | <sup>*(optional)*</sup> Property name |
+-| configuration?.systems[#]?.designators | array | <sup>*(optional)*</sup> designator |
+-| configuration?.systems[#]?.designators[#] | object | <sup>*(optional)*</sup> System properties |
+-| configuration?.systems[#]?.designators[#].name | string | Property name |
+-
+-<a name="head.Properties"></a>
+-# Properties
+-
+-The following properties are provided by the OCDM plugin:
+-
+-OCDM interface properties:
+-
+-| Property | Description |
+-| :-------- | :-------- |
+-| [drms](#property.drms) <sup>RO</sup> | Supported DRM systems |
+-| [keysystems](#property.keysystems) <sup>RO</sup> | DRM key systems |
+-
+-
+-<a name="property.drms"></a>
+-## *drms <sup>property</sup>*
+-
+-Provides access to the supported DRM systems.
+-
+-> This property is **read-only**.
+-
+-### Value
+-
+-| Name | Type | Description |
+-| :-------- | :-------- | :-------- |
+-| (property) | array | Supported DRM systems |
+-| (property)[#] | object |  |
+-| (property)[#].name | string | The name of the DRM system |
+-| (property)[#].keysystems | array |  |
+-| (property)[#].keysystems[#] | string | An identifier of a key system |
+-
+-### Example
+-
+-#### Get Request
+-
+-```json
+-{
+-    "jsonrpc": "2.0",
+-    "id": 1234567890,
+-    "method": "OCDM.1.drms"
+-}
+-```
+-
+-#### Get Response
+-
+-```json
+-{
+-    "jsonrpc": "2.0",
+-    "id": 1234567890,
+-    "result": [
+-        {
+-            "name": "PlayReady",
+-            "keysystems": [
+-                "com.microsoft.playready"
+-            ]
+-        }
+-    ]
+-}
+-```
+-
+-<a name="property.keysystems"></a>
+-## *keysystems <sup>property</sup>*
+-
+-Provides access to the DRM key systems.
+-
+-> This property is **read-only**.
+-
+-### Value
+-
+-| Name | Type | Description |
+-| :-------- | :-------- | :-------- |
+-| (property) | array | DRM key systems |
+-| (property)[#] | string | An identifier of a key system |
+-
+-> The *drm system* shall be passed as the index to the property, e.g. *OCDM.1.keysystems@PlayReady*.
+-
+-### Errors
+-
+-| Code | Message | Description |
+-| :-------- | :-------- | :-------- |
+-| 30 | ```ERROR_BAD_REQUEST``` | Invalid DRM name |
+-
+-### Example
+-
+-#### Get Request
+-
+-```json
+-{
+-    "jsonrpc": "2.0",
+-    "id": 1234567890,
+-    "method": "OCDM.1.keysystems@PlayReady"
+-}
+-```
+-
+-#### Get Response
+-
+-```json
+-{
+-    "jsonrpc": "2.0",
+-    "id": 1234567890,
+-    "result": [
+-        "com.microsoft.playready"
+-    ]
+-}
+-```
+-
+diff -Naur rdkservices.orig/OpenCDMi/FrameworkRPC.cpp rdkservices/OpenCDMi/FrameworkRPC.cpp
+--- rdkservices.orig/OpenCDMi/FrameworkRPC.cpp	2022-03-29 17:20:11.000000000 +0000
++++ rdkservices/OpenCDMi/FrameworkRPC.cpp	2022-12-08 18:50:55.100264410 +0000
+@@ -109,9 +109,10 @@
+         public:
+             ExternalAccess(
+                 const Core::NodeId& source, 
+-                ::OCDM::IAccessorOCDM* parentInterface, 
++                Exchange::IAccessorOCDM* parentInterface, 
++                const string& proxyStubPath,
+                 const Core::ProxyType<RPC::InvokeServer> & engine)
+-                : RPC::Communicator(source, _T(""), Core::ProxyType<Core::IIPCServer>(engine))
++                : RPC::Communicator(source, proxyStubPath, Core::ProxyType<Core::IIPCServer>(engine))
+                 , _parentInterface(parentInterface)
+             {
+                 engine->Announcements(Announcement());
+@@ -123,12 +124,12 @@
+             }
+ 
+         private:
+-            virtual void* Aquire(const string& className, const uint32_t interfaceId, const uint32_t versionId)
++            virtual void* Aquire(const string&, const uint32_t interfaceId, const uint32_t versionId)
+             {
+                 void* result = nullptr;
+ 
+                 // Currently we only support version 1 of the IRPCLink :-)
+-                if (((versionId == 1) || (versionId == static_cast<uint32_t>(~0))) && ((interfaceId == ::OCDM::IAccessorOCDM::ID) || (interfaceId == Core::IUnknown::ID))) {
++                if (((versionId == 1) || (versionId == static_cast<uint32_t>(~0))) && ((interfaceId == Exchange::IAccessorOCDM::ID) || (interfaceId == Core::IUnknown::ID))) {
+                     // Reference count our parent
+                     _parentInterface->AddRef();
+                     TRACE(Trace::Information, ("OCDM interface aquired => %p", this));
+@@ -139,10 +140,10 @@
+             }
+ 
+         private:
+-            ::OCDM::IAccessorOCDM* _parentInterface;
++            Exchange::IAccessorOCDM* _parentInterface;
+         };
+ 
+-        class AccessorOCDM : public ::OCDM::IAccessorOCDM {
++        class AccessorOCDM : public Exchange::IAccessorOCDM {
+         private:
+             AccessorOCDM() = delete;
+             AccessorOCDM(const AccessorOCDM&) = delete;
+@@ -229,13 +230,50 @@
+             };
+ 
+             // IMediaKeys defines the MediaKeys interface.
+-            class SessionImplementation : public ::OCDM::ISession, public ::OCDM::ISessionExt {
++            class SessionImplementation : public Exchange::ISession, public Exchange::ISessionExt {
+             private:
+                 SessionImplementation() = delete;
+                 SessionImplementation(const SessionImplementation&) = delete;
+                 SessionImplementation& operator=(const SessionImplementation&) = delete;
+ 
+-                class DataExchange : public ::OCDM::DataExchange, public Core::Thread {
++                class MediaStreamProperties : public CDMi::IStreamProperties {
++                public:
++                    MediaStreamProperties() = delete;
++                    MediaStreamProperties(const MediaStreamProperties&) = delete;
++                    MediaStreamProperties& operator=(const MediaStreamProperties&) = delete;
++                    MediaStreamProperties(uint16_t height, uint16_t width, CDMi::MediaType type, uint8_t initLength = 0)
++                        : _height(height)
++                        , _width(width)
++                        , _type(type)
++                        , _initLength(initLength)
++                    {
++                    }
++
++                    uint16_t GetHeight() const override
++                    {
++                        return (_height);
++                    }
++                    uint16_t GetWidth() const override
++                    {
++                        return (_width);
++                    }
++                    CDMi::MediaType GetMediaType() const override
++                    {
++                        return (_type);
++                    }
++                    uint8_t InitLength() const override
++                    {
++                        return (_initLength);
++                    }
++
++                private:
++                    uint16_t _height;
++                    uint16_t _width;
++                    CDMi::MediaType _type;
++                    uint8_t _initLength;
++                };
++
++                class DataExchange : public Exchange::DataExchange, public Core::Thread {
+                 private:
+                     DataExchange() = delete;
+                     DataExchange(const DataExchange&) = delete;
+@@ -243,7 +281,7 @@
+ 
+                 public:
+                     DataExchange(CDMi::IMediaKeySession* mediaKeys, const string& name, const uint32_t defaultSize)
+-                        : ::OCDM::DataExchange(name, defaultSize)
++                        : Exchange::DataExchange(name, defaultSize)
+                         , Core::Thread(Core::Thread::DefaultStackSize(), _T("DRMSessionThread"))
+                         , _mediaKeys(mediaKeys)
+                         , _mediaKeysExt(dynamic_cast<CDMi::IMediaKeySessionExt*>(mediaKeys))
+@@ -255,7 +293,7 @@
+                     }
+                     ~DataExchange()
+                     {
+-                        TRACE(Trace::Information, (_T("Destructing buffer server side: %p - %s"), this, ::OCDM::DataExchange::Name().c_str()));
++                        TRACE(Trace::Information, (_T("Destructing buffer server side: %p - %s"), this, Exchange::DataExchange::Name().c_str()));
+                         // Make sure the thread reaches a HALT.. We are done.
+                         Core::Thread::Stop();
+ 
+@@ -277,31 +315,43 @@
+                             RequestConsume(Core::infinite);
+ 
+                             if (IsRunning() == true) {
+-                                uint8_t keyIdLength = 0;
+-                                const uint8_t* keyIdData = KeyId(keyIdLength);
++                                uint8_t *payloadBuffer = Buffer();
++
++                                CDMi::SampleInfo sampleInfo;
++                                sampleInfo.scheme = static_cast<CDMi::EncryptionScheme>(EncScheme());
++                                EncPattern(sampleInfo.pattern.encrypted_blocks,sampleInfo.pattern.clear_blocks);
++                                sampleInfo.iv = const_cast<uint8_t *>(IVKey());
++                                sampleInfo.ivLength = IVKeyLength();
++                                sampleInfo.keyId = const_cast<uint8_t *>(KeyId(sampleInfo.keyIdLength));
++                                sampleInfo.subSample = const_cast<CDMi::SubSampleInfo *>(SubSamples());
++                                sampleInfo.subSampleCount = SubSampleLength();
++
++                                uint16_t width = 0, height = 0;
++                                uint8_t type = 0;
++                                MediaProperties(height, width, type);
++                                const MediaStreamProperties streamProperties(height, width, static_cast<CDMi::MediaType>(type));
+ 
+                                 int cr = _mediaKeys->Decrypt(
+-                                    _sessionKey,
+-                                    _sessionKeyLength,
+-                                    nullptr, //subsamples
+-                                    0, //number of subsamples
+-                                    IVKey(),
+-                                    IVKeyLength(),
+-                                    Buffer(),
+-                                    BytesWritten(),
+-                                    &clearContentSize,
+-                                    &clearContent,
+-                                    keyIdLength,
+-                                    keyIdData,
+-                                    InitWithLast15());
++                                        payloadBuffer,
++                                        BytesWritten(),
++                                        &clearContent,
++                                        &clearContentSize,
++                                        const_cast<CDMi::SampleInfo *>(&sampleInfo),
++                                        dynamic_cast<const CDMi::IStreamProperties *>(&streamProperties));
++
+                                 if ((cr == 0) && (clearContentSize != 0)) {
+                                     if (clearContentSize != BytesWritten()) {
+                                         TRACE(Trace::Information, (_T("Returned clear sample size (%d) differs from encrypted buffer size (%d)"), clearContentSize, BytesWritten()));
+                                         Size(clearContentSize);
+                                     }
+ 
+-                                    // Adjust the buffer on our sied (this process) on what we will write back
+-                                    SetBuffer(0, clearContentSize, clearContent);
++                                    if(payloadBuffer != clearContent) {
++                                        // This wasn't a case of in-place decryption. So, make sure the decrypted buffer is copied to memory mapped file and released
++                                        // Adjust the buffer on our side (this process) on what we will write back
++                                        SetBuffer(0, clearContentSize, clearContent);
++                                        //Lets release the clear content buffer
++                                        _mediaKeys->ReleaseClearContent(nullptr, 0,clearContentSize,clearContent);
++                                    }
+                                 }
+ 
+                                 // Store the status we have for the other side.
+@@ -330,7 +380,7 @@
+                     Sink& operator=(const Sink&) = delete;
+ 
+                 public:
+-                    Sink(SessionImplementation* parent, ::OCDM::ISession::ICallback* callback)
++                    Sink(SessionImplementation* parent, Exchange::ISession::ICallback* callback)
+                         : _parent(*parent)
+                         , _callback(callback)
+                     {
+@@ -368,7 +418,7 @@
+                         TRACE(Trace::Information, ("OnKeyError(%d,%s)", f_nError, errorMessage));
+                         if (_callback != nullptr) {
+                             std::string message(errorMessage, strlen(errorMessage));
+-                            _callback->OnError(f_nError, (::OCDM::OCDM_RESULT)f_crSysError, message);
++                            _callback->OnError(f_nError, (Exchange::OCDM_RESULT)f_crSysError, message);
+                         }
+                     }
+ 
+@@ -377,27 +427,27 @@
+                     {
+                         ASSERT (buffer != nullptr);
+ 
+-                        ::OCDM::ISession::KeyStatus key;
++                        Exchange::ISession::KeyStatus key;
+                         CommonEncryptionData::KeyId keyId(CommonEncryptionData::COMMON, buffer, length);
+ 
+                         TRACE(Trace::Information, ("OnKeyStatusUpdate(%s)", keyMessage));
+ 
+                         if (::strcmp(keyMessage, "KeyUsable") == 0)
+-                            key = ::OCDM::ISession::Usable;
++                            key = Exchange::ISession::Usable;
+                         else if (::strcmp(keyMessage, "KeyReleased") == 0)
+-                            key = ::OCDM::ISession::Released;
++                            key = Exchange::ISession::Released;
+                         else if (::strcmp(keyMessage, "KeyExpired") == 0)
+-                            key = ::OCDM::ISession::Expired;
++                            key = Exchange::ISession::Expired;
+                         else if (::strcmp(keyMessage, "KeyOutputRestricted") == 0)
+-                            key = ::OCDM::ISession::OutputRestricted;
++                            key = Exchange::ISession::OutputRestricted;
+                         else if (::strcmp(keyMessage, "KeyOutputDownscaled") == 0)
+-                            key = ::OCDM::ISession::OutputDownscaled;
++                            key = Exchange::ISession::OutputDownscaled;
+                         else if (::strcmp(keyMessage, "SEC_RESULT_HW_FAILURE") == 0)
+-                            key = ::OCDM::ISession::HWError;
++                            key = Exchange::ISession::HWError;
+                         else if (::strcmp(keyMessage, "KeyOutputRestrictedHDCP22") == 0)
+-                            key = ::OCDM::ISession::OutputRestrictedHDCP22;
++                            key = Exchange::ISession::OutputRestrictedHDCP22;
+                         else
+-                            key = ::OCDM::ISession::InternalError;
++                            key = Exchange::ISession::InternalError;
+ 
+                         const CommonEncryptionData::KeyId* updated = _parent._cencData.UpdateKeyStatus(key, keyId);
+ 
+@@ -407,7 +457,7 @@
+                             _callback->OnKeyStatusUpdate(updated->Id(), updated->Length(), key);
+                         }
+                     }
+-                    void Revoke(::OCDM::ISession::ICallback* callback)
++                    void Revoke(Exchange::ISession::ICallback* callback)
+                     {
+                         if ((_callback != nullptr) && (_callback == callback)) {
+                             _callback->Release();
+@@ -424,7 +474,7 @@
+ 
+                 private:
+                     SessionImplementation& _parent;
+-                    ::OCDM::ISession::ICallback* _callback;
++                    Exchange::ISession::ICallback* _callback;
+                 };
+ 
+             public:
+@@ -435,7 +485,7 @@
+                     AccessorOCDM* parent,
+                     const std::string keySystem,
+                     CDMi::IMediaKeySession* mediaKeySession,
+-                    ::OCDM::ISession::ICallback* callback,
++                    Exchange::ISession::ICallback* callback,
+                     const CommonEncryptionData* sessionData)
+                     : _parent(*parent)
+                     , _refCount(1)
+@@ -460,7 +510,7 @@
+                     AccessorOCDM* parent,
+                     const std::string keySystem,
+                     CDMi::IMediaKeySessionExt* mediaKeySession,
+-                    ::OCDM::ISession::ICallback* callback,
++                    Exchange::ISession::ICallback* callback,
+                     const CommonEncryptionData* sessionData)
+                     : _parent(*parent)
+                     , _refCount(1)
+@@ -506,33 +556,33 @@
+                 {
+                     return ((keySystem == _keySystem) && (_cencData.IsSupported(keyIds) == true));
+                 }
+-                inline bool HasKeyId(const OCDM::KeyId& keyId) const
++                inline bool HasKeyId(const Exchange::KeyId& keyId) const
+                 {
+                     return (_cencData.HasKeyId(keyId));
+                 }
+-                virtual std::string SessionId() const override
++                std::string SessionId() const override
+                 {
+                     return (_sessionId);
+                 }
+ 
+-                virtual std::string Metadata() const override
++                std::string Metadata() const override
+                 {
+                     return _mediaKeySession->GetMetadata();
+                 }
+ 
+-                virtual ::OCDM::ISession::KeyStatus Status() const override
++                virtual Exchange::ISession::KeyStatus Status() const override
+                 {
+                     return (_cencData.Status());
+                 }
+ 
+-                ::OCDM::ISession::KeyStatus Status(const uint8_t keyId[], const uint8_t length) const override
++                Exchange::ISession::KeyStatus Status(const uint8_t keyId[], const uint8_t length) const override
+                 {
+                     return (_cencData.Status(CommonEncryptionData::KeyId(static_cast<CommonEncryptionData::systemType>(0), keyId, length)));
+                 }
+ 
+-                ::OCDM::OCDM_RESULT CreateSessionBuffer(std::string& bufferID) override {
++                Exchange::OCDM_RESULT CreateSessionBuffer(std::string& bufferID) override {
+ 
+-                    ::OCDM::OCDM_RESULT result = ::OCDM::OCDM_SUCCESS;
++                    Exchange::OCDM_RESULT result = Exchange::OCDM_SUCCESS;
+                     _adminLock.Lock();
+                     if( _buffer == nullptr ) {
+ 
+@@ -540,10 +590,18 @@
+                         {
+                             _buffer = new DataExchange(_mediaKeySession, bufferID, _parent.DefaultSize());
+                             _adminLock.Unlock();
++                            
++                            ASSERT(_buffer != nullptr);
++
++                            if(_buffer->IsValid() == false){
++                                SYSLOG(Trace::Fatal, ("Could not open session buffer %s", BufferId().c_str()));
++                            }
++                            
++
+                             TRACE(Trace::Information, ("Server::Session::CreateSessionBuffer(%s,%s,%s) => %p", _keySystem.c_str(), _sessionId.c_str(), BufferId().c_str(), this));
+                         } else {
+                             _adminLock.Unlock();
+-                            result = ::OCDM::OCDM_INVALID_DECRYPT_BUFFER;
++                            result = Exchange::OCDM_INVALID_DECRYPT_BUFFER;
+                             bufferID.clear();
+                             TRACE(Trace::Error, ("Failed to create buffer for Server::Session::CreateSessionBuffer(%s,%s) => %p", _keySystem.c_str(), _sessionId.c_str(), this));
+                         }
+@@ -551,13 +609,13 @@
+                         _adminLock.Unlock();
+                         TRACE(Trace::Information, ("Buffer already created Server::Session::CreateSessionBuffer(%s,%s,%s) => %p", _keySystem.c_str(), _sessionId.c_str(), BufferId().c_str(), this));
+                         bufferID = _buffer->Name();
+-                        result = ::OCDM::OCDM_S_FALSE;
++                        result = Exchange::OCDM_S_FALSE;
+                     }
+ 
+                     return result;
+                 }
+ 
+-                virtual std::string BufferId() const override
++                std::string BufferId() const override
+                 {
+                     std::string bufferid;
+                     _adminLock.Lock();
+@@ -568,92 +626,94 @@
+                     return bufferid;
+                 }
+ 
+-                virtual std::string BufferIdExt() const override
++                std::string BufferIdExt() const override
+                 {
+                     return BufferId();
+                 }
+ 
+                 // Loads the data stored for the specified session into the cdm object
+-                virtual ::OCDM::OCDM_RESULT Load() override
++                virtual Exchange::OCDM_RESULT Load() override
+                 {
+                     TRACE(Trace::Information, ("Load()"));
+-                    return (::OCDM::OCDM_RESULT)(_mediaKeySession->Load());
++                    return (Exchange::OCDM_RESULT)(_mediaKeySession->Load());
+                 }
+ 
+                 // Process a key message response.
+-                virtual void Update(const uint8_t* keyMessage, const uint16_t keyLength) override
++                void Update(const uint8_t* keyMessage, const uint16_t keyLength) override
+                 {
+                     TRACE(Trace::Information, ("Update(%d)", keyLength));
+                     return (_mediaKeySession->Update(keyMessage, keyLength));
+                 }
+ 
+                 //Removes all license(s) and key(s) associated with the session
+-                virtual ::OCDM::OCDM_RESULT Remove() override
++                virtual Exchange::OCDM_RESULT Remove() override
+                 {
+                     TRACE(Trace::Information, ("Remove()"));
+-                    return (::OCDM::OCDM_RESULT)(_mediaKeySession->Remove());
++                    return (Exchange::OCDM_RESULT)(_mediaKeySession->Remove());
+                 }
+ 
+                 //We are done with the Session, close what we can..
+-                virtual void Close() override
++                void Close() override
+                 {
+                     TRACE(Trace::Information, ("Close()"));
+ 
+                     _mediaKeySession->Close();
+                 }
+ 
+-                virtual void ResetOutputProtection() override {
++                void ResetOutputProtection() override {
+                     TRACE(Trace::Information, (_T("ResetOutputProtection! %p"), this));
+                     _mediaKeySession->ResetOutputProtection();
+                 }
+ 
+-                virtual void Revoke(OCDM::ISession::ICallback* callback) override
++                void Revoke(Exchange::ISession::ICallback* callback) override
+                 {
+                     _sink.Revoke(callback);
+                 }
+ 
+-                virtual uint32_t SessionIdExt() const override
++                uint32_t SessionIdExt() const override
+                 {
+                     return _mediaKeySessionExt->GetSessionIdExt();
+                 }
+ 
+-                virtual OCDM::OCDM_RESULT SetDrmHeader(const uint8_t drmHeader[], uint32_t drmHeaderLength) override
++                Exchange::OCDM_RESULT SetDrmHeader(const uint8_t drmHeader[], uint16_t drmHeaderLength) override
+                 {
+-                    return (OCDM::OCDM_RESULT)_mediaKeySessionExt->SetDrmHeader(drmHeader, drmHeaderLength);
++                    return (Exchange::OCDM_RESULT)_mediaKeySessionExt->SetDrmHeader(drmHeader, drmHeaderLength);
+                 }
+ 
+-                virtual OCDM::OCDM_RESULT GetChallengeDataExt(uint8_t* challenge, uint32_t& challengeSize, uint32_t isLDL) override
++                Exchange::OCDM_RESULT GetChallengeDataExt(uint8_t* challenge, uint16_t& challengeSize, uint32_t isLDL) override
+                 {
+-                    return (OCDM::OCDM_RESULT)_mediaKeySessionExt->GetChallengeDataExt(challenge, challengeSize, isLDL);
++                    uint32_t resultSize = challengeSize;
++                    Exchange::OCDM_RESULT outcome = static_cast<Exchange::OCDM_RESULT>(_mediaKeySessionExt->GetChallengeDataExt(challenge, resultSize, isLDL));
++                    challengeSize = (resultSize & 0xFFFF);
++                    return (outcome);
+                 }
+ 
+-                virtual OCDM::OCDM_RESULT CancelChallengeDataExt() override
++                Exchange::OCDM_RESULT CancelChallengeDataExt() override
+                 {
+-                    return (OCDM::OCDM_RESULT)_mediaKeySessionExt->CancelChallengeDataExt();
++                    return (Exchange::OCDM_RESULT)_mediaKeySessionExt->CancelChallengeDataExt();
+                 }
+ 
+-                virtual OCDM::OCDM_RESULT StoreLicenseData(const uint8_t licenseData[], uint32_t licenseDataSize, unsigned char* secureStopId) override
++                Exchange::OCDM_RESULT StoreLicenseData(const uint8_t licenseData[], uint16_t licenseDataSize, unsigned char* secureStopId) override
+                 {
+-                    return (OCDM::OCDM_RESULT)_mediaKeySessionExt->StoreLicenseData(licenseData, licenseDataSize, secureStopId);
++                    return (Exchange::OCDM_RESULT)_mediaKeySessionExt->StoreLicenseData(licenseData, licenseDataSize, secureStopId);
+                 }
+ 
+-                virtual OCDM::OCDM_RESULT SelectKeyId(const uint8_t keyLength, const uint8_t keyId[]) override
++                Exchange::OCDM_RESULT SelectKeyId(const uint8_t keyLength, const uint8_t keyId[]) override
+                 {
+-                    return (OCDM::OCDM_RESULT)_mediaKeySessionExt->SelectKeyId(keyLength, keyId);
++                    return (Exchange::OCDM_RESULT)_mediaKeySessionExt->SelectKeyId(keyLength, keyId);
+                 }
+ 
+-                virtual OCDM::OCDM_RESULT CleanDecryptContext() override
++                Exchange::OCDM_RESULT CleanDecryptContext() override
+                 {
+-                    return (OCDM::OCDM_RESULT)_mediaKeySessionExt->CleanDecryptContext();
++                    return (Exchange::OCDM_RESULT)_mediaKeySessionExt->CleanDecryptContext();
+                 }
+ 
+                 BEGIN_INTERFACE_MAP(Session)
+-                INTERFACE_ENTRY(::OCDM::ISession)
+-                INTERFACE_RELAY(::OCDM::ISessionExt, _mediaKeySessionExt)
++                INTERFACE_ENTRY(Exchange::ISession)
++                INTERFACE_RELAY(Exchange::ISessionExt, _mediaKeySessionExt)
+                 END_INTERFACE_MAP
+ 
+             private:
+-            private:
+                 AccessorOCDM& _parent;
+                 mutable Core::CriticalSection _adminLock;
+                 mutable uint32_t _refCount;
+@@ -676,31 +736,31 @@
+             {
+                 ASSERT(parent != nullptr);
+             }
+-            virtual ~AccessorOCDM()
++            ~AccessorOCDM() override
+             {
+                 TRACE(Trace::Information, (_T("Released the AccessorOCDM server side [%d]"), __LINE__));
+             }
+ 
+         public:
+-            virtual bool IsTypeSupported(
++            bool IsTypeSupported(
+                 const std::string& keySystem,
+                 const std::string& mimeType) const override
+             {
+ 
+-                return (_parent.IsTypeSupported(keySystem, mimeType) ? 0 : 1);
++                return (_parent.IsTypeSupported(keySystem, mimeType) ? true : false);
+             }
+ 
+-            virtual OCDM::OCDM_RESULT Metadata(
++            Exchange::OCDM_RESULT Metadata(
+                 const std::string& keySystem,
+                 std::string& metadata) const override
+             {
+-                OCDM::OCDM_RESULT result = OCDM::OCDM_KEYSYSTEM_NOT_SUPPORTED;
++                Exchange::OCDM_RESULT result = Exchange::OCDM_KEYSYSTEM_NOT_SUPPORTED;
+                 metadata.clear();
+ 
+                 CDMi::IMediaKeys* system = _parent.KeySystem(keySystem);
+                 if (system != nullptr) {
+                     metadata = system->GetMetadata();
+-                    result = OCDM::OCDM_SUCCESS;
++                    result = Exchange::OCDM_SUCCESS;
+                 }
+ 
+                 return result;
+@@ -711,7 +771,7 @@
+             }
+ 
+             // Create a MediaKeySession using the supplied init data and CDM data.
+-            virtual OCDM::OCDM_RESULT CreateSession(
++            Exchange::OCDM_RESULT CreateSession(
+                 const std::string& keySystem,
+                 const int32_t licenseType,
+                 const std::string& initDataType,
+@@ -719,9 +779,9 @@
+                 const uint16_t initDataLength,
+                 const uint8_t* CDMData,
+                 const uint16_t CDMDataLength,
+-                ::OCDM::ISession::ICallback* callback,
++                Exchange::ISession::ICallback* callback,
+                 std::string& sessionId,
+-                ::OCDM::ISession*& session) override
++                Exchange::ISession*& session) override
+             {
+                  CDMi::IMediaKeys *system = _parent.KeySystem(keySystem);
+ 
+@@ -733,13 +793,13 @@
+ 
+                      // OKe we got a buffer machanism to transfer the raw data, now create
+                      // the session.
+-                     if (system->CreateMediaKeySession(keySystem, licenseType, 
+-                                        initDataType.c_str(), initData, initDataLength, 
++                     if (system->CreateMediaKeySession(keySystem, licenseType,
++                                        initDataType.c_str(), initData, initDataLength,
+                                         CDMData, CDMDataLength, &sessionInterface) == 0)
+                      {
+                          if (sessionInterface != nullptr)
+                          {
+-                                 SessionImplementation *newEntry = 
++                                 SessionImplementation *newEntry =
+                                     Core::Service<SessionImplementation>::Create<SessionImplementation>(this,
+                                                  keySystem, sessionInterface,
+                                                 callback, &keyIds);
+@@ -750,13 +810,13 @@
+                                  _adminLock.Lock();
+ 
+                                  _sessionList.push_front(newEntry);
+-                                
++
+                                 if(false == keyIds.IsEmpty())
+                                 {
+                                     CommonEncryptionData::Iterator index(keyIds.Keys());
+                                     while (index.Next() == true) {
+                                         const CommonEncryptionData::KeyId& entry(index.Current());
+-                                        callback->OnKeyStatusUpdate( entry.Id(), entry.Length(), ::OCDM::ISession::StatusPending);
++                                        callback->OnKeyStatusUpdate( entry.Id(), entry.Length(), Exchange::ISession::StatusPending);
+                                     }
+                                 }
+                                 _adminLock.Unlock();
+@@ -768,35 +828,35 @@
+                      TRACE(Trace::Error, (_T("Could not create a DRM session! [%d]"), __LINE__));
+                  }
+ 
+-                 return (session != nullptr ? ::OCDM::OCDM_RESULT::OCDM_SUCCESS : ::OCDM::OCDM_RESULT::OCDM_S_FALSE);
++                 return (session != nullptr ? Exchange::OCDM_RESULT::OCDM_SUCCESS : Exchange::OCDM_RESULT::OCDM_S_FALSE);
+             }
+ 
+             // Set Server Certificate
+-            virtual ::OCDM::OCDM_RESULT SetServerCertificate(
++            Exchange::OCDM_RESULT SetServerCertificate(
+                 const std::string& keySystem,
+                 const uint8_t* serverCertificate,
+                 const uint16_t serverCertificateLength) override
+             {
+ 
+                 CDMi::IMediaKeys* system = _parent.KeySystem(keySystem);
+-                ::OCDM::OCDM_RESULT result = ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
++                Exchange::OCDM_RESULT result = Exchange::OCDM_RESULT::OCDM_S_FALSE;
+ 
+                 if (system != nullptr) {
+                     TRACE(Trace::Information, ("Set ServerCertificate()"));
+-                    result = static_cast<::OCDM::OCDM_RESULT>(system->SetServerCertificate(serverCertificate, serverCertificateLength));
++                    result = static_cast<Exchange::OCDM_RESULT>(system->SetServerCertificate(serverCertificate, serverCertificateLength));
+                 } else {
+                     TRACE(Trace::Error, (_T("Could not set the Server Certificates for system: %s"), keySystem.c_str()));
+                 }
+                 return result;
+             }
+ 
+-            virtual uint64_t GetDrmSystemTime(const std::string& keySystem) const override
++            uint64_t GetDrmSystemTime(const std::string& keySystem) const override
+             {
+                 CDMi::IMediaKeysExt* systemExt = dynamic_cast<CDMi::IMediaKeysExt*>(_parent.KeySystem(keySystem));
+                 if (systemExt) {
+-                    return (OCDM::OCDM_RESULT)systemExt->GetDrmSystemTime();
++                    return (Exchange::OCDM_RESULT)systemExt->GetDrmSystemTime();
+                 }
+-                return ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
++                return Exchange::OCDM_RESULT::OCDM_S_FALSE;
+             }
+ 
+             std::string GetVersionExt(const std::string& keySystem) const override
+@@ -826,13 +886,13 @@
+                 return false;
+             }
+ 
+-            OCDM::OCDM_RESULT EnableSecureStop(const std::string& keySystem, bool enable) override
++            Exchange::OCDM_RESULT EnableSecureStop(const std::string& keySystem, bool enable) override
+             {
+                 CDMi::IMediaKeysExt* systemExt = dynamic_cast<CDMi::IMediaKeysExt*>(_parent.KeySystem(keySystem));
+                 if (systemExt) {
+-                    return (OCDM::OCDM_RESULT)systemExt->EnableSecureStop(enable);
++                    return (Exchange::OCDM_RESULT)systemExt->EnableSecureStop(enable);
+                 }
+-                return ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
++                return Exchange::OCDM_RESULT::OCDM_S_FALSE;
+             }
+ 
+             uint32_t ResetSecureStops(const std::string& keySystem) override
+@@ -844,7 +904,7 @@
+                 return 0;
+             }
+ 
+-            OCDM::OCDM_RESULT GetSecureStopIds(
++            Exchange::OCDM_RESULT GetSecureStopIds(
+                 const std::string& keySystem,
+                 unsigned char Ids[],
+                 uint16_t idsLength,
+@@ -852,89 +912,89 @@
+             {
+                 CDMi::IMediaKeysExt* systemExt = dynamic_cast<CDMi::IMediaKeysExt*>(_parent.KeySystem(keySystem));
+                 if (systemExt) {
+-                    return (OCDM::OCDM_RESULT)systemExt->GetSecureStopIds(Ids, idsLength, count);
++                    return (Exchange::OCDM_RESULT)systemExt->GetSecureStopIds(Ids, idsLength, count);
+                 }
+-                return ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
++                return Exchange::OCDM_RESULT::OCDM_S_FALSE;
+             }
+ 
+-            OCDM::OCDM_RESULT GetSecureStop(
++            Exchange::OCDM_RESULT GetSecureStop(
+                 const std::string& keySystem,
+                 const unsigned char sessionID[],
+-                uint32_t sessionIDLength,
++                uint16_t sessionIDLength,
+                 unsigned char* rawData,
+                 uint16_t& rawSize)
+             {
+                 CDMi::IMediaKeysExt* systemExt = dynamic_cast<CDMi::IMediaKeysExt*>(_parent.KeySystem(keySystem));
+                 if (systemExt) {
+-                    return (OCDM::OCDM_RESULT)systemExt->GetSecureStop(sessionID, sessionIDLength, rawData, rawSize);
++                    return (Exchange::OCDM_RESULT)systemExt->GetSecureStop(sessionID, sessionIDLength, rawData, rawSize);
+                 }
+-                return ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
++                return Exchange::OCDM_RESULT::OCDM_S_FALSE;
+             }
+ 
+-            OCDM::OCDM_RESULT CommitSecureStop(
++            Exchange::OCDM_RESULT CommitSecureStop(
+                 const std::string& keySystem,
+                 const unsigned char sessionID[],
+-                uint32_t sessionIDLength,
++                uint16_t sessionIDLength,
+                 const unsigned char serverResponse[],
+-                uint32_t serverResponseLength)
++                uint16_t serverResponseLength)
+             {
+                 CDMi::IMediaKeysExt* systemExt = dynamic_cast<CDMi::IMediaKeysExt*>(_parent.KeySystem(keySystem));
+                 if (systemExt) {
+-                    return (OCDM::OCDM_RESULT)systemExt->CommitSecureStop(sessionID, sessionIDLength, serverResponse, serverResponseLength);
++                    return (Exchange::OCDM_RESULT)systemExt->CommitSecureStop(sessionID, sessionIDLength, serverResponse, serverResponseLength);
+                 }
+-                return ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
++                return Exchange::OCDM_RESULT::OCDM_S_FALSE;
+             }
+ 
+-            OCDM::OCDM_RESULT DeleteKeyStore(const std::string& keySystem) override
++            Exchange::OCDM_RESULT DeleteKeyStore(const std::string& keySystem) override
+             {
+                 CDMi::IMediaKeysExt* systemExt = dynamic_cast<CDMi::IMediaKeysExt*>(_parent.KeySystem(keySystem));
+                 if (systemExt) {
+-                    return (OCDM::OCDM_RESULT)systemExt->DeleteKeyStore();
++                    return (Exchange::OCDM_RESULT)systemExt->DeleteKeyStore();
+                 }
+-                return ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
++                return Exchange::OCDM_RESULT::OCDM_S_FALSE;
+             }
+ 
+-            OCDM::OCDM_RESULT DeleteSecureStore(const std::string& keySystem) override
++            Exchange::OCDM_RESULT DeleteSecureStore(const std::string& keySystem) override
+             {
+                 CDMi::IMediaKeysExt* systemExt = dynamic_cast<CDMi::IMediaKeysExt*>(_parent.KeySystem(keySystem));
+                 if (systemExt) {
+-                    return (OCDM::OCDM_RESULT)systemExt->DeleteSecureStore();
++                    return (Exchange::OCDM_RESULT)systemExt->DeleteSecureStore();
+                 }
+-                return ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
++                return Exchange::OCDM_RESULT::OCDM_S_FALSE;
+             }
+ 
+-            OCDM::OCDM_RESULT GetKeyStoreHash(
++            Exchange::OCDM_RESULT GetKeyStoreHash(
+                 const std::string& keySystem,
+                 uint8_t keyStoreHash[],
+-                uint32_t keyStoreHashLength) override
++                uint16_t keyStoreHashLength) override
+             {
+                 CDMi::IMediaKeysExt* systemExt = dynamic_cast<CDMi::IMediaKeysExt*>(_parent.KeySystem(keySystem));
+                 if (systemExt) {
+-                    return (OCDM::OCDM_RESULT)systemExt->GetSecureStoreHash(keyStoreHash, keyStoreHashLength);
++                    return (Exchange::OCDM_RESULT)systemExt->GetSecureStoreHash(keyStoreHash, keyStoreHashLength);
+                 }
+-                return ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
++                return Exchange::OCDM_RESULT::OCDM_S_FALSE;
+             }
+ 
+-            OCDM::OCDM_RESULT GetSecureStoreHash(
++            Exchange::OCDM_RESULT GetSecureStoreHash(
+                 const std::string& keySystem,
+                 uint8_t secureStoreHash[],
+-                uint32_t secureStoreHashLength) override
++                uint16_t secureStoreHashLength) override
+             {
+                 CDMi::IMediaKeysExt* systemExt = dynamic_cast<CDMi::IMediaKeysExt*>(_parent.KeySystem(keySystem));
+                 if (systemExt) {
+-                    return (OCDM::OCDM_RESULT)systemExt->GetSecureStoreHash(secureStoreHash, secureStoreHashLength);
++                    return (Exchange::OCDM_RESULT)systemExt->GetSecureStoreHash(secureStoreHash, secureStoreHashLength);
+                 }
+-                return ::OCDM::OCDM_RESULT::OCDM_S_FALSE;
++                return Exchange::OCDM_RESULT::OCDM_S_FALSE;
+             }
+ 
+             BEGIN_INTERFACE_MAP(AccessorOCDM)
+-            INTERFACE_ENTRY(::OCDM::IAccessorOCDM)
++            INTERFACE_ENTRY(Exchange::IAccessorOCDM)
+             END_INTERFACE_MAP
+ 
+         private:
+-            ::OCDM::ISession* FindSession(const CommonEncryptionData& keyIds, const string& keySystem) const
++            Exchange::ISession* FindSession(const CommonEncryptionData& keyIds, const string& keySystem) const
+             {
+-                ::OCDM::ISession* result = nullptr;
++                Exchange::ISession* result = nullptr;
+ 
+                 std::list<SessionImplementation*>::const_iterator index(_sessionList.begin());
+ 
+@@ -1073,46 +1133,86 @@
+             Core::JSON::ArrayType<Systems> KeySystems;
+         };
+ 
++            class AsyncInitThread {
++                public:
++                explicit AsyncInitThread(OCDMImplementation& parent)
++                    : _parent(parent)
++                    , _worker(*this)
++                {
++                }
++                ~AsyncInitThread() = default;
++
++                void Start()
++                {
++                    _worker.Submit();
++                }
++
++                void Stop()
++                {
++                    _worker.Revoke();
++                }
++                AsyncInitThread(const AsyncInitThread&) = delete;
++                AsyncInitThread& operator=(const AsyncInitThread&) = delete;
++
++                private:
++                void Dispatch()
++                {
++                    if (_parent.InitializeAsync() != Core::ERROR_NONE) {
++                        TRACE(Trace::Error, (_T("OCDM Async Intialization Failed")));
++                    }
++                }
++
++                private:
++                OCDMImplementation& _parent;
++                friend Core::ThreadPool::JobType<AsyncInitThread&>;
++                Core::WorkerPool::JobType<AsyncInitThread&> _worker;
++            };
++
+     public:
+         OCDMImplementation()
+             : _entryPoint(nullptr)
++            , _engine()
+             , _service(nullptr)
++            , _shell(nullptr)
+             , _compliant(false)
+             , _systemToFactory()
+             , _systemLibraries()
++            , _thread(*this)
+         {
+             TRACE(Trace::Information, (_T("Constructing OCDMImplementation Service: %p"), this));
+         }
++
+         virtual ~OCDMImplementation()
+         {
+-            if (_service != nullptr) {
+-                delete _service;
+-            }
+-
+-            if (_entryPoint != nullptr) {
+-                _entryPoint->Release();
+-            }
+-
+-            _systemLibraries.clear();
+-
+             TRACE(Trace::Information, (_T("Destructed OCDMImplementation Service: %p"), this));
+         }
+ 
+     public:
+         uint32_t Initialize(PluginHost::IShell* service) override
+         {
+-            uint32_t result = Core::ERROR_OPENING_FAILED;
++            uint32_t result = Core::ERROR_NONE;
+ 
+-            // On activation subscribe, on deactivation un-subscribe
+-            PluginHost::ISubSystem* subSystem = service->SubSystems();
++            _shell = service;
++
++            _shell->AddRef();
++            _thread.Start();
++
++            return (result);
++        }
+ 
++        uint32_t InitializeAsync()
++        {
++            uint32_t result = Core::ERROR_NONE;
++
++            // On activation subscribe, on deactivation un-subscribe
++            PluginHost::ISubSystem* subSystem = _shell->SubSystems();
+             ASSERT(subSystem != nullptr);
+ 
+             // Start loading the configured factories
+             Config config;
+-            config.FromString(service->ConfigLine());
++            config.FromString(_shell->ConfigLine());
+ 
+-            const string locator(service->DataPath() + config.Location.Value());
++            const string locator(_shell->DataPath() + config.Location.Value());
+ 
+             // Before we start loading the mapping of the Keys to the factories, load the factories :-)
+             Core::Directory entry(locator.c_str(), _T("*.drm"));
+@@ -1138,6 +1238,7 @@
+                     }
+                 } else {
+                     SYSLOG(Logging::Startup, (_T("Could not load factory [%s], error [%s]"), Core::File::FileNameExtended(entry.Current()).c_str(), library.Error().c_str()));
++                    result = Core::ERROR_OPENING_FAILED;
+                 }
+             }
+ 
+@@ -1161,6 +1262,7 @@
+ 
+                             } else {
+                                 SYSLOG(Logging::Startup, (_T("Required factory [%s], not found for [%s]"), system.c_str(), designator.c_str()));
++                                result = Core::ERROR_OPENING_FAILED;
+                             }
+                         }
+                     }
+@@ -1168,7 +1270,7 @@
+                     //now handle the configuration
+                     if (factory != factories.end()) {
+                         const string configuration(index.Current().Configuration.Value());
+-                        factory->second.Factory->Initialize(service, configuration);
++                        factory->second.Factory->Initialize(_shell, configuration);
+                     }
+                 }
+ 
+@@ -1185,15 +1287,16 @@
+                 SYSLOG(Logging::Startup, (_T("No DRM factories specified. OCDM can not service any DRM requests.")));
+             }
+ 
+-            _entryPoint = Core::Service<AccessorOCDM>::Create<::OCDM::IAccessorOCDM>(this, config.SharePath.Value(), config.ShareSize.Value());
+-            Core::ProxyType<RPC::InvokeServer> server = Core::ProxyType<RPC::InvokeServer>::Create(&Core::IWorkerPool::Instance());
+-            _service = new ExternalAccess(Core::NodeId(config.Connector.Value().c_str()), _entryPoint, server);
++            _entryPoint = Core::Service<AccessorOCDM>::Create<Exchange::IAccessorOCDM>(this, config.SharePath.Value(), config.ShareSize.Value());
++            _engine = Core::ProxyType<RPC::InvokeServer>::Create(&Core::IWorkerPool::Instance());
++            _service = new ExternalAccess(Core::NodeId(config.Connector.Value().c_str()), _entryPoint, _shell->ProxyStubPath(), _engine);
+ 
+             if (_service != nullptr) {
+ 
+                 if (_service->IsListening() == false) {
+                     delete _service;
+                     _entryPoint->Release();
++                    _engine.Release();
+                     _service = nullptr;
+                     _entryPoint = nullptr;
+                 } else {
+@@ -1210,9 +1313,13 @@
+                     }
+                 }
+             }
++
+             return (result);
+         }
++
+         void Deinitialize(PluginHost::IShell* service) override {
++            _thread.Stop();
++
+             std::map<const string, SystemFactory>::iterator factory(_systemToFactory.begin());
+ 
+             std::list<CDMi::ISystemFactory*> deinitialized;
+@@ -1220,15 +1327,32 @@
+             while (factory != _systemToFactory.end()) {
+                 std::list<CDMi::ISystemFactory*>::iterator index(std::find(deinitialized.begin(), deinitialized.end(), factory->second.Factory));
+ 
+-                if(index == deinitialized.end()){ 
++                if(index == deinitialized.end()){
+                     TRACE(Trace::Information, (_T("Deinitializing factory(%p) for key system %s"), factory->second.Factory, factory->second.Factory->KeySystem()));
+                     factory->second.Factory->Deinitialize(service);
+                     deinitialized.push_back(factory->second.Factory);
+                 }
+-                
++
+                 factory++;
+             }
++
++            if (_service != nullptr) {
++                delete _service;
++            }
++
++            if (_entryPoint != nullptr) {
++                _entryPoint->Release();
++            }
++
++            if (_engine.IsValid()) {
++                _engine.Release();
++            }
++            _systemLibraries.clear();
++
++            _shell->Release();
++            _shell = nullptr;
+         }
++
+         virtual uint32_t Reset()
+         {
+             return (Core::ERROR_NONE);
+@@ -1352,8 +1476,7 @@
+                 index++;
+             }
+         }
+-
+-    private:
++    public:
+         // -------------------------------------------------------------------------------------------------------------
+         // IDecryption methods
+         // -------------------------------------------------------------------------------------------------------------
+@@ -1378,14 +1501,17 @@
+             blacklist.insert(std::pair<const std::string, std::vector<std::string>>(system, elements));
+         }
+ 
+-        ::OCDM::IAccessorOCDM* _entryPoint;
++        Exchange::IAccessorOCDM* _entryPoint;
++        Core::ProxyType<RPC::InvokeServer> _engine;
+         ExternalAccess* _service;
++        PluginHost::IShell* _shell;
+         bool _compliant;
+         std::map<const std::string, SystemFactory> _systemToFactory;
+         Blacklist _systemBlacklistedCodecRegexps;
+         Blacklist _systemBlacklistedMediaTypeRegexps;
+         std::list<Core::Library> _systemLibraries;
+         std::list<string> _keySystems;
++        AsyncInitThread _thread;
+     };
+ 
+     SERVICE_REGISTRATION(OCDMImplementation, 1, 0);
+diff -Naur rdkservices.orig/OpenCDMi/OCDM.config rdkservices/OpenCDMi/OCDM.config
+--- rdkservices.orig/OpenCDMi/OCDM.config	2022-03-29 17:20:11.000000000 +0000
++++ rdkservices/OpenCDMi/OCDM.config	2022-12-08 18:50:55.100264410 +0000
+@@ -6,6 +6,7 @@
+ endif()
+ 
+ map()
++    kv(locator lib${PLUGIN_OCDM_IMPLEMENTATION}.so)
+     kv(mode ${PLUGIN_OPENCDMI_MODE})
+     if(PLUGIN_OPENCDMI_USER)
+         kv(user ${PLUGIN_OPENCDMI_USER})
+@@ -31,28 +32,31 @@
+     kv(designators "___array___;org.chromium.externalclearkey;org.w3.clearkey")
+ end()
+ ans(keysystem)
+-map_append(${configuration} systems ${keysystem})
++map_append(${configuration} systems ___array___ ${keysystem})
+ endif()
+ 
+ if(PLUGIN_OPENCDMI_PLAYREADY OR PLUGIN_OPENCDMI_PLAYREADY_NEXUS OR PLUGIN_OPENCDMI_PLAYREADY_NEXUS_SVP OR PLUGIN_OPENCDMI_PLAYREADY_VGDRM)
+ map()
+     kv(name "PlayReady")
+     kv(designators "com.youtube.playready;com.microsoft.playready;com.netflix.playready")
+-if(PLUGIN_OPENCDMI_PLAYREADY_METERING_CERTIFICATE)
+     key(configuration)
+     map()
+-        kv(metering ${PLUGIN_OPENCDMI_PLAYREADY_METERING_CERTIFICATE})
+-    end()
+-else()
+-    key(configuration)
+-    map()
+-        kv(read-dir "${PLUGIN_OCDM_PLAYREADY_READ_DIR}")
+-        kv(store-location "${PLUGIN_OCDM_PLAYREADY_STORE_LOCATION}")
++        if(PLUGIN_OPENCDMI_PLAYREADY_METERING_CERTIFICATE)
++            kv(metering ${PLUGIN_OPENCDMI_PLAYREADY_METERING_CERTIFICATE})
++        endif()
++        if(PLUGIN_OCDM_PLAYREADY_READ_DIR)
++            kv(read-dir "${PLUGIN_OCDM_PLAYREADY_READ_DIR}")
++        endif()
++        if(PLUGIN_OCDM_PLAYREADY_STORE_LOCATION)
++            kv(store-location "${PLUGIN_OCDM_PLAYREADY_STORE_LOCATION}")
++        endif()
++        if(PLUGIN_OPENCDMI_PLAYREADY_CERTIFICATE_LABEL)
++            kv(certificatelabel "${PLUGIN_OPENCDMI_PLAYREADY_CERTIFICATE_LABEL}")
++        endif()
+     end()
+-endif()
+ end()
+ ans(keysystem)
+-map_append(${configuration} systems ${keysystem})
++map_append(${configuration} systems ___array___ ${keysystem})
+ endif()
+ 
+ if(PLUGIN_OPENCDMI_WIDEVINE OR OPENCDMI_WIDEVINE_NEXUS_SVP)
+@@ -66,11 +70,13 @@
+         if(PLUGIN_OPENCDMI_WIDEVINE_KEYBOX)
+             kv(keybox ${PLUGIN_OPENCDMI_WIDEVINE_KEYBOX})
+         endif()
+-        
++        if(PLUGIN_OPENCDMI_WIDEVINE_STORAGE_LOCATION)
++            kv(storagelocation ${PLUGIN_OPENCDMI_WIDEVINE_STORAGE_LOCATION})
++        endif()
+     end()
+ end()
+ ans(keysystem)
+-map_append(${configuration} systems ${keysystem})
++map_append(${configuration} systems ___array___ ${keysystem})
+ endif()
+ 
+ if(PLUGIN_OPENCDMI_NAGRA)
+@@ -84,13 +90,13 @@
+     end()
+ end()
+ ans(keysystem)
+-map_append(${configuration} systems ${keysystem})
++map_append(${configuration} systems ___array___ ${keysystem})
+ map()
+     kv(name "NagraConnect")
+     kv(designators "___array___;com.nagra.connect")
+ end()
+ ans(keysystem)
+-map_append(${configuration} systems ${keysystem})
++map_append(${configuration} systems ___array___ ${keysystem})
+ endif()
+ 
+ 
+@@ -100,7 +106,7 @@
+     kv(designators "___array___;com.ncas.alpha")
+ end()
+ ans(keysystem)
+-map_append(${configuration} systems ${keysystem})
++map_append(${configuration} systems ___array___ ${keysystem})
+ endif()
+ 
+ map_append(${configuration} root ${rootobject})
+diff -Naur rdkservices.orig/OpenCDMi/OCDM.cpp rdkservices/OpenCDMi/OCDM.cpp
+--- rdkservices.orig/OpenCDMi/OCDM.cpp	2022-03-29 17:20:11.000000000 +0000
++++ rdkservices/OpenCDMi/OCDM.cpp	2022-12-08 18:50:55.100264410 +0000
+@@ -20,45 +20,60 @@
+ #include "OCDM.h"
+ #include <interfaces/IDRM.h>
+ 
++#define API_VERSION_NUMBER_MAJOR 1
++#define API_VERSION_NUMBER_MINOR 0
++#define API_VERSION_NUMBER_PATCH 0
++
+ namespace WPEFramework {
+ 
++namespace {
++
++    static Plugin::Metadata<Plugin::OCDM> metadata(
++        // Version (Major, Minor, Patch)
++        API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH,
++        // Preconditions
++        {},
++        // Terminations
++        {},
++        // Controls
++        {}
++    );
++}
++
+ namespace OCDM {
+ 
+     Exchange::IMemory* MemoryObserver(const RPC::IRemoteConnection* connection)
+     {
+         class MemoryObserverImpl : public Exchange::IMemory {
+-        private:
+-            MemoryObserverImpl();
+-            MemoryObserverImpl(const MemoryObserverImpl&);
+-            MemoryObserverImpl& operator=(const MemoryObserverImpl&);
+-
+         public:
++            MemoryObserverImpl() = delete;
++            MemoryObserverImpl(const MemoryObserverImpl&) = delete;
++            MemoryObserverImpl& operator=(const MemoryObserverImpl&) = delete;
++
+             MemoryObserverImpl(const RPC::IRemoteConnection* connection)
+                 : _main(connection  == 0 ? Core::ProcessInfo().Id() : connection->RemoteId())
+             {
+             }
+-            ~MemoryObserverImpl()
+-            {
+-            }
++            ~MemoryObserverImpl() = default;
+ 
+         public:
+-            virtual uint64_t Resident() const
++            uint64_t Resident() const override
+             {
+                 return _main.Resident();
+             }
+-            virtual uint64_t Allocated() const
++            uint64_t Allocated() const override
+             {
+                 return _main.Allocated();
+             }
+-            virtual uint64_t Shared() const
++            uint64_t Shared() const override
+             {
+                 return _main.Shared();
+             }
+-            virtual uint8_t Processes() const
++            uint8_t Processes() const override
+             {
+                 return (IsOperational() ? 1 : 0);
+             }
+-            virtual const bool IsOperational() const
++            const bool IsOperational() const override
+             {
+                 return _main.IsActive();
+             }
+@@ -79,7 +94,7 @@
+ 
+ namespace Plugin {
+ 
+-    SERVICE_REGISTRATION(OCDM, 1, 0);
++    SERVICE_REGISTRATION(OCDM, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
+ 
+     static Core::ProxyPoolType<Web::JSONBodyType<OCDM::Data>> jsonDataFactory(1);
+     static Core::ProxyPoolType<Web::JSONBodyType<OCDM::Data::System>> jsonSystemFactory(1);
+@@ -92,25 +107,26 @@
+ 
+         string message;
+ 
++        ASSERT(service != nullptr);
+         ASSERT(_service == nullptr);
+         ASSERT(_memory == nullptr);
+         ASSERT(_opencdmi == nullptr);
++        ASSERT(_connectionId == 0);
+ 
+-        _connectionId = 0;
+         _service = service;
++        _service->AddRef();
+         _skipURL = static_cast<uint8_t>(_service->WebPrefix().length());
+ 
+         // Register the Process::Notification stuff. The Remote process might die before we get a
+         // change to "register" the sink for these events !!! So do it ahead of instantiation.
+         _service->Register(&_notification);
+ 
+-        _opencdmi = _service->Root<Exchange::IContentDecryption>(_connectionId, WPEFramework::RPC::CommunicationTimeOut, _T("OCDMImplementation"));
++        _opencdmi = _service->Root<Exchange::IContentDecryption>(_connectionId, Core::infinite, _T("OCDMImplementation"));
+ 
+         if (_opencdmi == nullptr) {
+             message = _T("OCDM could not be instantiated.");
+-            _service->Unregister(&_notification);
+-            _service = nullptr;
+         } else {
++            RegisterAll();
+             _opencdmi->Initialize(_service);
+ 
+             ASSERT(_connectionId != 0);
+@@ -125,56 +141,75 @@
+             }
+             else {
+                 message = _T("OCDM crashed at initialize!");
+-                _opencdmi = nullptr;
+-                _service->Unregister(&_notification);
+-                _service = nullptr;
+             }
+         }
+ 
++        if(message.length() != 0) {
++            Deinitialize(service);
++        }
++
+         return message;
+     }
+ 
+     /*virtual*/ void OCDM::Deinitialize(PluginHost::IShell* service)
+     {
+         ASSERT(_service == service);
+-        ASSERT(_memory != nullptr);
+-        ASSERT(_opencdmi != nullptr);
+ 
+         _service->Unregister(&_notification);
+-        _memory->Release();
+ 
+-        _opencdmi->Deinitialize(service);
+-        RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));
+-        uint32_t result = _opencdmi->Release();
+-        ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);
++        if(_opencdmi != nullptr) {
+ 
+-        PluginHost::ISubSystem* subSystem = service->SubSystems();
++            if(_memory != nullptr) {
++                _memory->Release();
++                _memory = nullptr;
++            }
+ 
+-        ASSERT(subSystem != nullptr);
++            _opencdmi->Deinitialize(service);
+ 
+-        if (subSystem != nullptr) {
+-            ASSERT(subSystem->IsActive(PluginHost::ISubSystem::DECRYPTION) == true);
+-            subSystem->Set(PluginHost::ISubSystem::NOT_DECRYPTION, nullptr);
+-            subSystem->Release();
++            UnregisterAll();
++
++            RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));
++
++            VARIABLE_IS_NOT_USED uint32_t result = _opencdmi->Release();
++            _opencdmi = nullptr;
++            // It should have been the last reference we are releasing,
++            // so it should end up in a DESCRUCTION_SUCCEEDED, if not we
++            // are leaking...
++            ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);
++
++            // If this was running in a (container) proccess...
++            if (connection != nullptr) {
++
++                // Lets trigger the cleanup sequence for
++                // out-of-process code. Which will guard
++                // that unwilling processes, get shot if
++                // not stopped friendly :~)
++                connection->Terminate();
++                connection->Release();
++            }
+         }
+-        if (connection != nullptr) {
+-            connection->Terminate();
+-            connection->Release();
++
++        PluginHost::ISubSystem* subSystem = service->SubSystems();
++
++        if (subSystem != nullptr) {
++            if(subSystem->IsActive(PluginHost::ISubSystem::DECRYPTION) == true) {
++                subSystem->Set(PluginHost::ISubSystem::NOT_DECRYPTION, nullptr);
++                subSystem->Release();
++            }
+         }
+ 
+-        // Deinitialize what we initialized..
+-        _memory = nullptr;
+-        _opencdmi = nullptr;
++        _service->Release();
+         _service = nullptr;
++        _connectionId = 0;
+     }
+ 
+     /* virtual */ string OCDM::Information() const
+     {
+         // No additional info to report.
+-        return (nullptr);
++        return string();
+     }
+ 
+-    /* virtual */ void OCDM::Inbound(Web::Request& request)
++    /* virtual */ void OCDM::Inbound(Web::Request&)
+     {
+     }
+ 
+diff -Naur rdkservices.orig/OpenCDMi/OCDM.h rdkservices/OpenCDMi/OCDM.h
+--- rdkservices.orig/OpenCDMi/OCDM.h	2022-03-29 17:20:11.000000000 +0000
++++ rdkservices/OpenCDMi/OCDM.h	2022-12-08 18:50:55.100264410 +0000
+@@ -30,25 +30,19 @@
+ 
+     class OCDM : public PluginHost::IPlugin, public PluginHost::IWeb, public PluginHost::JSONRPC {
+     private:
+-        OCDM(const OCDM&) = delete;
+-        OCDM& operator=(const OCDM&) = delete;
+ 
+         class Notification : public RPC::IRemoteConnection::INotification {
+-
+-        private:
++        public:
+             Notification() = delete;
+             Notification(const Notification&) = delete;
+             Notification& operator=(const Notification&) = delete;
+ 
+-        public:
+             explicit Notification(OCDM* parent)
+                 : _parent(*parent)
+             {
+                 ASSERT(parent != nullptr);
+             }
+-            ~Notification()
+-            {
+-            }
++            ~Notification() override = default;
+ 
+         public:
+             virtual void Activated(RPC::IRemoteConnection*)
+@@ -69,10 +63,6 @@
+ 
+     public:
+         class Data : public Core::JSON::Container {
+-        private:
+-            Data(const Data&) = delete;
+-            Data& operator=(const Data&) = delete;
+-
+         public:
+             class System : public Core::JSON::Container {
+             private:
+@@ -80,14 +70,16 @@
+ 
+             public:
+                 System()
+-                    : Name()
++                    : Core::JSON::Container()
++                    , Name()
+                     , Designators()
+                 {
+                     Add(_T("name"), &Name);
+                     Add(_T("designators"), &Designators);
+                 }
+                 System(const string& name, RPC::IStringIterator* entries)
+-                    : Name()
++                    : Core::JSON::Container()
++                    , Name()
+                     , Designators()
+                 {
+                     Add(_T("name"), &Name);
+@@ -99,15 +91,14 @@
+                     Load(entries);
+                 }
+                 System(const System& copy)
+-                    : Name(copy.Name)
++                    : Core::JSON::Container()
++                    , Name(copy.Name)
+                     , Designators(copy.Designators)
+                 {
+                     Add(_T("name"), &Name);
+                     Add(_T("designators"), &Designators);
+                 }
+-                virtual ~System()
+-                {
+-                }
++                ~System() override = default;
+ 
+             public:
+                 Core::JSON::String Name;
+@@ -126,39 +117,34 @@
+             };
+ 
+         public:
++            Data(const Data&) = delete;
++            Data& operator=(const Data&) = delete;
+             Data()
+                 : Core::JSON::Container()
+             {
+                 Add(_T("systems"), &Systems);
+             }
+-            ~Data()
+-            {
+-            }
++            ~Data() = default;
+ 
+         public:
+             Core::JSON::ArrayType<System> Systems;
+         };
+ 
+     public:
+-        #ifdef __WINDOWS__
+-        #pragma warning(disable : 4355)
+-        #endif
++        OCDM(const OCDM&) = delete;
++        OCDM& operator=(const OCDM&) = delete;
++
+         OCDM()
+-            : _service(nullptr)
++            : _connectionId(0)
++            , _service(nullptr)
+             , _opencdmi(nullptr)
+             , _memory(nullptr)
+             , _notification(this)
+         {
+-            RegisterAll();
+-        }
+-        #ifdef __WINDOWS__
+-        #pragma warning(default : 4355)
+-        #endif
+-        virtual ~OCDM()
+-        {
+-            UnregisterAll();
+         }
+ 
++        ~OCDM() override = default;
++
+     public:
+         BEGIN_INTERFACE_MAP(OCDM)
+         INTERFACE_ENTRY(PluginHost::IPlugin)
+@@ -178,22 +164,22 @@
+         // If there is an error, return a string describing the issue why the initialisation failed.
+         // The Service object is *NOT* reference counted, lifetime ends if the plugin is deactivated.
+         // The lifetime of the Service object is guaranteed till the deinitialize method is called.
+-        virtual const string Initialize(PluginHost::IShell* service);
++        const string Initialize(PluginHost::IShell* service) override;
+ 
+         // The plugin is unloaded from the webbridge. This is call allows the module to notify clients
+         // or to persist information if needed. After this call the plugin will unlink from the service path
+         // and be deactivated. The Service object is the same as passed in during the Initialize.
+         // After theis call, the lifetime of the Service object ends.
+-        virtual void Deinitialize(PluginHost::IShell* service);
++        void Deinitialize(PluginHost::IShell* service) override;
+ 
+         // Returns an interface to a JSON struct that can be used to return specific metadata information with respect
+         // to this plugin. This Metadata can be used by the MetData plugin to publish this information to the ouside world.
+-        virtual string Information() const;
++        string Information() const override;
+ 
+         //  IWeb methods
+         // -------------------------------------------------------------------------------------------------------
+-        virtual void Inbound(Web::Request& request);
+-        virtual Core::ProxyType<Web::Response> Process(const Web::Request& request);
++        void Inbound(Web::Request& request) override;
++        Core::ProxyType<Web::Response> Process(const Web::Request& request) override;
+ 
+     private:
+         void Deactivated(RPC::IRemoteConnection* process);
+diff -Naur rdkservices.orig/OpenCDMi/OpenCDMi.json rdkservices/OpenCDMi/OpenCDMi.json
+--- rdkservices.orig/OpenCDMi/OpenCDMi.json	2022-03-29 17:20:11.000000000 +0000
++++ rdkservices/OpenCDMi/OpenCDMi.json	2022-12-08 18:50:25.539483735 +0000
+@@ -1,5 +1,5 @@
+ {
+-    "$schema": "https://raw.githubusercontent.com/rdkcentral/Thunder/master/Tools/JsonGenerator/schemas/interface.schema.json",
++    "$schema": "https://raw.githubusercontent.com/rdkcentral/rdkservices/main/Tools/json_generator/schemas/interface.schema.json",
+     "jsonrpc": "2.0",
+     "info": {
+         "title": "OpenCMDi API",
+@@ -7,194 +7,7 @@
+         "description": "The `OpenCDMi` plugin allows you view Open Content Decryption Module (OCDM) properties"
+     },
+     "common": {
+-        "errors": {
+-            "general": {
+-                "code": 1,
+-                "message": "ERROR_GENERAL"
+-            },
+-            "unavailable": {
+-                "code": 2,
+-                "message": "ERROR_UNAVAILABLE"
+-            },
+-            "asyncfailed": {
+-                "code": 3,
+-                "message": "ERROR_ASYNC_FAILED"
+-            },
+-            "asyncaborted": {
+-                "code": 4,
+-                "message": "ERROR_ASYNC_ABORTED"
+-            },
+-            "illegalstate": {
+-                "code": 5,
+-                "message": "ERROR_ILLEGAL_STATE"
+-            },
+-            "openingfailed": {
+-                "code": 6,
+-                "message": "ERROR_OPENING_FAILED"
+-            },
+-            "acceptfailed": {
+-                "code": 7,
+-                "message": "ERROR_ACCEPT_FAILED"
+-            },
+-            "pendingshutdown": {
+-                "code": 8,
+-                "message": "ERROR_PENDING_SHUTDOWN"
+-            },
+-            "alreadyconnected": {
+-                "code": 9,
+-                "message": "ERROR_ALREADY_CONNECTED"
+-            },
+-            "connectionclosed": {
+-                "code": 10,
+-                "message": "ERROR_CONNECTION_CLOSED"
+-            },
+-            "timedout": {
+-                "code": 11,
+-                "message": "ERROR_TIMEDOUT"
+-            },
+-            "inprogress": {
+-                "code": 12,
+-                "message": "ERROR_INPROGRESS",
+-                "description": "Operation in progress"
+-            },
+-            "couldnotsetaddress": {
+-                "code": 13,
+-                "message": "ERROR_COULD_NOT_SET_ADDRESS"
+-            },
+-            "incorrecthash": {
+-                "code": 14,
+-                "message": "ERROR_INCORRECT_HASH",
+-                "description": "Incorrect hash given"
+-            },
+-            "incorrecturl": {
+-                "code": 15,
+-                "message": "ERROR_INCORRECT_URL",
+-                "description": "Incorrect URL given"
+-            },
+-            "invalidinputlength": {
+-                "code": 16,
+-                "message": "ERROR_INVALID_INPUT_LENGTH"
+-            },
+-            "destructionsucceeded": {
+-                "code": 17,
+-                "message": "ERROR_DESTRUCTION_SUCCEEDED"
+-            },
+-            "destructionfailed": {
+-                "code": 18,
+-                "message": "ERROR_DESTRUCTION_FAILED"
+-            },
+-            "closingfailed": {
+-                "code": 19,
+-                "message": "ERROR_CLOSING_FAILED"
+-            },
+-            "processterminated": {
+-                "code": 20,
+-                "message": "ERROR_PROCESS_TERMINATED"
+-            },
+-            "processkilled": {
+-                "code": 21,
+-                "message": "ERROR_PROCESS_KILLED"
+-            },
+-            "unknownkey": {
+-                "code": 22,
+-                "message": "ERROR_UNKNOWN_KEY"
+-            },
+-            "incompleteconfig": {
+-                "code": 23,
+-                "message": "ERROR_INCOMPLETE_CONFIG"
+-            },
+-            "privilegedrequest": {
+-                "code": 24,
+-                "message": "ERROR_PRIVILEGED_REQUEST"
+-            },
+-            "rpccallfailed": {
+-                "code": 25,
+-                "message": "ERROR_RPC_CALL_FAILED"
+-            },
+-            "unreachablenetwork": {
+-                "code": 26,
+-                "message": "ERROR_UNREACHABLE_NETWORK"
+-            },
+-            "requestsubmitted": {
+-                "code": 27,
+-                "message": "ERROR_REQUEST_SUBMITTED"
+-            },
+-            "unknowntable": {
+-                "code": 28,
+-                "message": "ERROR_UNKNOWN_TABLE"
+-            },
+-            "duplicatekey": {
+-                "code": 29,
+-                "message": "ERROR_DUPLICATE_KEY"
+-            },
+-            "badrequest": {
+-                "code": 30,
+-                "message": "ERROR_BAD_REQUEST"
+-            },
+-            "pendingconditions": {
+-                "code": 31,
+-                "message": "ERROR_PENDING_CONDITIONS"
+-            },
+-            "surfaceunavailable": {
+-                "code": 32,
+-                "message": "ERROR_SURFACE_UNAVAILABLE"
+-            },
+-            "playerunavailable": {
+-                "code": 33,
+-                "message": "ERROR_PLAYER_UNAVAILABLE"
+-            },
+-            "firstresourcenotfound": {
+-                "code": 34,
+-                "message": "ERROR_FIRST_RESOURCE_NOT_FOUND"
+-            },
+-            "secondsourcenotfound": {
+-                "code": 35,
+-                "message": "ERROR_SECOND_RESOURCE_NOT_FOUND"
+-            },
+-            "alreadyreleased": {
+-                "code": 36,
+-                "message": "ERROR_ALREADY_RELEASED"
+-            },
+-            "negtiveacknowledge": {
+-                "code": 37,
+-                "message": "ERROR_NEGATIVE_ACKNOWLEDGE"
+-            },
+-            "invalidsignature": {
+-                "code": 38,
+-                "message": "ERROR_INVALID_SIGNATURE"
+-            },
+-            "readerror": {
+-                "code": 39,
+-                "message": "ERROR_READ_ERROR"
+-            },
+-            "writeerror": {
+-                "code": 40,
+-                "message": "ERROR_WRITE_ERROR"
+-            },
+-            "invaliddesignator": {
+-                "code": 41,
+-                "message": "ERROR_INVALID_DESIGNATOR"
+-            },
+-            "unauthenticated": {
+-                "code": 42,
+-                "message": "ERROR_UNAUTHENTICATED"
+-            },
+-            "notexist": {
+-                "code": 43,
+-                "message": "ERROR_NOT_EXIST"
+-            },
+-            "notsupported": {
+-                "code": 44,
+-                "message": "ERROR_NOT_SUPPORTED"
+-            }
+-        },
+-        "results": {
+-            "void": {
+-                "type": "null",
+-                "default": null,
+-                "description": "Always null"
+-            }
+-        }
++        "$ref": "../common/common.json"
+     },
+     "definitions": {
+         "keysystem": {
+@@ -221,22 +34,6 @@
+                 "name",
+                 "keysystems"
+             ]
+-        },
+-        "result": {
+-            "type":"object",
+-            "properties": {
+-                "success": {
+-                    "$ref": "#/definitions/success"
+-                }
+-            },
+-            "required": [
+-                "success"
+-            ]
+-        },
+-        "success": {
+-            "summary": "Whether the request succeeded",
+-            "type": "boolean",
+-            "example": "true"
+         }
+     },
+     "properties": {
+diff -Naur rdkservices.orig/OpenCDMi/OpenCDMiPlugin.json rdkservices/OpenCDMi/OpenCDMiPlugin.json
+--- rdkservices.orig/OpenCDMi/OpenCDMiPlugin.json	2022-03-29 17:20:11.000000000 +0000
++++ rdkservices/OpenCDMi/OpenCDMiPlugin.json	2022-12-08 18:50:25.539483735 +0000
+@@ -1,12 +1,11 @@
+ {
+-    "$schema": "https://raw.githubusercontent.com/rdkcentral/Thunder/master/Tools/JsonGenerator/schemas/plugin.schema.json",
++    "$schema": "https://raw.githubusercontent.com/rdkcentral/rdkservices/main/Tools/json_generator/schemas/plugin.schema.json",
+     "info": {
+         "title": "OpenCDMi Plugin",
+         "callsign": "OCDM",
+         "locator": "libWPEFrameworkOCDM.so",
+         "status": "production",
+-        "description": "The `OpenCDMi` plugin allows you view Open Content Decryption Module (OCDM) properties",
+-        "version": "1.0"
++        "description": "The `OpenCDMi` plugin allows you view Open Content Decryption Module (OCDM) properties"
+     },
+     "configuration": {
+         "summary": "Configuration for the OpenCDMi plugin",
+diff -Naur rdkservices.orig/OpenCDMi/Protobuf.h rdkservices/OpenCDMi/Protobuf.h
+--- rdkservices.orig/OpenCDMi/Protobuf.h	1970-01-01 00:00:00.000000000 +0000
++++ rdkservices/OpenCDMi/Protobuf.h	2022-12-08 18:50:55.100264410 +0000
+@@ -0,0 +1,530 @@
++/*
++ * If not stated otherwise in this file or this component's LICENSE file the
++ * following copyright and licenses apply:
++ *
++ * Copyright 2022 RDK Management
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++#pragma once
++
++#include "Module.h"
++
++namespace WPEFramework {
++
++namespace Protobuf {
++
++    struct IElement {
++        enum class WireType : uint8_t {
++            VARINT = 0,
++            FIXED64 = 1,
++            LENGTH_DELIMITED = 2,
++            GROUP_START = 3,
++            GROUP_END = 4,
++            FIXED32 = 5
++        };
++
++        virtual ~IElement() = default;
++        virtual uint32_t Deserialize(const uint8_t data[], const uint32_t length) = 0;
++        virtual bool IsSet() const = 0;
++        virtual WireType Type() const = 0;
++    }; // struct IElement
++
++    template<typename T>
++    class ValueElementType : public IElement {
++    public:
++        using type = T;
++        using IElement::WireType;
++        ValueElementType(const ValueElementType&) = default;
++        ValueElementType& operator=(const ValueElementType&) = default;
++        ValueElementType()
++            : _value()
++            , _set(false)
++        { }
++        ~ValueElementType() = default;
++
++    public:
++        bool IsSet() const override {
++            return (_set);
++        }
++        const T& Value() const {
++            return (_value);
++        }
++        T& Value() {
++            return (_value);
++        }
++
++    protected:
++        void Set(const bool set) {
++            _set = set;
++        }
++
++    private:
++        T _value;
++        bool _set;
++    }; // class ValueElementType
++
++    template<typename T>
++    class VarintType : public ValueElementType<T> {
++        static_assert(std::is_integral<T>::value || std::is_enum<T>::value, "Varint requires int type");
++
++    public:
++        VarintType()
++            : ValueElementType<T>()
++        { }
++        VarintType(const VarintType<T>&) = default;
++        VarintType<T>& operator=(const VarintType<T>&) = default;
++        ~VarintType() = default;
++
++    public:
++        using typename ValueElementType<T>::WireType;
++        uint32_t Deserialize(const uint8_t data[], const uint32_t length) override
++        {
++            ASSERT(data != nullptr);
++            uint32_t result = 0;
++            result = ReadVarint(data, length, ValueElementType<T>::Value());
++            ValueElementType<T>::Set(result != 0);
++            return (result);
++        }
++        WireType Type() const override {
++            return (WireType::VARINT);
++        }
++
++    private:
++        static uint8_t ReadVarint(const uint8_t data[], const uint32_t length, T& out)
++        {
++            ASSERT(data != nullptr);
++            uint8_t result = 0;
++            const uint8_t* ptr = data;
++            uint8_t shift = 0;
++            uint64_t value = 0;
++            uint8_t size = sizeof(value);
++            while (size-- && (ptr < (data + length))) {
++                value |= (static_cast<uint64_t>(*ptr & 0x7F) << shift);
++                if (((*ptr++) & 0x80) == 0) {
++                    out = static_cast<T>(value);
++                    result = static_cast<uint8_t>(ptr - data);
++                    break;
++                }
++                shift += 7;
++            }
++            return (result);
++        }
++    }; // class VarintType
++
++    template<typename T>
++    class ZigzagVarintType : public VarintType<T> {
++        static_assert(std::is_signed<T>::value, "Zigzaged varint is meant for signed integer type");
++
++    public:
++        ZigzagVarintType()
++            : ValueElementType<T>()
++        { }
++        ZigzagVarintType(const ZigzagVarintType<T>&) = default;
++        ZigzagVarintType<T>& operator=(const ZigzagVarintType<T>&) = default;
++        ~ZigzagVarintType() = default;
++
++    public:
++        uint32_t Deserialize(const uint8_t data[], const uint32_t length) override
++        {
++            ASSERT(data != nullptr);
++            uint32_t result = 0;
++            result = VarintType<T>::ReadVarint(data, length, ValueElementType<T>::Value());
++            if (result != 0) {
++                T& value = ValueElementType<T>::Value();
++                // unzigzag the value...
++                if (value & 1) {
++                    value ^= static_cast<T>(-1);
++                }
++                value >>= 1;
++            }
++            ValueElementType<T>::Set(result != 0);
++            return (result);
++        }
++    }; // class ZigzagVarintType
++
++    template<typename T>
++    class FixedType : public ValueElementType<T> {
++    protected:
++        FixedType()
++            : ValueElementType<T>()
++        { }
++        FixedType(const FixedType<T>&) = default;
++        FixedType<T>& operator=(const FixedType<T>&) = default;
++        ~FixedType() = default;
++
++    public:
++        uint32_t Deserialize(const uint8_t data[], const uint32_t length) override
++        {
++            ASSERT(data != nullptr);
++            uint32_t result = 0;
++            result = ReadFixed(data, length, ValueElementType<T>::Value());
++            ValueElementType<T>::Set(result != 0);
++            return (result);
++        }
++
++    private:
++        static uint8_t ReadFixed(const uint8_t data[], const uint32_t length, T& out)
++        {
++            ASSERT(data != nullptr);
++            uint8_t result = 0;
++            if (length >= sizeof(out)) {
++                result = static_cast<uint8_t>(sizeof(out));
++#ifdef LITTLE_ENDIAN_PLATFORM
++                /* Can be int, float or double here... */
++                ::memcpy(&out, data, sizeof(out));
++#else
++#error ReadFixed not implemented for big endian
++#endif
++            }
++            return (result);
++        }
++    }; // class FixedType
++
++    template<typename T>
++    class Fixed32Type : public FixedType<T> {
++        static_assert(std::is_arithmetic<T>::value && (sizeof(T) == sizeof(uint32_t)), "Fixed32 requires int32 or float type");
++
++    public:
++        Fixed32Type()
++            : FixedType<T>()
++        { }
++        Fixed32Type(const Fixed32Type<T>&) = default;
++        Fixed32Type<T>& operator=(const Fixed32Type<T>&) = default;
++        ~Fixed32Type() = default;
++
++    public:
++        using typename ValueElementType<T>::WireType;
++        WireType Type() const override {
++            return (WireType::FIXED32);
++        }
++    }; // class Fixed32Type
++
++    template<typename T>
++    class Fixed64Type : public FixedType<T> {
++        static_assert(std::is_arithmetic<T>::value && (sizeof(T) == sizeof(uint64_t)), "Fixed64 requires int64 or double type");
++
++    public:
++        Fixed64Type()
++            : FixedType<T>()
++        { }
++        Fixed64Type(const Fixed64Type<T>&) = default;
++        Fixed64Type<T>& operator=(const Fixed64Type<T>&) = default;
++        ~Fixed64Type() = default;
++
++    public:
++        using typename ValueElementType<T>::WireType;
++        WireType Type() const override {
++            return (WireType::FIXED64);
++        }
++    }; // class Fixed64Type
++
++    template<typename T>
++    class BytesType : public ValueElementType<std::basic_string<T>> {
++    public:
++        using type = std::basic_string<T>;
++        BytesType()
++            : ValueElementType<type>()
++        { }
++        BytesType(const BytesType&) = default;
++        BytesType& operator=(const BytesType&) = default;
++        ~BytesType() = default;
++
++    public:
++        using typename ValueElementType<type>::WireType;
++        uint32_t Deserialize(const uint8_t data[], const uint32_t length) override
++        {
++            ASSERT(data != nullptr);
++            uint32_t result = 0;
++            const uint8_t* ptr = data;
++            VarintType<uint32_t> size{};
++            result = size.Deserialize(ptr, length);
++            if ((result != 0) && (size.IsSet() == true) && (size.Value() != 0) && (size.Value() <= length)) {
++                ptr += result;
++                if ((ptr + size.Value()) <= (data + length)) {
++                    ValueElementType<type>::Value().append(reinterpret_cast<const T*>(ptr), size.Value());
++                    result += size.Value();
++                }
++            }
++            return (result);
++        }
++        WireType Type() const override {
++            return (WireType::LENGTH_DELIMITED);
++        }
++    }; // class BytesType
++
++    template<typename ELEMENT>
++    class RepeatedType : public IElement{
++    public:
++        using type = typename ELEMENT::type;
++        RepeatedType()
++            : _elements()
++        { }
++        RepeatedType(const RepeatedType&) = default;
++        RepeatedType& operator=(const RepeatedType&) = default;
++        ~RepeatedType() = default;
++
++    public:
++        bool IsSet() const override {
++            return (_elements.empty() == false);
++        }
++        const std::list<ELEMENT>& Elements() const {
++            return (_elements);
++        }
++        void Clear() {
++            _elements.clear();
++        }
++        uint32_t Deserialize(const uint8_t data[], const uint32_t length) override
++        {
++            ASSERT(data != nullptr);
++            ELEMENT element{};
++            uint32_t result = element.Deserialize(data, length);
++            if (result != 0) {
++                _elements.push_back(std::move(element));
++            }
++            return (result);
++        }
++        WireType Type() const override {
++            ELEMENT element{};
++            return (element.Type());
++        }
++    private:
++        std::list<ELEMENT> _elements;
++    }; // class RepeatedType
++
++    template<typename ELEMENT>
++    class PackedRepeatedType : public IElement {
++        static_assert(std::is_arithmetic<typename ELEMENT::type>::value, "PackedRepeated requires elements of numerical type");
++
++    public:
++        using type = typename ELEMENT::type;
++        PackedRepeatedType()
++            : _elements()
++        { }
++        PackedRepeatedType(const PackedRepeatedType&) = default;
++        PackedRepeatedType& operator=(const PackedRepeatedType&) = default;
++        ~PackedRepeatedType() = default;
++
++    public:
++        bool IsSet() const override {
++            return (_elements.empty() == false);
++        }
++        const std::list<ELEMENT>& Elements() const {
++            return (_elements);
++        }
++        void Clear() {
++            _elements.clear();
++        }
++        uint32_t Deserialize(const uint8_t data[], const uint32_t length) override
++        {
++            ASSERT(data != nullptr);
++            uint32_t result = 0;
++            const uint8_t* ptr = data;
++            VarintType<uint32_t> size{};
++            result = size.Deserialize(ptr, length);
++            ptr += result;
++            if ((result != 0) && ((size.IsSet() == true) && (size.Value() != 0) && (size.Value() <= (length - result)))) {
++                const uint8_t* end = (ptr + size.Value());
++                while (ptr < end) {
++                    ELEMENT element{};
++                    uint32_t consumed = element.Deserialize(ptr, static_cast<uint32_t>(end - ptr));
++                    if (consumed != 0) {
++                        ptr += consumed;
++                        result += consumed;
++                        _elements.push_back(element);
++                    } else {
++                        // TRACE_L1("Failed to deserialize packed element");
++                        result = 0;
++                        break;
++                    }
++                }
++            }
++            return (result);
++        }
++
++    private:
++        std::list<ELEMENT> _elements;
++    }; // class PackedRepeatedType
++
++    class Message : public IElement {
++    private:
++        struct Entry {
++            IElement* element;
++            bool required;
++        };
++
++    public:
++        using type = void;
++        Message()
++            : _elements()
++        { }
++        Message(const Message&) = default;
++        Message& operator=(const Message&) = default;
++        ~Message() = default;
++
++    public:
++        bool IsSet() const override {
++            return (_elements.empty() == false);
++        }
++        void Clear() {
++            _elements.clear();
++        }
++        void Add(const uint8_t index, IElement* element, bool required = false)
++        {
++            ASSERT(index != 0); // 0 is not allowed as key
++            ASSERT(element != nullptr);
++            _elements.emplace(index, Entry{ element, required });
++        }
++        bool IsValid() const
++        {
++            bool valid = true;
++            for (auto const& entry : _elements) {
++                VARIABLE_IS_NOT_USED const IElement* const& element = entry.second.element;
++                ASSERT(element != nullptr);
++                if ((entry.second.required == true) && (entry.second.element->IsSet() == false)) {
++                    valid = false;
++                    break;
++                }
++            }
++            return (valid);
++        }
++        bool FromBuffer(const uint8_t data[], const uint32_t length)
++        {
++            ASSERT(data != nullptr);
++            bool result = true;
++            const uint8_t* ptr = data;
++            const uint8_t* end = (ptr + length);
++            while (ptr < end) {
++                VarintType<uint64_t> tag{};
++                uint32_t tagSize = tag.Deserialize(ptr, static_cast<uint32_t>(end - ptr));
++                if (tagSize > 0) {
++                    const IElement::WireType type = static_cast<IElement::WireType>(tag.Value() & 0x7);
++                    const uint32_t key = static_cast<uint32_t>(tag.Value() >> 3);
++                    const uint32_t available = static_cast<uint32_t>(end - ptr - tagSize);
++                    uint32_t consumed = 0;
++                    ptr += tagSize;
++
++                    if (key != 0) {
++                        auto it = _elements.find(key);
++                        if (it != _elements.end()) {
++                            IElement* const& element = (it->second).element;
++                            ASSERT(element != nullptr);
++                            if (type == element->Type()) {
++                                consumed = element->Deserialize(ptr, available);
++                            } else {
++                                // TRACE_L1("Wire type mismatch, check proto definition");
++                            }
++                        } else {
++                            consumed = Skip(ptr, available, type);
++                        }
++                    }
++
++                    if (consumed == 0) {
++                        // TRACE_L1("Failed to parse element");
++                        result = false;
++                        break;
++                    }
++
++                    ptr += consumed;
++                } else {
++                    // TRACE_L1("Failed to parse key/value pair");
++                    result = false;
++                    break;
++                }
++            }
++            return (result);
++        }
++
++    public:
++        uint32_t Deserialize(const uint8_t data[], const uint32_t length) override
++        {
++            ASSERT(data != nullptr);
++            uint32_t result = 0;
++            const uint8_t* ptr = data;
++            VarintType<uint32_t> size{};
++            result = size.Deserialize(ptr, length);
++            if ((result != 0) && (size.IsSet() == true) && (size.Value() > 0) && (size.Value() <= (length - result))) {
++                ptr += result;
++                if (FromBuffer(ptr, size.Value()) == true) {
++                    result += size.Value();
++                } else {
++                    // TRACE_L1("Failed to parse message");
++                }
++            }
++            return (result);
++        }
++        WireType Type() const {
++            return (WireType::LENGTH_DELIMITED);
++        }
++
++    private:
++        static uint32_t Skip(const uint8_t data[], const uint32_t length, const WireType type)
++        {
++            ASSERT(data != nullptr);
++            uint32_t result = 0;
++            switch (type) {
++            case WireType::VARINT:
++                result = Skip<VarintType<uint64_t>>(data, length);
++                break;
++            case WireType::FIXED64:
++                result = Skip<Fixed64Type<uint64_t>>(data, length);
++                break;
++            case WireType::LENGTH_DELIMITED:
++                result = Skip<BytesType<uint8_t>>(data, length);
++                break;
++            case WireType::FIXED32:
++                result = Skip<Fixed32Type<uint32_t>>(data, length);
++                break;
++            case WireType::GROUP_START:
++            case WireType::GROUP_END:
++                /* deprecated and not supported here */
++                // TRACE_L1("Groups are not supported!");
++                break;
++            default:
++                // TRACE_L1("Unknown wire type!");
++                break;
++            }
++            return (result);
++        }
++        template<typename ELEMENT>
++        static uint32_t Skip(const uint8_t data[], const uint32_t length)
++        {
++            ASSERT(data != nullptr);
++            ELEMENT element{};
++            return (element.Deserialize(data, length));
++        }
++
++    private:
++        std::map<uint8_t, Entry> _elements;
++    }; // class Message
++
++    using Bytes = BytesType<uint8_t>;
++    using Utf8String = BytesType<char>;
++    using Bool = VarintType<bool>;
++    using Int32 = VarintType<int32_t>;
++    using Int64 = VarintType<int64_t>;
++    using UInt32 = VarintType<uint32_t>;
++    using UInt64 = VarintType<uint64_t>;
++    using SInt32 = ZigzagVarintType<int32_t>;
++    using SInt64 = ZigzagVarintType<int64_t>;
++    using Fixed32 = Fixed32Type<uint32_t>;
++    using Fixed64 = Fixed64Type<uint64_t>;
++    using SFixed32 = Fixed32Type<int32_t>;
++    using SFixed64 = Fixed64Type<int64_t>;
++    using Float = FixedType<float>;
++    using Double = FixedType<double>;
++    template<typename T> using EnumType = VarintType<T>;
++
++}; // namespace Protobuf
++
++} // namespace

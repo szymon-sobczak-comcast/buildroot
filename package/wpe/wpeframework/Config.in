@@ -205,7 +205,6 @@ config BR2_PACKAGE_WPEFRAMEWORK_GSTREAMERCLIENT
 config BR2_PACKAGE_WPEFRAMEWORK_DISPLAYINFO
     select BR2_PACKAGE_WPEFRAMEWORK_CLIENTLIBRARIES
     bool "DisplayInfo"
-        default y
     help
         A helpful C-interface to easily get information from the DisplayInfo plugin.
 
