@@ -504,7 +504,6 @@ endif
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_DEVICEINFO
     select BR2_PACKAGE_WPEFRAMEWORK_RDKSERVICES
     bool "DeviceInfo"
-    default y
     help
       DeviceInfo Plugin
 
