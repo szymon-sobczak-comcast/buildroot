@@ -29,7 +29,7 @@ WPEWEBKIT_LICENSE_FILES = \
 
 WPEWEBKIT_DEPENDENCIES = host-gperf host-ninja host-python host-ruby \
 	harfbuzz cairo icu jpeg libepoxy libgcrypt libgles libsoup libtasn1 \
-	libpng libxslt openjpeg webp wpebackend
+	libpng libxslt openjpeg webp wpebackend host-unifdef
 
 WPEWEBKIT_CONF_OPTS = \
 	-GNinja \
