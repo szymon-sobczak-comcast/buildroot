@@ -1,0 +1,12 @@
+diff -Naur explora-sdk.orig/includes/EGL/eglplatform.h explora-sdk/includes/EGL/eglplatform.h
+--- explora-sdk.orig/includes/EGL/eglplatform.h	2022-06-27 13:51:54.000000000 +0000
++++ explora-sdk/includes/EGL/eglplatform.h	2022-12-05 17:37:53.483292583 +0000
+@@ -95,6 +95,8 @@
+ 
+ #elif defined(__unix__)
+ 
++#define BROADCOM_PLATFORM 1
++
+ #ifdef BROADCOM_PLATFORM
+ 
+ typedef void *EGLNativeDisplayType;

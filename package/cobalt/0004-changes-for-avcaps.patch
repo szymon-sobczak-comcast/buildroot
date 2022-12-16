@@ -1,0 +1,16 @@
+diff -Naur cobalt.orig/third_party/starboard/wpe/shared/configuration_public.h cobalt/third_party/starboard/wpe/shared/configuration_public.h
+--- cobalt.orig/third_party/starboard/wpe/shared/configuration_public.h	2022-12-13 13:54:08.000000000 +0000
++++ cobalt/third_party/starboard/wpe/shared/configuration_public.h	2022-12-15 11:17:25.277888286 +0000
+@@ -162,9 +162,9 @@
+ 
+ // Metrological definitions
+ #define SB_HAS_WPE_FRAMEWORK 1
+-#define SB_MEDIA_MAX_VIDEO_FRAMERATE_IN_FRAMES_PER_SECOND (30)
+-#define SB_MEDIA_MAX_VIDEO_FRAME_WIDTH (1920)
+-#define SB_MEDIA_MAX_VIDEO_FRAME_HEIGHT (1080)
++#define SB_MEDIA_MAX_VIDEO_FRAMERATE_IN_FRAMES_PER_SECOND (60)
++#define SB_MEDIA_MAX_VIDEO_FRAME_WIDTH (3840)
++#define SB_MEDIA_MAX_VIDEO_FRAME_HEIGHT (2160)
+ #define SB_HAS_QUIRK_SUPPORT_INT16_AUDIO_SAMPLES 1
+ 
+ #define SB_PLATFORM_FRIENDLY_NAME "WPE"
