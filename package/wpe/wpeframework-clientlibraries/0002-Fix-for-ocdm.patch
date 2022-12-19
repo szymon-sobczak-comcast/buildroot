@@ -1,9 +1,12 @@
 diff -Naur wpeframework-clientlibraries.orig/Source/ocdm/CMakeLists.txt wpeframework-clientlibraries/Source/ocdm/CMakeLists.txt
 --- wpeframework-clientlibraries.orig/Source/ocdm/CMakeLists.txt	2022-09-29 15:47:45.000000000 +0000
-+++ wpeframework-clientlibraries/Source/ocdm/CMakeLists.txt	2022-12-12 08:41:05.175604332 +0000
-@@ -75,7 +75,7 @@
++++ wpeframework-clientlibraries/Source/ocdm/CMakeLists.txt	2022-12-19 14:09:50.938823366 +0000
+@@ -73,9 +73,9 @@
+         target_sources(${TARGET} PRIVATE ${OCDM_IMPLEMENTATION_PATH}/open_cdm_adapter.cpp)
+     else()
          include(GetExternalCode)
-         set(OCDM_IMPLEMENTATION_VERSION "master" CACHE STRING "ocdmadapter implementation version")
+-        set(OCDM_IMPLEMENTATION_VERSION "master" CACHE STRING "ocdmadapter implementation version")
++        set(OCDM_IMPLEMENTATION_VERSION "development/cbcs-check" CACHE STRING "ocdmadapter implementation version")
          GetExternalCode(
 -            GIT_REPOSITORY "https://code.rdkcentral.com/r/soc/broadcom/components/rdkcentral/thunder/ocdmadapter"
 +            GIT_REPOSITORY "git@github.com:WebPlatformForEmbedded/OCDMAdapter-brcm.git"
