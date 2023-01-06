@@ -1,0 +1,29 @@
+config BR2_PACKAGE_SDK_RDKVA_SAGEMCOM
+	bool "sdk-rdkva-sagemcom"
+	depends on BR2_arm
+	select BR2_PACKAGE_HAS_NEXUS_SAGE
+	select BR2_PACKAGE_HAS_NEXUS
+	select BR2_PACKAGE_HAS_LIBEGL
+	select BR2_PACKAGE_HAS_LIBGLES
+	select BR2_PACKAGE_HAS_PLAYREADY
+	help
+	  Pre-compiled binaries for a platform
+
+if BR2_PACKAGE_SDK_RDKVA_SAGEMCOM
+
+config BR2_PACKAGE_PROVIDES_NEXUS
+	default "sdk-rdkva-sagemcom"
+
+config BR2_PACKAGE_PROVIDES_LIBEGL
+	default "sdk-rdkva-sagemcom"
+
+config BR2_PACKAGE_PROVIDES_LIBGLES
+	default "sdk-rdkva-sagemcom"
+
+config BR2_PACKAGE_PROVIDES_PLAYREADY
+	default "sdk-rdkva-sagemcom"
+
+config BR2_PACKAGE_PROVIDES_NEXUS_SAGE
+	default "sdk-rdkva-sagemcom"
+
+endif
