@@ -5,6 +5,15 @@
 ################################################################################
 
 GST1_PLUGINS_BAD_VERSION = 1.16.2
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_PLUGINS_BAD_VERSION = 1.16.2
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_18),y)
+GST1_PLUGINS_BAD_VERSION = 1.18.6
+endif
+
 GST1_PLUGINS_BAD_SOURCE = gst-plugins-bad-$(GST1_PLUGINS_BAD_VERSION).tar.xz
 GST1_PLUGINS_BAD_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-bad
 GST1_PLUGINS_BAD_INSTALL_STAGING = YES
@@ -457,11 +466,14 @@ else
 GST1_PLUGINS_BAD_CONF_OPTS += -Dy4m=disabled
 endif
 
+# The yadif plugin was removed on 1.18. There's now deinterlace method=yadif in gst-plugins-good.
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
 ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_YADIF),y)
 GST1_PLUGINS_BAD_CONF_OPTS += -Dyadif=enabled
 GST1_PLUGINS_BAD_HAS_GPL_LICENSE = y
 else
 GST1_PLUGINS_BAD_CONF_OPTS += -Dyadif=disabled
+endif
 endif
 
 # Plugins with dependencies
@@ -755,7 +767,7 @@ endif
 
 ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_DASH_MPD_NO_INIT_DATA_XML_PARSING),y)
 define GST1_PLUGINS_BAD_APPLY_MPD_EXTRA_PATCHES_POST_HOOK
-	cd $(@D) && patch -p1 < ../../../package/gstreamer1/gst1-plugins-bad/mpd-extra/0011-dash-Store-entire-ContentProtection-node-in-protecti.patch
+	cd $(@D) && { for P in ../../../package/gstreamer1/gst1-plugins-bad/$(GST1_PLUGINS_BAD_VERSION)-mpd-extra/*.patch; do patch -p1 < "$$P" ; done; }
 endef
 GST1_PLUGINS_BAD_POST_PATCH_HOOKS += GST1_PLUGINS_BAD_APPLY_MPD_EXTRA_PATCHES_POST_HOOK
 endif

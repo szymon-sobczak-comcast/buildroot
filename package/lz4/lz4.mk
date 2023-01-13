@@ -28,6 +28,13 @@ define LZ4_BUILD_CMDS
 		-C $(@D) lz4
 endef
 
+define HOST_LZ4_INSTALL_CMDS
+	$(RM) -f $(HOST_DIR)/bin/lz4c*
+	$(RM) -f $(HOST_DIR)/bin/unlz4*
+	$(HOST_MAKE_ENV) $(HOST_CONFIGURE_OPTS) $(MAKE) DESTDIR=$(HOST_DIR) \
+		PREFIX=/usr $(LZ4_MAKE_OPTS) install -C $(@D)
+endef
+
 define LZ4_INSTALL_STAGING_CMDS
 	$(TARGET_MAKE_ENV) $(TARGET_CONFIGURE_OPTS) $(MAKE) DESTDIR=$(STAGING_DIR) \
 		PREFIX=/usr $(LZ4_MAKE_OPTS) install -C $(@D)

@@ -5,8 +5,19 @@
 ################################################################################
 
 GST1_VALIDATE_VERSION = 1.16.2
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_VALIDATE_VERSION = 1.16.2
 GST1_VALIDATE_SOURCE = gst-validate-$(GST1_VALIDATE_VERSION).tar.xz
 GST1_VALIDATE_SITE = https://gstreamer.freedesktop.org/src/gst-validate
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_18),y)
+GST1_VALIDATE_VERSION = 1.18.6
+GST1_VALIDATE_SOURCE = gst-devtools-$(GST1_VALIDATE_VERSION).tar.xz
+GST1_VALIDATE_SITE = https://gstreamer.freedesktop.org/src/gst-devtools
+endif
+
 GST1_VALIDATE_LICENSE = LGPL-2.1+
 GST1_VALIDATE_LICENSE_FILES = COPYING
 
@@ -22,6 +33,7 @@ else
 GST1_VALIDATE_DEPENDENCIES += host-python python
 endif
 
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
 GST1_VALIDATE_CONF_OPTS = \
 	--disable-introspection \
 	--disable-sphinx-doc
@@ -29,3 +41,10 @@ GST1_VALIDATE_CONF_OPTS = \
 GST1_VALIDATE_CFLAGS = $(TARGET_CFLAGS) $(GSTREAMER1_EXTRA_COMPILER_OPTIONS)
 
 $(eval $(autotools-package))
+else
+GST1_VALIDATE_CONF_OPTS = \
+        -Dintrospection=disabled \
+        -Ddoc=disabled
+
+$(eval $(meson-package))
+endif

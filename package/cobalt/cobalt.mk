@@ -4,11 +4,11 @@
 #
 ################################################################################
 
-COBALT_VERSION = 1ce72e8929579921868c9d87a0ba4128cc88d9e9
+COBALT_VERSION = a772cccf1da68623f3312bb8466860e2d1964f24
 COBALT_SITE_METHOD = git
 COBALT_SITE = git@github.com:Metrological/cobalt
 COBALT_INSTALL_STAGING = YES
-COBALT_DEPENDENCIES = gst1-plugins-good gst1-plugins-bad host-bison host-ninja wpeframework-clientlibraries
+COBALT_DEPENDENCIES = gst1-plugins-good gst1-plugins-bad host-bison host-ninja wpeframework-clientlibraries host-python3 host-python-six host-gn
 
 export COBALT_STAGING_DIR=$(STAGING_DIR)
 export COBALT_TOOLCHAIN_PREFIX=$(TARGET_CROSS)
@@ -16,12 +16,13 @@ export COBALT_INSTALL_DIR=$(TARGET_DIR)
 
 export PATH := $(HOST_DIR)/bin:$(HOST_DIR)/usr/bin:$(HOST_DIR)/usr/sbin:$(PATH)
 
+COBALT_PLATFORM = wpe-arm
+
 ifeq ($(BR2_PACKAGE_HAS_NEXUS),y)
-# TODO: we might also have mips here at some point.
-COBALT_PLATFORM = wpe-brcm-arm
 COBALT_DEPENDENCIES += gst1-bcm
+COBALT_VIDEO_OVERLAY=false
 else
-COBALT_PLATFORM = wpe-rpi
+COBALT_VIDEO_OVERLAY=true
 endif
 
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_CDM),y)
@@ -66,14 +67,23 @@ COBALT_DATA_SRC_PATH = content
 endif
 
 define COBALT_BUILD_CMDS
-    $(@D)/src/cobalt/build/gyp_cobalt -C $(COBALT_BUILD_TYPE) $(COBALT_PLATFORM)
-    $(HOST_DIR)/usr/bin/ninja -C $(@D)/src/out/$(COBALT_PLATFORM)_$(COBALT_BUILD_TYPE) cobalt_deploy
+    export PYTHONPATH="$(PYTHONPATH):$(@D)"; \
+    cd $(@D) && $(HOST_DIR)/usr/bin/gn gen out/wpe --script-executable=python3 --args='target_platform="$(COBALT_PLATFORM)" build_type="$(COBALT_BUILD_TYPE)" target_cpu="arm" is_clang=false sb_install_content_subdir="content/data" is_video_overlay=$(COBALT_VIDEO_OVERLAY)'
+    $(HOST_DIR)/usr/bin/ninja -C $(@D)/out/wpe cobalt_install
+endef
+
+define COBALT_INSTALL_STAGING_CMDS
+    cp -a $(@D)/out/wpe/install/lib/libcobalt.so $(STAGING_DIR)/usr/lib/libcobalt.so
+    mkdir -p $(STAGING_DIR)/usr/include/starboard
+    cp -a $(@D)/starboard/*.h $(STAGING_DIR)/usr/include/starboard/
+    mkdir -p $(STAGING_DIR)/usr/include/third_party/starboard/wpe/shared
+    cp -a $(@D)/third_party/starboard/wpe/shared/*.h $(STAGING_DIR)/usr/include/third_party/starboard/wpe/shared/
 endef
 
 define COBALT_INSTALL_TARGET_CMDS
+    cp -a $(@D)/out/wpe/install/lib/libcobalt.so $(TARGET_DIR)/usr/lib/libcobalt.so
     mkdir -p $(COBALT_DATA_INSTALL_PATH)
-    cp -a $(@D)/src/out/$(COBALT_PLATFORM)_$(COBALT_BUILD_TYPE)/$(COBALT_DATA_SRC_PATH) $(COBALT_DATA_INSTALL_PATH)
+    cp -a $(@D)/out/wpe/install/$(COBALT_DATA_SRC_PATH) $(COBALT_DATA_INSTALL_PATH)
 endef
-
 
 $(eval $(generic-package))

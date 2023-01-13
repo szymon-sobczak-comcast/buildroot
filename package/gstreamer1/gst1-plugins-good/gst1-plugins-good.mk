@@ -5,6 +5,15 @@
 ################################################################################
 
 GST1_PLUGINS_GOOD_VERSION = 1.16.2
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_PLUGINS_GOOD_VERSION = 1.16.2
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_18),y)
+GST1_PLUGINS_GOOD_VERSION = 1.18.6
+endif
+
 GST1_PLUGINS_GOOD_SOURCE = gst-plugins-good-$(GST1_PLUGINS_GOOD_VERSION).tar.xz
 GST1_PLUGINS_GOOD_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-good
 GST1_PLUGINS_GOOD_LICENSE_FILES = COPYING
@@ -493,7 +502,7 @@ endif
 
 ifeq ($(BR2_PACKAGE_WPEWEBKIT2_28),y)
 define GST1_PLUGINS_GOOD_APPLY_WPEWEBKIT2_28_EXTRA_PATCHES_POST_HOOK
-        cd $(@D) && { for P in ../../../package/gstreamer1/gst1-plugins-good/1.16.2-wpe-2.28/*.patch; do patch -p1 < "$$P" ; done; }
+        cd $(@D) && { for P in ../../../package/gstreamer1/gst1-plugins-good/$(GST1_PLUGINS_GOOD_VERSION)-wpe-2.28/*.patch; do patch -p1 < "$$P" ; done; }
 endef
 GST1_PLUGINS_GOOD_POST_PATCH_HOOKS += GST1_PLUGINS_GOOD_APPLY_WPEWEBKIT2_28_EXTRA_PATCHES_POST_HOOK
 endif
