@@ -5,6 +5,16 @@
 ################################################################################
 
 GST1_PLUGINS_BASE_VERSION = 1.16.2
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_PLUGINS_BASE_VERSION = 1.16.2
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_18),y)
+GST1_PLUGINS_BASE_VERSION = 1.18.6
+endif
+
+
 GST1_PLUGINS_BASE_SOURCE = gst-plugins-base-$(GST1_PLUGINS_BASE_VERSION).tar.xz
 GST1_PLUGINS_BASE_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-base
 GST1_PLUGINS_BASE_INSTALL_STAGING = YES
@@ -29,8 +39,13 @@ GST1_PLUGINS_BASE_CONF_OPTS = \
 	-Dgobject-cast-checks=disabled \
 	-Dglib-asserts=disabled \
 	-Dglib-checks=disabled \
-	-Dgtk_doc=disabled \
 	-Dintrospection=disabled
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_18),y)
+GST1_PLUGINS_BASE_CONF_OPTS += -Ddoc=disabled
+else
+GST1_PLUGINS_BASE_CONF_OPTS += -Dgtk_doc=disabled
+endif
 
 # Options which require currently unpackaged libraries
 GST1_PLUGINS_BASE_CONF_OPTS += \

@@ -5,15 +5,29 @@
 ################################################################################
 
 GST1_LIBAV_VERSION = 1.16.2
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_LIBAV_VERSION = 1.16.2
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_18),y)
+GST1_LIBAV_VERSION = 1.18.6
+endif
+
 GST1_LIBAV_SOURCE = gst-libav-$(GST1_LIBAV_VERSION).tar.xz
 GST1_LIBAV_SITE = https://gstreamer.freedesktop.org/src/gst-libav
 
 GST1_LIBAV_DEPENDENCIES = \
-	host-pkgconf ffmpeg gstreamer1 gst1-plugins-base \
-	$(if $(BR2_PACKAGE_BZIP2),bzip2) \
-	$(if $(BR2_PACKAGE_XZ),xz)
+	host-pkgconf ffmpeg gstreamer1 gst1-plugins-base
 GST1_LIBAV_LICENSE = GPL-2.0+
 GST1_LIBAV_LICENSE_FILES = COPYING
+
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+# 1.16.2, build with autotools
+GST1_LIBAV_DEPENDENCIES += \
+	$(if $(BR2_PACKAGE_BZIP2),bzip2) \
+	$(if $(BR2_PACKAGE_XZ),xz)
 GST1_LIBAV_CONF_EXTRA_OPTS = --cross-prefix=$(TARGET_CROSS) --target-os=linux
 
 # fixes arm build: https://bugzilla.gnome.org/show_bug.cgi?id=694416
@@ -42,3 +56,9 @@ GST1_LIBAV_CONF_OPTS = \
 GST1_LIBAV_CFLAGS = $(TARGET_CFLAGS) $(GSTREAMER1_EXTRA_COMPILER_OPTIONS)
 
 $(eval $(autotools-package))
+else
+# 1.18.6 or above, build with meson
+
+GST1_LIBAV_CONF_OPTS = -Ddoc=disabled
+$(eval $(meson-package))
+endif
