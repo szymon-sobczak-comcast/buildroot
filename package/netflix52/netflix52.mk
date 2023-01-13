@@ -8,7 +8,7 @@ NETFLIX52_VERSION = a314bda4d1c59efac53815a7cc053314ae2c2947
 NETFLIX52_SITE = git@github.com:Metrological/netflix.git
 NETFLIX52_SITE_METHOD = git
 NETFLIX52_LICENSE = PROPRIETARY
-NETFLIX52_DEPENDENCIES = host-python freetype icu openjpeg lcms2 jpeg libpng libmng webp harfbuzz expat openssl c-ares nghttp2 libcurl graphite2 tremor libopenh264 fdk-aac
+NETFLIX52_DEPENDENCIES = host-python freetype icu openjpeg lcms2 jpeg libpng libmng webp harfbuzz expat openssl c-ares nghttp2 libcurl graphite2 tremor libopenh264 fdk-aac host-perl-xml-libxml host-perl-xml-sax-base
 NETFLIX52_INSTALL_TARGET = YES
 NETFLIX52_SUBDIR = netflix
 NETFLIX52_RESOURCE_LOC = $(call qstrip,${BR2_PACKAGE_NETFLIX52_RESOURCE_LOCATION})
@@ -226,8 +226,8 @@ define NETFLIX52_INSTALL_TO_TARGET
 
 	$(call NETFLIX52_INSTALL_NETFLIX_DATA_CONFIGS, $(1))
 
-	mkdir -p $(1)/root/Netflix/artifacts
-	cp -r $(@D)/artifacts/MeteringCertificate.bin $(1)/root/Netflix/artifacts
+	mkdir -p $(1)/${BR2_PACKAGE_WPEFRAMEWORK_PERSISTENT_PATH}/WPEFramework/Netflix/artifacts
+	cp -r $(@D)/artifacts/MeteringCertificate.bin $(1)/${BR2_PACKAGE_WPEFRAMEWORK_PERSISTENT_PATH}/WPEFramework/Netflix/artifacts
 
 endef
 
@@ -287,8 +287,8 @@ define NETFLIX52_INSTALL_TARGET_CMDS
 endef
 
 define NETFLIX52_PREPARE_DPI
-	mkdir -p $(TARGET_DIR)/root/Netflix/dpi
-	ln -sfn /etc/playready $(TARGET_DIR)/root/Netflix/dpi/playready
+	mkdir -p $(TARGET_DIR)/${BR2_PACKAGE_WPEFRAMEWORK_PERSISTENT_PATH}/WPEFramework/Netflix/dpi
+	ln -sfn /etc/playready $(TARGET_DIR)/${BR2_PACKAGE_WPEFRAMEWORK_PERSISTENT_PATH}/WPEFramework/Netflix/dpi/playready
 endef
 
 NETFLIX52_POST_INSTALL_TARGET_HOOKS += NETFLIX52_PREPARE_DPI
@@ -303,8 +303,8 @@ define CREATE_BINARY_ML_DELIVERY
 	mkdir -p ${ML_DELIVERY_DIR}/usr/include/
 	$(call NETFLIX52_INSTALL_TO_STAGING, ${ML_DELIVERY_DIR})
 	$(call NETFLIX52_INSTALL_TO_TARGET, ${ML_DELIVERY_DIR})
-	mkdir -p ${ML_DELIVERY_DIR}/root/Netflix/dpi
-	ln -sfn /etc/playready ${ML_DELIVERY_DIR}/root/Netflix/dpi/playready
+	mkdir -p ${ML_DELIVERY_DIR}/${BR2_PACKAGE_WPEFRAMEWORK_PERSISTENT_PATH}/WPEFramework/Netflix/dpi
+	ln -sfn /etc/playready ${ML_DELIVERY_DIR}/${BR2_PACKAGE_WPEFRAMEWORK_PERSISTENT_PATH}/WPEFramework/Netflix/dpi/playready
 	tar -cJf ${BINARIES_DIR}/${ML_DELIVERY_PACKAGE}-${ML_DELIVERY_SIGNATURE}.tar.xz -C ${STAGING_DIR} ${ML_DELIVERY_PACKAGE}
 endef
 

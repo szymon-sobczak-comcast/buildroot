@@ -5,6 +5,15 @@
 ################################################################################
 
 GST1_PLUGINS_UGLY_VERSION = 1.16.2
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_PLUGINS_UGLY_VERSION = 1.16.2
+endif
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_18),y)
+GST1_PLUGINS_UGLY_VERSION = 1.18.6
+endif
+
 GST1_PLUGINS_UGLY_SOURCE = gst-plugins-ugly-$(GST1_PLUGINS_UGLY_VERSION).tar.xz
 GST1_PLUGINS_UGLY_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-ugly
 GST1_PLUGINS_UGLY_LICENSE_FILES = COPYING
@@ -26,6 +35,11 @@ endif
 
 GST1_PLUGINS_UGLY_CFLAGS = $(TARGET_CFLAGS) $(GSTREAMER1_EXTRA_COMPILER_OPTIONS)
 GST1_PLUGINS_UGLY_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
+
+ifeq ($(BR2_PACKAGE_GSTREAMER1_16),y)
+GST1_PLUGINS_UGLY_CONF_OPTS += \
+	-Dexamples=disabled
+endif
 
 GST1_PLUGINS_UGLY_CONF_OPTS += \
 	-Dtests=disabled
