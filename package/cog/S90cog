@@ -1,0 +1,37 @@
+#!/bin/sh
+
+WPE_URL_FILE="/boot/wpe.txt"
+
+start() {
+	echo -n "Starting COG: "
+        /sbin/ifconfig > /root/ifconfig.txt
+        /usr/bin/cog file:///root/ifconfig.txt &> /dev/null &
+}
+
+stop() {
+       	echo -n "Stopping COG: "
+	killall cog WPEWebProcess WPENetworkProcess &> /dev/null
+	echo "OK"
+}
+
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+	start)
+		start
+		;;
+	stop)
+		stop
+	;;
+	restart|reload)
+		restart
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+esac
+
+exit $?
