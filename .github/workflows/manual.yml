@@ -16,8 +16,8 @@ jobs:
         name: Login to Portainer
         uses: docker/login-action@v2
         with:
-          username: d.nair@metrological.com
-          password: Car0slow@
+          username: divdus
+          password: dckr_pat_RPn6kPyMgSvnJN8wGAaoXhfz6Gw
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -26,5 +26,5 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          tags: d.nair/clockbox:latest
+          tags: divdus/clockbox:latest
 
