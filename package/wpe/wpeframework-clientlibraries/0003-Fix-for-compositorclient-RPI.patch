@@ -1,0 +1,12 @@
+diff -Naur wpeframework-clientlibraries.orig/Source/compositorclient/RPI/Implementation.cpp wpeframework-clientlibraries/Source/compositorclient/RPI/Implementation.cpp
+--- wpeframework-clientlibraries.orig/Source/compositorclient/RPI/Implementation.cpp	2023-01-23 18:00:08.000000000 +0000
++++ wpeframework-clientlibraries/Source/compositorclient/RPI/Implementation.cpp	2023-01-30 13:05:07.681568637 +0000
+@@ -627,6 +627,8 @@
+         return Platform::Instance().Height();
+     }
+ 
++    ISurface* SurfaceByName(const std::string& name) override { return nullptr; }
++
+ private:
+     inline void Register(SurfaceImplementation* surface);
+     inline void Unregister(SurfaceImplementation* surface);

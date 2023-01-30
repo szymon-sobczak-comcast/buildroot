@@ -1,0 +1,11 @@
+diff -Naur wpeframework-plugins.orig/WifiControl/WifiControl.h wpeframework-plugins/WifiControl/WifiControl.h
+--- wpeframework-plugins.orig/WifiControl/WifiControl.h	2022-05-20 08:17:56.000000000 +0000
++++ wpeframework-plugins/WifiControl/WifiControl.h	2023-01-30 13:14:21.807843995 +0000
+@@ -712,6 +712,7 @@
+             return result;
+         }
+ 
++    public:
+         BEGIN_INTERFACE_MAP(WifiControl)
+             INTERFACE_ENTRY(PluginHost::IPlugin)
+             INTERFACE_ENTRY(PluginHost::IWeb)

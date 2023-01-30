@@ -1,7 +1,7 @@
 diff -Naur rdkservices.orig/WebKitBrowser/Apps.config rdkservices/WebKitBrowser/Apps.config
---- rdkservices.orig/WebKitBrowser/Apps.config	2022-12-13 00:07:04.628479666 +0530
-+++ rdkservices/WebKitBrowser/Apps.config	2022-12-13 00:15:34.243095935 +0530
-@@ -11,7 +11,6 @@
+--- rdkservices.orig/WebKitBrowser/Apps.config	2022-12-19 17:38:11.000000000 +0000
++++ rdkservices/WebKitBrowser/Apps.config	2023-01-30 13:20:05.484879026 +0000
+@@ -15,7 +15,6 @@
  map()
      kv(url "about:blank")
      if(PLUGIN_APPS_USERAGENT)
@@ -10,9 +10,9 @@ diff -Naur rdkservices.orig/WebKitBrowser/Apps.config rdkservices/WebKitBrowser/
      endif()
      if(NOT WEBKIT_GLIB_API)
 diff -Naur rdkservices.orig/WebKitBrowser/UX.config rdkservices/WebKitBrowser/UX.config
---- rdkservices.orig/WebKitBrowser/UX.config	2022-12-13 00:07:04.628479666 +0530
-+++ rdkservices/WebKitBrowser/UX.config	2022-12-13 00:19:46.559177475 +0530
-@@ -17,7 +17,6 @@
+--- rdkservices.orig/WebKitBrowser/UX.config	2022-12-19 17:38:11.000000000 +0000
++++ rdkservices/WebKitBrowser/UX.config	2023-01-30 13:20:05.484879026 +0000
+@@ -21,7 +21,6 @@
  map()
      kv(url "about:blank")
      if(PLUGIN_UX_USERAGENT)
@@ -21,9 +21,9 @@ diff -Naur rdkservices.orig/WebKitBrowser/UX.config rdkservices/WebKitBrowser/UX
      endif()
      if(NOT WEBKIT_GLIB_API)
 diff -Naur rdkservices.orig/WebKitBrowser/WebKitBrowser.config rdkservices/WebKitBrowser/WebKitBrowser.config
---- rdkservices.orig/WebKitBrowser/WebKitBrowser.config	2022-12-13 00:07:04.628479666 +0530
-+++ rdkservices/WebKitBrowser/WebKitBrowser.config	2022-12-13 00:10:03.991724101 +0530
-@@ -26,7 +26,6 @@
+--- rdkservices.orig/WebKitBrowser/WebKitBrowser.config	2022-12-19 17:38:11.000000000 +0000
++++ rdkservices/WebKitBrowser/WebKitBrowser.config	2023-01-30 13:20:05.484879026 +0000
+@@ -30,7 +30,6 @@
  map()
      kv(url ${PLUGIN_WEBKITBROWSER_STARTURL})
      if(PLUGIN_WEBKITBROWSER_USERAGENT)
@@ -32,9 +32,9 @@ diff -Naur rdkservices.orig/WebKitBrowser/WebKitBrowser.config rdkservices/WebKi
      endif()
      if(NOT WEBKIT_GLIB_API)
 diff -Naur rdkservices.orig/WebKitBrowser/WebKitImplementation.cpp rdkservices/WebKitBrowser/WebKitImplementation.cpp
---- rdkservices.orig/WebKitBrowser/WebKitImplementation.cpp	2022-12-13 00:07:04.628479666 +0530
-+++ rdkservices/WebKitBrowser/WebKitImplementation.cpp	2022-12-13 00:30:33.970833089 +0530
-@@ -2329,7 +2329,9 @@
+--- rdkservices.orig/WebKitBrowser/WebKitImplementation.cpp	2022-12-19 17:38:11.000000000 +0000
++++ rdkservices/WebKitBrowser/WebKitImplementation.cpp	2023-01-30 13:20:05.484879026 +0000
+@@ -2340,7 +2340,9 @@
                webkit_settings_set_enable_spatial_navigation(preferences, _config.SpatialNavigation.Value());
                webkit_settings_set_enable_tabs_to_links(preferences, _config.SpatialNavigation.Value());
              }
@@ -44,7 +44,7 @@ diff -Naur rdkservices.orig/WebKitBrowser/WebKitImplementation.cpp rdkservices/W
              webkit_settings_set_enable_non_composited_webgl(preferences, _config.NonCompositedWebGLEnabled.Value());
  
              // Media Content Types Requiring Hardware Support
-@@ -2712,6 +2714,7 @@
+@@ -2727,6 +2729,7 @@
  
          void CheckWebProcess()
          {
@@ -52,7 +52,7 @@ diff -Naur rdkservices.orig/WebKitBrowser/WebKitImplementation.cpp rdkservices/W
              if ( _webProcessCheckInProgress )
                  return;
  
-@@ -2736,10 +2739,12 @@
+@@ -2751,10 +2754,12 @@
                      object->DidReceiveWebProcessResponsivenessReply(isWebProcessResponsive);
                  });
  #endif
@@ -65,7 +65,7 @@ diff -Naur rdkservices.orig/WebKitBrowser/WebKitImplementation.cpp rdkservices/W
              if (_config.WatchDogHangThresholdInSeconds.Value() == 0 || _config.WatchDogCheckTimeoutInSeconds.Value() == 0)
                  return;
  
-@@ -2802,11 +2807,13 @@
+@@ -2817,11 +2822,13 @@
              } else if (_unresponsiveReplyNum == (2 * kWebProcessUnresponsiveReplyDefaultLimit)) {
                  DeactivateBrowser(PluginHost::IShell::WATCHDOG_EXPIRED);
              }
@@ -79,7 +79,7 @@ diff -Naur rdkservices.orig/WebKitBrowser/WebKitImplementation.cpp rdkservices/W
              if (webkit_web_view_get_is_web_process_responsive(self->_view) == true) {
  
                  if (self->_unresponsiveReplyNum > 0) {
-@@ -2817,6 +2824,7 @@
+@@ -2832,6 +2839,7 @@
                      self->_unresponsiveReplyNum = 0;
                  }
              }
@@ -87,3 +87,14 @@ diff -Naur rdkservices.orig/WebKitBrowser/WebKitImplementation.cpp rdkservices/W
          }
  #else
          static void WebProcessDidBecomeResponsive(WKPageRef page, const void* clientInfo)
+diff -Naur rdkservices.orig/WebKitBrowser/YouTube.config rdkservices/WebKitBrowser/YouTube.config
+--- rdkservices.orig/WebKitBrowser/YouTube.config	2022-12-19 17:38:11.000000000 +0000
++++ rdkservices/WebKitBrowser/YouTube.config	2023-01-30 13:20:46.085951563 +0000
+@@ -21,7 +21,6 @@
+ map()
+     kv(url "${PLUGIN_YOUTUBE_STARTURL}${PLUGIN_YOUTUBE_STARTURL_QUERYSTRING}")
+     if(PLUGIN_YOUTUBE_USERAGENT)
+-        semicolon_safe_string(PLUGIN_YOUTUBE_USERAGENT)
+         kv(useragent ${PLUGIN_YOUTUBE_USERAGENT})
+     endif()
+     if(NOT WEBKIT_GLIB_API)
