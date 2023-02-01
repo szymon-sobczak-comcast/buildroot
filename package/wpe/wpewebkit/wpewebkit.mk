@@ -12,7 +12,7 @@ endif
 ifeq ($(BR2_PACKAGE_WPEWEBKIT2_28),y)
 # This is the wpe-2.28-soup3 branch tip.
 WPEWEBKIT_VERSION = 2.28
-WPEWEBKIT_VERSION_VALUE = e66cae2d3edad330166725dabf1dd79074a2b89b
+WPEWEBKIT_VERSION_VALUE = b38dddf1dfa82e7d4bb9838df0cf6efbc5e12c8a 
 endif
 
 ifeq ($(BR2_PACKAGE_WPEWEBKIT2_38),y)
