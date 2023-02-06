@@ -1,0 +1,24 @@
+name: Makefile-CI
+
+on:
+  push:
+    branches: Divya-test
+  pull_request:
+    branches: Divya-test
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: clean-up
+      run: make clean
+      
+    - name: configure
+      run: make raspberrypi3_wpe_ml_defconfig
+
+    - name: Compile
+      run: make
