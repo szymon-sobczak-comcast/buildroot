@@ -1,0 +1,25 @@
+
+name: RPI-Makefile-CI
+
+on:
+  push:
+    branches: R4
+  pull_request:
+    branches: R4
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: clean-up
+      run: make clean
+      
+    - name: configure
+      run: make raspberrypi3_wpe_ml_defconfig
+
+    - name: Compile
+      run: make
