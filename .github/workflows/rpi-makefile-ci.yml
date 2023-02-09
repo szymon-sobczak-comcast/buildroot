@@ -23,3 +23,13 @@ jobs:
 
     - name: Compile
       run: make
+    
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: rpi_rootfs.tar
+        path: output/images/rootfs.tar
+        if-no-files-found: "No Rootfs tar created!!!!"
+       
+   
+
