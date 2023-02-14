@@ -15,8 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run:
-        git config --global user.email "divdus@gmail.com"
-        git config --global user.name "Divya-563"
+        git config --global user.email "divdus@gmail.com" && git config --global user.name "Divya-563"
         
     - name : Add SSH key
       env:
