@@ -1,0 +1,42 @@
+From df0052ba38e25ee56b09a6361995b86755d90f30 Mon Sep 17 00:00:00 2001
+From: krp97 <k.plata@metrological.com>
+Date: Tue, 10 May 2022 10:43:53 +0000
+Subject: [PATCH] Replace SIGQUIT with API call to teardown
+
+---
+ Cobalt/CobaltImplementation.cpp | 12 +-----------
+ 1 file changed, 1 insertion(+), 11 deletions(-)
+
+diff --git a/Cobalt/CobaltImplementation.cpp b/Cobalt/CobaltImplementation.cpp
+index d0943424..dd56c55c 100644
+--- a/Cobalt/CobaltImplementation.cpp
++++ b/Cobalt/CobaltImplementation.cpp
+@@ -170,7 +170,7 @@ private:
+         virtual ~CobaltWindow()
+         {
+             Block();
+-            Signal(SIGQUIT);
++            third_party::starboard::wpe::shared::Stop();
+             Wait(Thread::BLOCKED | Thread::STOPPED | Thread::STOPPING, Core::infinite);
+         }
+ 
+@@ -291,16 +291,6 @@ private:
+         string Url() const { return _url; }
+ 
+     private:
+-        bool Initialize() override
+-        {
+-            sigset_t mask;
+-            sigemptyset(&mask);
+-            sigaddset(&mask, SIGQUIT);
+-            sigaddset(&mask, SIGUSR1);
+-            sigaddset(&mask, SIGCONT);
+-            pthread_sigmask(SIG_UNBLOCK, &mask, nullptr);
+-            return (true);
+-        }
+         uint32_t Worker() override
+         {
+             const std::string cmdURL = "--url=" + _url;
+-- 
+2.25.1
+
