@@ -11,8 +11,7 @@ jobs:
     runs-on: self-hosted
   
     steps:
-    
-          - name : Add SSH key
+       - name : Add SSH key
           env:
                SSH_AUTH_SOCK: /tmp/ssh_agent.sock
           run: mkdir -p /home/runner/.ssh
