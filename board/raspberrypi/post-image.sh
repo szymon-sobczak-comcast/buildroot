@@ -199,6 +199,26 @@ __EOF__
                         fi
                 fi
                 ;;
+		--no-wifi)
+		if ! grep -qE '^dtoverlay=disable-wifi' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Adding 'dtoverlay=disable-wifi' to config.txt."
+			cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Enable overlay to disable onboard wifi
+dtoverlay=disable-wifi
+__EOF__
+		fi
+		;;
+		--no-bt)
+		if ! grep -qE '^dtoverlay=disable-bt' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Adding 'dtoverlay=disable-bt' to config.txt."
+			cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Enable overlay to disable onboard bluetooth
+dtoverlay=disable-bt
+__EOF__
+		fi
+		;;
 		--add-dtparam-audio)
 		if ! grep -qE '^dtparam=audio=on' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
 			echo "Adding 'dtparam=audio=on' to config.txt."
