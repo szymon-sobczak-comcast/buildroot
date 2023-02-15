@@ -58,17 +58,6 @@ __EOF__
 hdmi_group=1
 hdmi_mode=16
 __EOF__
-                fi
-	        ;;
-	        --silent)
-	        if ! grep -qE '^disable_splash=1' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
-	            echo "Adding 'silent=1' to config.txt."
-	            cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
-
-# Silent
-disable_splash=1
-boot_delay=0
-__EOF__
 	        fi
 	        ;;
 	        --overclock*)
