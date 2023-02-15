@@ -18,13 +18,13 @@ jobs:
     - name : Add SSH key
       env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      run: mkdir -p /home/runner/.ssh
-           ssh-keyscan github.com >> /home/runner/.ssh/known_hosts
-           echo "${{ secrets.DOCKERHUB_TOKEN }}" > /home/runner/.ssh/github_actions
-           chmod 600 /home/runner/.ssh/github_actions
+      run: mkdir -p /home/divya/actions-runner/.ssh
+           ssh-keyscan github.com >> /home/divya/actions-runner/.ssh/known_hosts
+           echo "${{ secrets.DOCKERHUB_TOKEN }}" > /home/divya/actions-runner/.ssh/github_actions
+           chmod 600 /home/divya/actions-runner/.ssh/github_actions
            ssh-agent -a $SSH_AUTH_SOCK > /dev/null   
-           ssh-add /home/runner/.ssh/github_actions 
-               ssh-add /home/runner/.ssh/github_actions 
+           ssh-add /home/divya/actions-runner/.ssh/github_actions 
+           
         
     - name: configure
       run: make raspberrypi3_wpe_ml_defconfig
