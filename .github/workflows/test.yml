@@ -9,9 +9,10 @@ jobs:
   build:
 
     runs-on: self-hosted
+  
+    steps:
+          - name: configure
+            run: make raspberrypi3_wpe_ml_defconfig
    
-    - name: configure
-      run: make raspberrypi3_wpe_ml_defconfig
-   
-    - name: Compile
-      run: make libprovision-rebuild
+          - name: Compile
+            run: make libprovision-rebuild
