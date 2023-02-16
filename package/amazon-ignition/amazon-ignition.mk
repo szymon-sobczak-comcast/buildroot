@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AMAZON_IGNITION_VERSION = 4fcef097a49f2316d8a92fbf609f4d396b2a29a
+AMAZON_IGNITION_VERSION = 1c01901fc15bdb46c7861b5324939b78466e1fd6
 AMAZON_IGNITION_SITE_METHOD = git
 AMAZON_IGNITION_SITE = git@github.com:Metrological/amazon.git
 AMAZON_IGNITION_DEPENDENCIES = jpeg libpng wpeframework amazon-backend libcurl
