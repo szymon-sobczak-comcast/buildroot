@@ -19,17 +19,6 @@ __EOF__
    fi
 fi
 
-if [ ! "x${BLUETOOTH}" = "x" ]; then
-   if ! grep -qE '^enable_uart=1' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
-      echo "Adding serial console to /dev/ttyS0 to config.txt."
-      sed -i 's/ttyAMA0/ttyS0/g' "${BINARIES_DIR}/rpi-firmware/cmdline.txt"
-      cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
-# Fixes rpi3 ttyS0 serial console
-enable_uart=1
-__EOF__
-   fi
-fi
-
 for arg in "$@"
 do
 	case "${arg}" in
@@ -68,17 +57,6 @@ __EOF__
 # Force 1080p
 hdmi_group=1
 hdmi_mode=16
-__EOF__
-                fi
-	        ;;
-	        --silent)
-	        if ! grep -qE '^disable_splash=1' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
-	            echo "Adding 'silent=1' to config.txt."
-	            cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
-
-# Silent
-disable_splash=1
-boot_delay=0
 __EOF__
 	        fi
 	        ;;
@@ -125,12 +103,14 @@ __EOF__
 		;;
 		--add-vc4-kms-v3d-overlay)
 		# Enable VC4 overlay
-		echo "Adding 'dtoverlay=vc4-kms-v3d' to config.txt."
-		cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+		if ! grep -qE '^dtoverlay=vc4-kms-v3d' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Adding 'dtoverlay=vc4-kms-v3d' to config.txt."
+			cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
 
 # Add VC4 GPU support
 dtoverlay=vc4-kms-v3d-pi4
 __EOF__
+		fi
 		;;
                 --silent)
                 if ! grep -qE '^disable_splash=1' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
@@ -199,6 +179,26 @@ __EOF__
                         fi
                 fi
                 ;;
+		--no-wifi)
+		if ! grep -qE '^dtoverlay=disable-wifi' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Adding 'dtoverlay=disable-wifi' to config.txt."
+			cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Enable overlay to disable onboard wifi
+dtoverlay=disable-wifi
+__EOF__
+		fi
+		;;
+		--no-bt)
+		if ! grep -qE '^dtoverlay=disable-bt' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
+			echo "Adding 'dtoverlay=disable-bt' to config.txt."
+			cat << __EOF__ >> "${BINARIES_DIR}/rpi-firmware/config.txt"
+
+# Enable overlay to disable onboard bluetooth
+dtoverlay=disable-bt
+__EOF__
+		fi
+		;;
 		--add-dtparam-audio)
 		if ! grep -qE '^dtparam=audio=on' "${BINARIES_DIR}/rpi-firmware/config.txt"; then
 			echo "Adding 'dtparam=audio=on' to config.txt."
