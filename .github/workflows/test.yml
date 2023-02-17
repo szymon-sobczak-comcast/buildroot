@@ -13,18 +13,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run:
-        git config --global user.email "divdus@gmail.com" && git config --global user.name "Divya-563"
-        
-    - name : Add SSH key
-      env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      run: mkdir -p /home/divya/actions-runner/.ssh
-           ssh-keyscan github.com >> /home/divya/actions-runner/.ssh/known_hosts
-           echo "${{ secrets.DOCKERHUB_TOKEN }}" > /home/divya/actions-runner/.ssh/github_actions
-           chmod 600 /home/divya/actions-runner/.ssh/github_actions
-           ssh-agent -a $SSH_AUTH_SOCK > /dev/null   
-           ssh-add /home/divya/actions-runner/.ssh/github_actions 
-           
+        git config --global user.email "divdus@gmail.com" && git config --global user.name "Divya-563"    
+   
         
     - name: configure
       run: make raspberrypi3_wpe_ml_defconfig
