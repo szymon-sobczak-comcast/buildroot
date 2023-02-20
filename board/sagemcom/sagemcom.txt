@@ -61,7 +61,6 @@ libWPEFrameworkSnapshot.so
 libWPEFrameworkWebKitBrowser.so
 libWPEFrameworkWebKitBrowserImpl.so
 libWPEFrameworkMonitor.so
-libWPEFrameworkTraceControl.so
 libWPEFrameworkWebServer.so
 libWPEFrameworkInterfaces.so  
 libWPEFrameworkProxyStubs.so
@@ -72,7 +71,6 @@ libWPEFrameworkWebSocket.so
 libWPEFrameworkCryptalgo.so
 libWPEFrameworkPlugins.so
 libWPEFrameworkProtocols.so
-libWPEFrameworkTracing.so
 libWPEFrameworkVirtualInput.so
 libWPEFrameworkTimeSync.so
 libWPEFrameworkWebShell.so
@@ -88,3 +86,5 @@ libcompositorclient.so
 libcompositorplugin.so
 libWPEFrameworkDefinitions.so
 libturbojpeg.so
+libWPEFrameworkMessaging.so
+libWPEFrameworkMessageControl.so
