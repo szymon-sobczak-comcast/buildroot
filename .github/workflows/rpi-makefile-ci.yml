@@ -17,9 +17,6 @@ jobs:
     - run:
         git config --global user.email "divdus@gmail.com" && git config --global user.name "Divya-563"
         
-    - name: clean-up
-      run: make clean
-      
     - name: configure
       run: make raspberrypi3_wpe_ml_defconfig
 
