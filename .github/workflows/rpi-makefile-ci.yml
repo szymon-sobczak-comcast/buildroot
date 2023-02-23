@@ -17,15 +17,10 @@ jobs:
     - run:
         git config --global user.email "divdus@gmail.com" && git config --global user.name "Divya-563"
         
+      
     - name: configure
       run: make raspberrypi3_wpe_ml_defconfig
       
-    - name: Install generators
-      run: |
-        cmake -G Ninja -S ThunderTools -B Release/build/ThunderTools \
-        -DCMAKE_INSTALL_PREFIX=${{matrix.build_type}}/install/usr
-        cmake --build Release/build/ThunderTools --target install
-
     - name: Compile
       run: make
     
