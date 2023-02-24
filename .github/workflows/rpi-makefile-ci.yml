@@ -16,7 +16,9 @@ jobs:
    
     - run:
         git config --global user.email "divdus@gmail.com" && git config --global user.name "Divya-563"
-        
+   
+    - name: CleanUp
+      run: make clean
       
     - name: configure
       run: make raspberrypi3_wpe_ml_defconfig
@@ -24,12 +26,21 @@ jobs:
     - name: Compile
       run: make
     
+    - name: Get Time
+      id: time
+      uses: nanzm/get-time-action@v1.1
+      with:
+          timeZone: 8
+          format: 'YYYY-MM-DD-HH-mm-ss'
+        
     - name: Upload
       uses: actions/upload-artifact@v3
+       env:
+          TIME: "${{ steps.time.outputs.time }}"
       with:
-        name: rpi_rootfs.tar
+        name: rpi_rootfs_$TIME.tar
         path: output/images/rootfs.tar
-        if-no-files-found: "No Rootfs tar created!!!"
+        
        
    
 
