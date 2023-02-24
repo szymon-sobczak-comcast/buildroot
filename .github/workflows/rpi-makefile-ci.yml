@@ -35,10 +35,8 @@ jobs:
         
     - name: Upload
       uses: actions/upload-artifact@v3
-       env:
-          TIME: "${{ steps.time.outputs.time }}"
       with:
-        name: rpi_rootfs_$TIME.tar
+        name: rpi_rootfs_"${{ steps.time.outputs.time }}".tar
         path: output/images/rootfs.tar
         
        
