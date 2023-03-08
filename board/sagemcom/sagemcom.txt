@@ -64,7 +64,7 @@ libWPEFrameworkMonitor.so
 libWPEFrameworkWebServer.so
 libWPEFrameworkInterfaces.so  
 libWPEFrameworkProxyStubs.so
-libWPEFrameworkMarshallings.so
+libWPEFrameworkMarshalling.so
 libWPEFrameworkCore.so
 libWPEFrameworkCOM.so
 libWPEFrameworkWebSocket.so
