@@ -1,7 +1,7 @@
-From 5b5894ed2d659f93411af9eba2fa57e85a8395ee Mon Sep 17 00:00:00 2001
+From 7b245376d6f8efe756d58758cbb840f6a984dc0f Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Enrique=20Oca=C3=B1a=20Gonz=C3=A1lez?= <eocanha@igalia.com>
 Date: Thu, 14 Jul 2022 13:50:40 +0200
-Subject: [PATCH 11/11] Revert "0007-qtdemux-dont-check-pushbased-edts.patch"
+Subject: [PATCH 5/5] Revert "0007-qtdemux-dont-check-pushbased-edts.patch"
 
 This reverts commit 399496370680fde05a93aca66c26e09328e871af.
 ---
@@ -9,10 +9,10 @@ This reverts commit 399496370680fde05a93aca66c26e09328e871af.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/gst/isomp4/qtdemux.c b/gst/isomp4/qtdemux.c
-index 2914506da..7468682e4 100644
+index b2aad2af5..ea4a457f4 100644
 --- a/gst/isomp4/qtdemux.c
 +++ b/gst/isomp4/qtdemux.c
-@@ -9983,7 +9983,7 @@ done:
+@@ -9990,7 +9990,7 @@ done:
  
    /* push based does not handle segments, so act accordingly here,
     * and warn if applicable */
