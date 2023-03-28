@@ -13,6 +13,16 @@ To build and use the buildroot stuff, do the following:
 4) wait while it compiles
 5) find the kernel, bootloader, root filesystem, etc. in output/images
 
+This repo consist of multiple branches:
+- Rx (e.g. R4). This is a release branch (the latest release is the default branch)
+These are branches on which a certain version of Thunder and it's related components (e.g. plugins and client libraries) are released.
+These are tested by QA and when approved for release, a release on that branch is created  (so with a tag to be able to checkout this specific version) 
+which includes the QA report. 
+Use these branches when a stable version needs to be build (e.g. take the latest released version tag on the R4 branch)
+- main: this branch contains the latest contributions but the hashes for packages will not be updated regularly. 
+Use this branch when you want to work on some of the packages and typically you would use a local override to bump related packages 
+to the latest version (e.g. Thunder and its components)
+
 You do not need to be root to build or run buildroot.  Have fun!
 
 Buildroot comes with a basic configuration for a number of boards. Run
