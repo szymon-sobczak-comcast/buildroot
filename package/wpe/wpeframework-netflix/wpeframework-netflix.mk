@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WPEFRAMEWORK_NETFLIX_VERSION = 9c76ed429f2ba4b876950cfd66afecb0ed9bf99d
+WPEFRAMEWORK_NETFLIX_VERSION = R4.3 
 ifeq ($(BR2_PACKAGE_NETFLIX50),y)
 WPEFRAMEWORK_NETFLIX_CONF_OPTS += -DNETFLIX_VERSION_5=true
 WPEFRAMEWORK_NETFLIX_CONF_OPTS += -DNETFLIX_VERSION_5_0=true

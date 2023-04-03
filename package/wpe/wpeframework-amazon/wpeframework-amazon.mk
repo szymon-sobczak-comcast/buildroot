@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WPEFRAMEWORK_AMAZON_VERSION = cee017d73a404f64b08f2b6a7ad3353151553aac
+WPEFRAMEWORK_AMAZON_VERSION = R4.3 
 WPEFRAMEWORK_AMAZON_SITE_METHOD = git
 WPEFRAMEWORK_AMAZON_SITE = git@github.com:Metrological/WPEPluginAmazon.git
 WPEFRAMEWORK_AMAZON_INSTALL_STAGING = YES
