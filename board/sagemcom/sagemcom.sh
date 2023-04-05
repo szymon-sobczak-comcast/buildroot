@@ -19,6 +19,7 @@ do
 done < "${BOARD_DIR}/sagemcom.txt"
 
 # Append missing folders
+echo "usr/lib/gstreamer-1.0" >> "${ROOTFS_FILES}"
 echo "usr/lib/gio" >> "${ROOTFS_FILES}"
 echo "usr/share/X11" >> "${ROOTFS_FILES}"
 echo "usr/share/mime" >> "${ROOTFS_FILES}"
@@ -32,6 +33,9 @@ rsync -ar --files-from="${ROOTFS_FILES}" "${TARGET_DIR}" "${ROOTFS_DIR}"
 # Default font
 mkdir -p "${ROOTFS_DIR}/usr/share/fonts/ttf-bitstream-vera"
 cp -f "${TARGET_DIR}/usr/share/fonts/ttf-bitstream-vera/Vera.ttf" "${ROOTFS_DIR}/usr/share/fonts/ttf-bitstream-vera/"
+
+# move utility lib of brcm plugin to usr/lib
+mv "${ROOTFS_DIR}/usr/lib/gstreamer-1.0/libbrcmgstutil.so" "${ROOTFS_DIR}/usr/lib/"
 
 # WPEFramework launcher
 cp -pf "${BOARD_DIR}/wpeframework.sh" "${ROOTFS_DIR}"
