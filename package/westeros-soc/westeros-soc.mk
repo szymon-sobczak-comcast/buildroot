@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WESTEROS_SOC_VERSION = 23a65d1fa48f6d82d51c3cb6cd08bf403f95187d
+WESTEROS_SOC_VERSION = 380015778c45e7f26406f22a063bd259a7dece46
 WESTEROS_SOC_SITE_METHOD = git
 WESTEROS_SOC_SITE = https://github.com/rdkcmf/westeros
 WESTEROS_SOC_INSTALL_STAGING = YES
@@ -30,11 +30,13 @@ else ifeq ($(BR2_PACKAGE_HAS_NEXUS),y)
 		PKG_CONFIG_SYSROOT_DIR=$(STAGING_DIR)
 	WESTEROS_SOC_CONF_OPTS += \
         --enable-vc5 \
-        --enable-nxclient_local=yes \
+        --enable-nxclient_local=no \
 		CFLAGS="$(TARGET_CFLAGS) -I ${STAGING_DIR}/usr/include/refsw/" \
 		CXXFLAGS="$(TARGET_CXXFLAGS) -I ${STAGING_DIR}/usr/include/refsw/"
 	WESTEROS_SOC_SUBDIR = brcm
-    WESTEROS_SOC_DEPENDENCIES += wayland-egl-bnxs bcm-refsw
+ifeq ($(BR2_PACKAGE_BCM_REFSW),y)
+	WESTEROS_SOC_DEPENDENCIES += wayland-egl-bnxs bcm-refsw
+endif
 else ifeq ($(BR2_PACKAGE_LIBDRM),y)
 ifeq ($(BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4),y)
 	WESTEROS_DRM_CARD=/dev/dri/card1
