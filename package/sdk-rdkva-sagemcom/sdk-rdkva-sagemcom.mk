@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-SDK_RDKVA_SAGEMCOM_VERSION = e37706666e6534b3f9e51c10256a7037bf88862b
+SDK_RDKVA_SAGEMCOM_VERSION = 3c5246f6f21de29e325ff2b2f0f21639948842fc
 SDK_RDKVA_SAGEMCOM_SITE = git@github.com:Metrological/SDK_RDKVA_Sagemcom.git
 SDK_RDKVA_SAGEMCOM_SITE_METHOD = git
 SDK_RDKVA_SAGEMCOM_INSTALL_STAGING = YES

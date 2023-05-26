@@ -27,6 +27,7 @@ echo "etc/playready" >> "${ROOTFS_FILES}"
 echo "etc/ssl" >> "${ROOTFS_FILES}"
 echo "etc/fonts" >> "${ROOTFS_FILES}"
 echo "usr/lib/wpe-webkit-1.0" >> "${ROOTFS_FILES}"
+echo "usr/lib/wpe-webkit-1.1" >> "${ROOTFS_FILES}"
 
 rsync -ar --files-from="${ROOTFS_FILES}" "${TARGET_DIR}" "${ROOTFS_DIR}"
 
@@ -45,6 +46,11 @@ mkdir -p "${ROOTFS_DIR}/www"
 
 # persistent path
 mkdir -p "${ROOTFS_DIR}/persistent"
+
+# copy brcm sink plugins to another folder
+mkdir -p "${ROOTFS_DIR}/brcmsink"
+mv ${ROOTFS_DIR}/usr/lib/gstreamer-1.0/libbrcm* ${ROOTFS_DIR}/brcmsink/
+mv ${ROOTFS_DIR}/usr/lib/libbrcm* ${ROOTFS_DIR}/brcmsink/
 
 # Create tar
 tar -cvf "${BINARIES_DIR}/sagemcom.tar" -C "${ROOTFS_DIR}" .

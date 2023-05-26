@@ -132,3 +132,6 @@ libgstmatroska.so
 libgstopus.so
 libopus.so
 libwebpdemux.so
+libp11-kit.so
+libvpx.so
+libgstwesterossink.so
