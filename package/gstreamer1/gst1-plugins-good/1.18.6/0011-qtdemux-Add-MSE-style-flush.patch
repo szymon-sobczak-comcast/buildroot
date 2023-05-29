@@ -1,7 +1,7 @@
-From b79eead904851b69591f9af0210b31ed5399a841 Mon Sep 17 00:00:00 2001
+From 82f2d2a7b9d4600610600335ae8ecff58057cfb3 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Alicia=20Boya=20Garc=C3=ADa?= <aboya@igalia.com>
 Date: Thu, 23 Mar 2023 18:07:06 +0100
-Subject: [PATCH 2/3] qtdemux: Add MSE-style flush
+Subject: [PATCH 11/16] qtdemux: Add MSE-style flush
 
 The abort() method of SourceBuffer in Media Source Extensions is
 expected to flush the demuxer and discard the current fragment,
@@ -25,10 +25,10 @@ Part-of: <!4101>
  1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/gst/isomp4/qtdemux.c b/gst/isomp4/qtdemux.c
-index 658567e60..26ff1586d 100644
+index fbb417f34..188cdb69c 100644
 --- a/gst/isomp4/qtdemux.c
 +++ b/gst/isomp4/qtdemux.c
-@@ -2119,7 +2119,8 @@ gst_qtdemux_reset (GstQTDemux * qtdemux, gboolean hard)
+@@ -1956,7 +1956,8 @@ gst_qtdemux_reset (GstQTDemux * qtdemux, gboolean hard)
    GST_DEBUG_OBJECT (qtdemux, "Resetting demux");
    gst_pad_stop_task (qtdemux->sinkpad);
  
@@ -38,7 +38,7 @@ index 658567e60..26ff1586d 100644
      qtdemux->state = QTDEMUX_STATE_INITIAL;
      qtdemux->neededbytes = 16;
      qtdemux->todrop = 0;
-@@ -2213,7 +2214,8 @@ gst_qtdemux_reset (GstQTDemux * qtdemux, gboolean hard)
+@@ -2050,7 +2051,8 @@ gst_qtdemux_reset (GstQTDemux * qtdemux, gboolean hard)
        g_free (qtdemux->preferred_protection_system_id);
        qtdemux->preferred_protection_system_id = NULL;
      }
