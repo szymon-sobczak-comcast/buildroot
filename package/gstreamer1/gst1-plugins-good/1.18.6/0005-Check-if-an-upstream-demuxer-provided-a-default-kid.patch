@@ -1,7 +1,7 @@
-From d211518f2d14e67c48395ec22fa74fd4fd3739d6 Mon Sep 17 00:00:00 2001
+From 6b2c85b70f57d827eedfe28dbea48257050307f7 Mon Sep 17 00:00:00 2001
 From: Charlie Turner <chturne@gmail.com>
 Date: Fri, 25 May 2018 14:08:17 +0100
-Subject: [PATCH 05/11] Check if an upstream demuxer provided a default kid.
+Subject: [PATCH 05/16] Check if an upstream demuxer provided a default kid.
 
 Smooth streaming demuxers do not send boxes containing metadata about
 the stream. They have to send metadata "out-of-band".

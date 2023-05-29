@@ -1,7 +1,7 @@
-From f28a47647ba4b31e291f1e73beac1e520dac2579 Mon Sep 17 00:00:00 2001
+From 4b47ee77a85a7b2a26a16410330d94d6f7ee52b0 Mon Sep 17 00:00:00 2001
 From: Philippe Normand <philn@igalia.com>
 Date: Wed, 28 Oct 2015 12:00:09 +0100
-Subject: [PATCH 01/11] souphttpsrc: cookie jar and context query support
+Subject: [PATCH 01/16] souphttpsrc: cookie jar and context query support
 
 Use a volatile Cookie jar to store cookies and handle the context
 query so that session data can be shared with other elements (like
