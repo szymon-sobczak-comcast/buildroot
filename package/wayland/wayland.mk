@@ -24,6 +24,14 @@ HOST_WAYLAND_CONF_OPTS = --disable-tests
 define WAYLAND_TARGET_CLEANUP
 	rm -rf $(TARGET_DIR)/usr/share/wayland
 endef
+
+ifeq ($(BR2_PACKAGE_HAS_WAYLAND_EGL),y)
+define WAYLAND_APPLY_EXCLUDE_EGL
+	cp -a package/wayland/0002-Exclude-wayland-egl-libraries.patch.0 package/wayland/0002-Exclude-wayland-egl-libraries.patch
+endef
+endif
+WAYLAND_PRE_PATCH_HOOKS += WAYLAND_APPLY_EXCLUDE_EGL
+
 WAYLAND_POST_INSTALL_TARGET_HOOKS += WAYLAND_TARGET_CLEANUP
 
 $(eval $(autotools-package))

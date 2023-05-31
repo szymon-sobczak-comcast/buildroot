@@ -6,6 +6,7 @@ config BR2_PACKAGE_SDK_RDKVA_SAGEMCOM
 	select BR2_PACKAGE_HAS_LIBEGL
 	select BR2_PACKAGE_HAS_LIBGLES
 	select BR2_PACKAGE_HAS_PLAYREADY
+	select BR2_PACKAGE_HAS_WAYLAND_EGL
 	help
 	  Pre-compiled binaries for a platform
 
@@ -26,4 +27,6 @@ config BR2_PACKAGE_PROVIDES_PLAYREADY
 config BR2_PACKAGE_PROVIDES_NEXUS_SAGE
 	default "sdk-rdkva-sagemcom"
 
+config BR2_PACKAGE_HAS_WAYLAND_EGL
+	bool
 endif

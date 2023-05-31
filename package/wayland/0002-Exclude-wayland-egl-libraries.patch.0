@@ -1,0 +1,45 @@
+diff -Nur wayland-1.19.0.org/Makefile.am wayland-1.19.0/Makefile.am
+--- wayland-1.19.0.org/Makefile.am	2021-01-27 16:49:03.000000000 +0000
++++ wayland-1.19.0/Makefile.am	2023-05-31 14:31:12.012120736 +0000
+@@ -148,13 +148,13 @@
+ 	-I$(top_srcdir)/src			\
+ 	-DICONDIR=\"$(ICONDIR)\"
+ 
+-lib_LTLIBRARIES += libwayland-egl.la
++#lib_LTLIBRARIES += libwayland-egl.la
+ 
+ include_HEADERS += egl/wayland-egl.h
+ include_HEADERS += egl/wayland-egl-core.h
+ 
+-libwayland_egl_la_SOURCES = egl/wayland-egl.c
+-libwayland_egl_la_LDFLAGS = -version-info 1
++#libwayland_egl_la_SOURCES = egl/wayland-egl.c
++#libwayland_egl_la_LDFLAGS = -version-info 1
+ 
+ pkgconfig_DATA += egl/wayland-egl.pc
+ 
+@@ -186,10 +186,10 @@
+ 	protocol-logger-test			\
+ 	wayland-egl-abi-check
+ 
+-EXTRA_DIST += egl/wayland-egl-symbols-check
++#EXTRA_DIST += egl/wayland-egl-symbols-check
+ 
+-check_PROGRAMS = wayland-egl-abi-check
+-wayland_egl_abi_check_SOURCES = egl/wayland-egl-abi-check.c
++#check_PROGRAMS = wayland-egl-abi-check
++#wayland_egl_abi_check_SOURCES = egl/wayland-egl-abi-check.c
+ 
+ if ENABLE_CPP_TEST
+ built_test_programs += cpp-compile-test
+diff -Nur wayland-1.19.0.org/meson.build wayland-1.19.0/meson.build
+--- wayland-1.19.0.org/meson.build	2021-01-27 16:49:04.000000000 +0000
++++ wayland-1.19.0/meson.build	2023-05-31 13:15:27.808546932 +0000
+@@ -90,7 +90,6 @@
+ 
+ if get_option('libraries')
+ 	subdir('cursor')
+-	subdir('egl')
+ 	subdir('tests')
+ 	if get_option('documentation')
+ 		subdir('doc')
