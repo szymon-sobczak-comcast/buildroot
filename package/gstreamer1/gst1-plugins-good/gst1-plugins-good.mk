@@ -500,11 +500,21 @@ else
 GST1_PLUGINS_GOOD_CONF_OPTS += -Dbz2=disabled
 endif
 
+define GST1_PLUGINS_GOOD_APPLY_WPEWEBKIT_EXTRA_PATCHES_POST_HOOK
+endef
+
+ifeq ($(BR2_PACKAGE_WPEWEBKIT2_22),y)
+define GST1_PLUGINS_GOOD_APPLY_WPEWEBKIT_EXTRA_PATCHES_POST_HOOK
+        cd $(@D) && { for P in ../../../package/gstreamer1/gst1-plugins-good/$(GST1_PLUGINS_GOOD_VERSION)-wpe-2.22/*.patch; do patch -p1 < "$$P" ; done; }
+endef
+endif
+
 ifeq ($(BR2_PACKAGE_WPEWEBKIT2_28),y)
-define GST1_PLUGINS_GOOD_APPLY_WPEWEBKIT2_28_EXTRA_PATCHES_POST_HOOK
+define GST1_PLUGINS_GOOD_APPLY_WPEWEBKIT_EXTRA_PATCHES_POST_HOOK
         cd $(@D) && { for P in ../../../package/gstreamer1/gst1-plugins-good/$(GST1_PLUGINS_GOOD_VERSION)-wpe-2.28/*.patch; do patch -p1 < "$$P" ; done; }
 endef
-GST1_PLUGINS_GOOD_POST_PATCH_HOOKS += GST1_PLUGINS_GOOD_APPLY_WPEWEBKIT2_28_EXTRA_PATCHES_POST_HOOK
 endif
+
+GST1_PLUGINS_GOOD_POST_PATCH_HOOKS += GST1_PLUGINS_GOOD_APPLY_WPEWEBKIT_EXTRA_PATCHES_POST_HOOK
 
 $(eval $(meson-package))

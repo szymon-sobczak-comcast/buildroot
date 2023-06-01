@@ -1,7 +1,7 @@
-From b71b17ca600a3cedcf8f8c4a3533c7401124d700 Mon Sep 17 00:00:00 2001
+From 440199f6d40e7cecb1a1c3a5dabacf2d3e40dea7 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Enrique=20Oca=C3=B1a=20Gonz=C3=A1lez?= <eocanha@igalia.com>
 Date: Thu, 23 Mar 2023 18:09:54 +0100
-Subject: [PATCH 3/3] qtdemux: Fix crash on MSE-style flush
+Subject: [PATCH 14/16] qtdemux: Fix crash on MSE-style flush
 
 The flowcombiner and active_streams shouldn't be cleared in the
 mse-bytestream variant, only in the mss-fragmented one. Otherwise the
@@ -15,10 +15,10 @@ Part-of: <!4199>
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/gst/isomp4/qtdemux.c b/gst/isomp4/qtdemux.c
-index 26ff1586d..7b8e00592 100644
+index 2200049f5..73d4da76e 100644
 --- a/gst/isomp4/qtdemux.c
 +++ b/gst/isomp4/qtdemux.c
-@@ -2214,11 +2214,12 @@ gst_qtdemux_reset (GstQTDemux * qtdemux, gboolean hard)
+@@ -2212,11 +2212,12 @@ gst_qtdemux_reset (GstQTDemux * qtdemux, gboolean hard)
        g_free (qtdemux->preferred_protection_system_id);
        qtdemux->preferred_protection_system_id = NULL;
      }

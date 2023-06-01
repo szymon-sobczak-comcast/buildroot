@@ -1,8 +1,8 @@
-From 643c218c952c159792c461ce6ddd79e125c2aff6 Mon Sep 17 00:00:00 2001
+From 73badfbf68c49f69f2cfe8c3609de80882769743 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Enrique=20Oca=C3=B1a=20Gonz=C3=A1lez?= <eocanha@igalia.com>
 Date: Thu, 23 Mar 2023 18:02:13 +0100
-Subject: [PATCH] qtdemux: Don't emit GstSegment correcting start time when in
- MSE mode
+Subject: [PATCH 12/16] qtdemux: Don't emit GstSegment correcting start time
+ when in MSE mode
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -49,7 +49,7 @@ Part-of: <!3867>
  2 files changed, 27 insertions(+), 13 deletions(-)
 
 diff --git a/gst/isomp4/qtdemux.c b/gst/isomp4/qtdemux.c
-index fe696668c..658567e60 100644
+index 72bdd0654..0f9803aaa 100644
 --- a/gst/isomp4/qtdemux.c
 +++ b/gst/isomp4/qtdemux.c
 @@ -2036,12 +2036,16 @@ gst_qtdemux_setcaps (GstQTDemux * demux, GstCaps * caps)
@@ -79,7 +79,7 @@ index fe696668c..658567e60 100644
    }
  
    return TRUE;
-@@ -2192,7 +2194,7 @@ gst_qtdemux_reset (GstQTDemux * qtdemux, gboolean hard)
+@@ -2190,7 +2192,7 @@ gst_qtdemux_reset (GstQTDemux * qtdemux, gboolean hard)
      qtdemux->n_sub_streams = 0;
      qtdemux->exposed = FALSE;
      qtdemux->fragmented = FALSE;
@@ -88,7 +88,7 @@ index fe696668c..658567e60 100644
      gst_caps_replace (&qtdemux->media_caps, NULL);
      qtdemux->timescale = 0;
      qtdemux->got_moov = FALSE;
-@@ -2211,7 +2213,7 @@ gst_qtdemux_reset (GstQTDemux * qtdemux, gboolean hard)
+@@ -2209,7 +2211,7 @@ gst_qtdemux_reset (GstQTDemux * qtdemux, gboolean hard)
        g_free (qtdemux->preferred_protection_system_id);
        qtdemux->preferred_protection_system_id = NULL;
      }
@@ -97,7 +97,7 @@ index fe696668c..658567e60 100644
      gst_flow_combiner_reset (qtdemux->flowcombiner);
      g_ptr_array_foreach (qtdemux->active_streams,
          (GFunc) gst_qtdemux_stream_clear, NULL);
-@@ -3716,7 +3718,7 @@ qtdemux_find_stream (GstQTDemux * qtdemux, guint32 id)
+@@ -3695,7 +3697,7 @@ qtdemux_find_stream (GstQTDemux * qtdemux, guint32 id)
      if (stream->track_id == id)
        return stream;
    }
@@ -106,7 +106,7 @@ index fe696668c..658567e60 100644
      /* mss should have only 1 stream anyway */
      return QTDEMUX_NTH_STREAM (qtdemux, 0);
    }
-@@ -3781,7 +3783,7 @@ qtdemux_parse_tfhd (GstQTDemux * qtdemux, GstByteReader * tfhd,
+@@ -3760,7 +3762,7 @@ qtdemux_parse_tfhd (GstQTDemux * qtdemux, GstByteReader * tfhd,
      (*stream)->stsd_sample_description_id = sample_description_index - 1;
    }
  
@@ -115,7 +115,7 @@ index fe696668c..658567e60 100644
      /* mss has no stsd entry */
      (*stream)->stsd_sample_description_id = 0;
    }
-@@ -4670,7 +4672,9 @@ qtdemux_parse_moof (GstQTDemux * qtdemux, const guint8 * buffer, guint length,
+@@ -4649,7 +4651,9 @@ qtdemux_parse_moof (GstQTDemux * qtdemux, const guint8 * buffer, guint length,
      pssh_node = qtdemux_tree_get_sibling_by_type (pssh_node, FOURCC_pssh);
    }
  
@@ -126,17 +126,17 @@ index fe696668c..658567e60 100644
        && !qtdemux->received_seek && GST_CLOCK_TIME_IS_VALID (min_dts)
        && min_dts != 0) {
      /* Unless the user has explictly requested another seek, perform an
-@@ -7651,7 +7655,7 @@ gst_qtdemux_process_adapter (GstQTDemux * demux, gboolean force)
-               goto done;
+@@ -7629,7 +7633,7 @@ gst_qtdemux_process_adapter (GstQTDemux * demux, gboolean force)
              }
+ 
              /* in MSS we need to expose the pads after the first moof as we won't get a moov */
 -            if (demux->mss_mode && !demux->exposed) {
 +            if (demux->variant == VARIANT_MSS_FRAGMENTED && !demux->exposed) {
-               if (!demux->pending_newsegment) {
-                 GST_DEBUG_OBJECT (demux, "new pending_newsegment");
-                 demux->pending_newsegment =
+               QTDEMUX_EXPOSE_LOCK (demux);
+               qtdemux_expose_streams (demux);
+               QTDEMUX_EXPOSE_UNLOCK (demux);
 diff --git a/gst/isomp4/qtdemux.h b/gst/isomp4/qtdemux.h
-index ccee2ee2b..afe5ab283 100644
+index 83a050a43..600553421 100644
 --- a/gst/isomp4/qtdemux.h
 +++ b/gst/isomp4/qtdemux.h
 @@ -57,6 +57,19 @@ enum QtDemuxState
@@ -159,7 +159,7 @@ index ccee2ee2b..afe5ab283 100644
  struct _GstQTDemux {
    GstElement element;
  
-@@ -123,10 +136,7 @@ struct _GstQTDemux {
+@@ -126,10 +139,7 @@ struct _GstQTDemux {
  
    guint32 segment_seqnum;
  
