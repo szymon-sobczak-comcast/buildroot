@@ -135,3 +135,4 @@ libwebpdemux.so
 libp11-kit.so
 libvpx.so
 libgstwesterossink.so
+libwesteros*

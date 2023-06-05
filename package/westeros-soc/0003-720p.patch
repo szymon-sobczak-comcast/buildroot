@@ -1,0 +1,21 @@
+diff --git a/brcm/westeros-gl/westeros-gl.cpp b/brcm/westeros-gl/westeros-gl.cpp
+index 0d1e12e..7399e90 100644
+--- a/brcm/westeros-gl/westeros-gl.cpp
++++ b/brcm/westeros-gl/westeros-gl.cpp
+@@ -213,13 +213,14 @@ WstGLCtx* WstGLInit()
+                if ( gDisplayCtx->surfaceClient )
+                {
+                   NEXUS_SurfaceClientSettings settings;
+-
++#if 0
+                   NEXUS_SurfaceClient_GetSettings( gDisplayCtx->surfaceClient, &settings );
+                   settings.displayStatusChanged.callback= displayStatusChangedCallback;
+                   settings.displayStatusChanged.context= gDisplayCtx;
+                   settings.displayStatusChanged.param= 0;
+                   rc= NEXUS_SurfaceClient_SetSettings( gDisplayCtx->surfaceClient, &settings );
+-                  if ( rc != NEXUS_SUCCESS )
++#endif
++		  if ( rc != NEXUS_SUCCESS )
+                   {
+                      printf("WstGLInit: NEXUS_SurfaceClient_SetSettings failed: rc=%X\n", rc);
+                   }

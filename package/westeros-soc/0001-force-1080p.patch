@@ -1,0 +1,24 @@
+diff --git a/brcm/westeros-gl/westeros-gl.cpp b/brcm/westeros-gl/westeros-gl.cpp
+index 0d1e12e..352e894 100644
+--- a/brcm/westeros-gl/westeros-gl.cpp
++++ b/brcm/westeros-gl/westeros-gl.cpp
+@@ -119,6 +119,11 @@ static void wstGLGetDisplaySize( void )
+       rc= NEXUS_SurfaceClient_GetStatus( gDisplayCtx->surfaceClient, &scStatus );
+       if ( rc == NEXUS_SUCCESS )
+       {
++#ifdef FORCE_1080
++         gDisplayCtx->displayWidth= 1920;
++         gDisplayCtx->displayHeight= 1080;
++         printf("WstGLGetDisplaySize: forcing 1920x1080 \n");
++#else
+          const char *env= 0;
+          gDisplayCtx->displayWidth= scStatus.display.framebuffer.width;
+          gDisplayCtx->displayHeight= scStatus.display.framebuffer.height;
+@@ -131,6 +136,7 @@ static void wstGLGetDisplaySize( void )
+             gDisplayCtx->displayWidth= 640;
+             printf("WstGLGetDisplaySize: using SD display %dx%d\n", gDisplayCtx->displayWidth, gDisplayCtx->displayHeight);
+          }
++#endif
+       }
+    }
+    pthread_mutex_unlock( &g_mutex );

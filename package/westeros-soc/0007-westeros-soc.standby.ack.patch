@@ -1,0 +1,12 @@
+diff --git a/brcm/westeros-gl/westeros-gl.cpp b/brcm/westeros-gl/westeros-gl.cpp
+index 0d1e12e..d0c966f 100644
+--- a/brcm/westeros-gl/westeros-gl.cpp
++++ b/brcm/westeros-gl/westeros-gl.cpp
+@@ -200,6 +200,7 @@ WstGLCtx* WstGLInit()
+          snprintf( joinSettings.name, NXCLIENT_MAX_NAME, "%s", "westeros-gl");
+          rc= NxClient_Join( &joinSettings );
+          printf("WstGLInit: NxClient_Join rc=%X as %s\n", rc, joinSettings.name );
++	 NxClient_UnregisterAcknowledgeStandby(NxClient_RegisterAcknowledgeStandby());
+ 
+          gDisplayCtx= (WstGLDisplayCtx*)calloc( 1, sizeof(WstGLDisplayCtx));
+          if ( gDisplayCtx )

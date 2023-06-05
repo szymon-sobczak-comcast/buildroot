@@ -1,0 +1,19 @@
+diff --git a/brcm/westeros-gl/westeros-gl.cpp b/brcm/westeros-gl/westeros-gl.cpp
+index 0d1e12e..567544f 100644
+--- a/brcm/westeros-gl/westeros-gl.cpp
++++ b/brcm/westeros-gl/westeros-gl.cpp
+@@ -613,12 +613,9 @@ bool WstGLGetNativePixmap( WstGLCtx *ctx, void *nativeBuffer, void **nativePixma
+ 
+             pixmapInfo.width= surfaceStatusIn.width;
+             pixmapInfo.height= surfaceStatusIn.height;
+-            #ifdef BIG_ENDIAN_CPU
+-            pixmapInfo.format= BEGL_BufferFormat_eR8G8B8A8;
+-            #else
+-            pixmapInfo.format= BEGL_BufferFormat_eA8B8G8R8;
+-            #endif
+ 
++            /*api changes, the intial value might need revist.*/
++            pixmapInfo.lfmt= GFX_LFMT_R8_G8_B8_A8_UNORM_2D_RSO;    
+             #if NEXUS_PLATFORM_VERSION_MAJOR >= 16
+             if ( !NXPL_CreateCompatiblePixmapEXT(ctx->nxplHandle, &npm->pixmap, &npm->surface, &pixmapInfo) )
+             #else

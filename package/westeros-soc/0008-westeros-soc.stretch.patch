@@ -1,0 +1,13 @@
+diff --git a/brcm/westeros-gl/westeros-gl.cpp b/brcm/westeros-gl/westeros-gl.cpp
+index 0d1e12e..525dadc 100644
+--- a/brcm/westeros-gl/westeros-gl.cpp
++++ b/brcm/westeros-gl/westeros-gl.cpp
+@@ -515,7 +515,7 @@ void* WstGLCreateNativeWindow( WstGLCtx *ctx, int x, int y, int width, int heigh
+       windowInfo.y= 0;
+       windowInfo.width= width;
+       windowInfo.height= height;
+-      windowInfo.stretch= false;
++      windowInfo.stretch= true;
+       windowInfo.clientID= 0;
+       windowInfo.zOrder= 10000000;
+    

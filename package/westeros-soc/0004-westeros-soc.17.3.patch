@@ -1,0 +1,13 @@
+diff --git a/brcm/westeros-gl/westeros-gl.cpp b/brcm/westeros-gl/westeros-gl.cpp
+index 0d1e12e..176365b 100644
+--- a/brcm/westeros-gl/westeros-gl.cpp
++++ b/brcm/westeros-gl/westeros-gl.cpp
+@@ -277,7 +277,7 @@ WstGLCtx* WstGLInit()
+          NEXUS_Graphics2D_SetSettings( ctx->gfx, &gfxSettings );
+       }
+ 
+-      if ( !ctx->nxplHandle || !ctx->gfx || !ctx->gfxEventCreated || (NEXUS_SUCCESS != rc) )
++      if ( !ctx->gfx || !ctx->gfxEventCreated || (NEXUS_SUCCESS != rc) )
+       {
+          WstGLTerm( ctx );
+          ctx= 0;
