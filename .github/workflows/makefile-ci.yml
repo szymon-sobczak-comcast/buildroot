@@ -1,22 +1,27 @@
 
-name: RPI-Makefile-CI
+name: Test_CI_Branch
 
 on:
   push:
     branches: Divya-test
+  schedule: ## Schedule the job to run at 12.am daily.
+    - cron: '00 13 * 10 7'  
+  
  
 
 jobs:
   build:
 
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
-   
+    - uses: actions/checkout@v3
     - run:
         git config --global user.email "divdus@gmail.com" && git config --global user.name "Divya-563"
    
-
+    - name: Configure
+      run: make raspberrypi3_wpe_ml_defconfig
+      
     - name: Compile
       run: make
     
