@@ -1,7 +1,7 @@
-From 7c6258b8c4847363f063d575ec1a3ab6958be28f Mon Sep 17 00:00:00 2001
+From eeb0a556b95d5e4cd7d6942feb66d65a4a16d504 Mon Sep 17 00:00:00 2001
 From: Xabier Rodriguez Calvar <calvaris@igalia.com>
 Date: Mon, 21 Dec 2020 13:55:58 +0100
-Subject: [PATCH 07/11] qtdemux: Allow streams with no specified protection
+Subject: [PATCH 06/16] qtdemux: Allow streams with no specified protection
  system ID
 
 This is necessary in cases like CMAF where there won't be any events
@@ -13,10 +13,10 @@ Part-of: <https://gitlab.freedesktop.org/gstreamer/gst-plugins-good/-/merge_requ
  1 file changed, 16 insertions(+), 11 deletions(-)
 
 diff --git a/gst/isomp4/qtdemux.c b/gst/isomp4/qtdemux.c
-index cc74dcf7f..977894364 100644
+index afbcfcb17..7680f1ef7 100644
 --- a/gst/isomp4/qtdemux.c
 +++ b/gst/isomp4/qtdemux.c
-@@ -8345,10 +8345,19 @@ gst_qtdemux_configure_protected_caps (GstQTDemux * qtdemux,
+@@ -8462,10 +8462,19 @@ gst_qtdemux_configure_protected_caps (GstQTDemux * qtdemux,
          GST_FOURCC_ARGS (stream->protection_scheme_type));
      return FALSE;
    }
@@ -39,7 +39,7 @@ index cc74dcf7f..977894364 100644
    }
  
    gst_qtdemux_request_protection_context (qtdemux, stream);
-@@ -8385,14 +8394,10 @@ gst_qtdemux_configure_protected_caps (GstQTDemux * qtdemux,
+@@ -8502,14 +8511,10 @@ gst_qtdemux_configure_protected_caps (GstQTDemux * qtdemux,
    GST_DEBUG_OBJECT (qtdemux, "selected protection system is %s",
        selected_system);
  

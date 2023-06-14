@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AMAZON_IGNITION_VERSION = 4fcef097a49f2316d8a92fbf609f4d396b2a29a
+AMAZON_IGNITION_VERSION = 1c01901fc15bdb46c7861b5324939b78466e1fd6
 AMAZON_IGNITION_SITE_METHOD = git
 AMAZON_IGNITION_SITE = git@github.com:Metrological/amazon.git
 AMAZON_IGNITION_DEPENDENCIES = jpeg libpng wpeframework amazon-backend libcurl
@@ -20,6 +20,10 @@ AMAZON_IGNITION_RUBY_PLATFORM_ROOT = "$(@D)/thunder/amp-thunder"
 AMAZON_IGNITION_BUILD_DIR = "$(AMAZON_IGNITION_SRCDIR)/buildroot-build"
 AMAZON_IGNITION_BINARY_INSTALL_DIR = "$(@D)/binary-install"
 AMAZON_IGNITION_TEST_INSTALL_BASE_DIR = "$(AMAZON_IGNITION_BINARY_INSTALL_DIR)/test-install"
+
+ifeq ($(BR2_CMAKE_HOST_DEPENDENCY),)
+   AMAZON_IGNITION_DEVICE_LAYER_CMAKE_ARGS += -DCMAKE_MODULE_PATH=$(HOST_DIR)/share/cmake/Modules
+endif
 
 ifeq ($(BR2_PACKAGE_RPI_USERLAND),y)
  AMAZON_IGNITION_DEPENDENCIES += rpi-userland

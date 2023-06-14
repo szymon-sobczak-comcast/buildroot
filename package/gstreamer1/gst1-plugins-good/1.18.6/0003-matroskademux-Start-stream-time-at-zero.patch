@@ -1,7 +1,7 @@
-From c3f418f3cf00a475789ff5e8d9a4028e3042d259 Mon Sep 17 00:00:00 2001
+From 814a5aff8ebcee5629a272f57272221296030c39 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Alicia=20Boya=20Garc=C3=ADa?= <aboya@igalia.com>
 Date: Wed, 22 Nov 2017 19:25:45 +0100
-Subject: [PATCH 03/11] matroskademux: Start stream time at zero
+Subject: [PATCH 03/16] matroskademux: Start stream time at zero
 
 ---
  gst/matroska/matroska-demux.c | 4 ++--

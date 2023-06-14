@@ -88,6 +88,10 @@ config BR2_PACKAGE_WPEFRAMEWORK_DATA_PATH
     string "data path"
     default "/usr/share/WPEFramework"
 
+config BR2_PACKAGE_WPEFRAMEWORK_INSTALL_PATH
+    string "install path"
+    default "/usr/share/WPEFramework"
+
 config BR2_PACKAGE_WPEFRAMEWORK_SYSTEM_PATH
     string "system path"
     default "/usr/lib/wpeframework/plugins"
@@ -165,6 +169,22 @@ config BR2_PACKAGE_WPEFRAMEWORK_PERFORMANCE_MONITOR
     default n
     help
         Enable the performance monitor
+
+menu "ProxyStub Generator options"
+
+config BR2_PACKAGE_WPEFRAMEWORK_TOOLS_PROXYSTUB_SECURITY
+    bool "Enable security checks in proxystubs"
+        default n
+    help
+      Adds security code to generated proxystub.
+
+config BR2_PACKAGE_WPEFRAMEWORK_TOOLS_PROXYSTUB_COHERENCY
+    bool "Enable coherency checks in proxystubs"
+        default n
+    help
+      Adds coherency checking code to generated proxystubs.
+
+endmenu
 
 menu "Platform Device Groups"
 
@@ -409,6 +429,7 @@ source "package/wpe/wpeframework-playgiga/Config.in"
 source "package/wpe/wpeframework-provisioning/Config.in"
 source "package/wpe/wpeframework-spotify/Config.in"
 source "package/wpe/wpeframework-ui/Config.in"
+source "package/wpe/wpeframework-packagemanager/Config.in"
 endmenu
 
 source "package/wpe/wpeframework-interfaces/Config.in"
