@@ -4,8 +4,8 @@ name: Test_CI_Branch
 on:
   push:
     branches: Divya-test
-  schedule: ## Schedule the job to run at 12.am daily.
-  - cron: "0 13 * 10 7" 
+  schedule: ## Schedule the job to run daily.
+  - cron: "0 13 * 10 0-6" 
   
  
 
