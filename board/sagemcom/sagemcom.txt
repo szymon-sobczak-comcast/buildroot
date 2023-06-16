@@ -55,6 +55,7 @@ ca-certificates.crt
 libicu*.so
 libudev.so.1
 libWPEFrameworkDeviceInfo.so
+libWPEFrameworkDisplayInfo.so
 libWPEFrameworkLocationSync.so
 libWPEFrameworkRemoteControl.so
 libWPEFrameworkSnapshot.so
@@ -77,6 +78,10 @@ libWPEFrameworkWebShell.so
 libWPEFrameworkOCDM.so
 libWPEFrameworkDefinitions.so
 libWPEFrameworkCompositor.so
+libWPEFrameworkDeviceIdentification.so
+libWPEFrameworkPlayerInfo.so
+libWPEFrameworkProvisioning.so
+libWPEFrameworkVolumeControl.so
 libwpe-1.0.so
 libWPEBackend-rdk.so
 libWPEBackend-default.so
