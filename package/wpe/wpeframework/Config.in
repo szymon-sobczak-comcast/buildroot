@@ -251,6 +251,7 @@ config BR2_PACKAGE_WPEFRAMEWORK_COMPOSITORCLIENT
 
 menuconfig BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTHAUDIOSINK
     select BR2_PACKAGE_WPEFRAMEWORK_CLIENTLIBRARIES
+    select BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTHAUDIO
     bool "BluetoothAudioSink"
         default n
     help
@@ -267,6 +268,28 @@ endif
 
 config BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTHAUDIOSINK_EXAMPLEPLAYER
     bool "Example .wav player"
+    default y
+endif
+
+menuconfig BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTHAUDIOSOURCE
+    select BR2_PACKAGE_WPEFRAMEWORK_CLIENTLIBRARIES
+    select BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTHAUDIO
+    bool "BluetoothAudioSource"
+        default n
+    help
+      C-interface towards BluetoothAudioSource plugin for controlling the Bluetooth source and receiving audio data samples
+
+if BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTHAUDIOSOURCE
+
+if BR2_PACKAGE_GSTREAMER1
+config BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTHAUDIOSOURCE_GSTREAMERSINK
+    select BR2_PACKAGE_GST1_BLUETOOTHAUDIOSOURCE
+    bool "GStreamer audio source"
+    default n
+endif
+
+config BR2_PACKAGE_WPEFRAMEWORK_BLUETOOTHAUDIOSOURCE_EXAMPLERECORDER
+    bool "Example .wav recorder"
     default y
 endif
 
