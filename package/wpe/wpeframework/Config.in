@@ -238,6 +238,18 @@ config BR2_PACKAGE_WPEFRAMEWORK_BROADCAST_SI_PARSING
           tuned streams.
 endif
 
+config BR2_PACKAGE_WPEFRAMEWORK_PRIVILEGED_REQUEST
+    bool "Privileged Request"
+    help
+      Library to share file descriptors between processes.
+
+config BR2_PACKAGE_WPEFRAMEWORK_LIBRARY_COMPOSITOR_BUFFER
+    select BR2_PACKAGE_WPEFRAMEWORK_LIBRARIES
+    select BR2_PACKAGE_WPEFRAMEWORK_PRIVILEGED_REQUEST
+    bool "Compositor Buffer"
+    help
+      Library to share graphical buffers between processes.
+
 config BR2_PACKAGE_WPEFRAMEWORK_CDM
     select BR2_PACKAGE_WPEFRAMEWORK_CLIENTLIBRARIES
     bool "CDM"
@@ -438,6 +450,12 @@ config BR2_PACKAGE_WPEFRAMEWORK_VIRTUALINPUT
     help
       If the dynamic uinput system can not be used for security reasons, this
       allows for relaying keys to plugins
+
+config BR2_PACKAGE_WPEFRAMEWORK_LOCALTRACER
+    bool "LocalTracer"
+        default n
+    help
+      Use tracing without the need of Thunder running. 
 
 config BR2_PACKAGE_WPEFRAMEWORK_INSTALL_INITD_DEPRECATED
     bool "Init.d script from package config (deprecated)"
