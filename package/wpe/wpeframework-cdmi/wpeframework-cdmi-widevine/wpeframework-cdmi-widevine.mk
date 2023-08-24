@@ -3,7 +3,7 @@
 # wpeframework-cdmi-widevine
 #
 ################################################################################
-WPEFRAMEWORK_CDMI_WIDEVINE_VERSION = R4.3
+WPEFRAMEWORK_CDMI_WIDEVINE_VERSION = R4.4.0
 WPEFRAMEWORK_CDMI_WIDEVINE_SITE_METHOD = git
 WPEFRAMEWORK_CDMI_WIDEVINE_SITE = git@github.com:rdkcentral/OCDM-Widevine.git
 WPEFRAMEWORK_CDMI_WIDEVINE_INSTALL_STAGING = NO
