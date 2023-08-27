@@ -1,0 +1,17 @@
+{
+  "name": "hello-world",
+  "version": "0.0.1",
+  "description": "A sample Concourse CI project",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha && eslint */**.js test/*.js",
+    "docker-build": "docker build -t hello-world .",
+    "fly-login": "fly --target ci login --concourse-url=https://ci.comcast.net --team-name=concourse --open-browser",
+    "fly-set-pipeline": "fly --target ci set-pipeline --pipeline concourse-hello-world --config ci/pipeline.yml"
+  },
+  "author": "Mike Ball",
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "mocha": "^6.2.3"
+  }
+}

@@ -1,0 +1,30 @@
+resources:
+- name: Divya-Buildroot
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/WebPlatformForEmbedded/buildroot/
+    password: ((github-enterprise.access-token))
+
+- name: buildroot-docker-image
+  type: registry-image-resource
+  check_every: 72h
+  source:
+    repository: atlas.comcast.net/tpx-metrological-embedded
+    username: ((service-account.username))
+    password: ((service-account.password))
+
+
+jobs:
+
+- name: Divya-Buildroot
+  plan:
+  - get: Divya-Buildroot
+  - task: prepare-build
+    file: buildroot/ci/prepare-build.yml
+  - task: build
+    file: buildroot/ci/build.yml
+  - put: buildroot-docker-image
+    params:
+      image: image/image.tar
+

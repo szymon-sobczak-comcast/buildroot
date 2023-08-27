@@ -1,0 +1,22 @@
+
+
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: python
+    tag: 3.7.3
+
+inputs:
+  - name: buildroot 
+
+outputs:
+  - name: Div-build
+
+params:
+  BUILD_OUTPUT_DIR: ../build
+
+run:
+  dir: buildroot
+  path: make

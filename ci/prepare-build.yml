@@ -1,0 +1,17 @@
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: ubuntu
+    tag: "bionic"
+
+inputs:
+  - name: Divya-Buildroot
+
+outputs:
+  - name: prebuild-output
+
+run:
+  path: ./ci/prepare_build.sh
+  dir: .
