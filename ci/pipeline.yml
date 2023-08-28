@@ -21,9 +21,9 @@ jobs:
   plan:
   - get: Divya-Buildroot
   - task: prepare-build
-    file: buildroot/ci/prepare-build.yml
+    file: Divya-Buildroot/buildroot/ci/prepare-build.yml
   - task: build
-    file: buildroot/ci/build.yml
+    file: Divya-Buildroot/buildroot/ci/build.yml
   - put: buildroot-docker-image
     params:
       image: image/image.tar

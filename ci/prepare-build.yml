@@ -13,5 +13,5 @@ outputs:
   - name: prebuild-output
 
 run:
-  path: ./ci/prepare_build.sh
+  path: Divya-Buildroot/buildroot/ci/prepare_build.sh
   dir: .
