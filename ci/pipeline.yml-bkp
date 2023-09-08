@@ -4,7 +4,6 @@ resources:
   icon: github
   source:
     uri: https://github.com/WebPlatformForEmbedded/buildroot/
-    branch: Divya-test
     password: ((github-enterprise.access-token))
 
 - name: buildroot-docker-image
@@ -21,24 +20,11 @@ jobs:
 - name: Divya-Buildroot
   plan:
   - get: Divya-Buildroot
-  - task: prepare-and-build
-    privileged: true
-    config:
-      platform: linux
-      image_resource:
-        type: registry-image
-        source:
-          repository: ubuntu
-      inputs:
-        - name: Divya-Buildroot
-          path: .
-      outputs:
-        - name: image
-      params:
-        CONTEXT: Divya-Buildroot
-        dockerfile: ./buildroot/Dockerfile
-      run: # binary used to build the image
-        path: ls
+  - task: prepare-build
+    file: Divya-Buildroot/ci/prepare-build.yml
+  - task: build
+    file: Divya-Buildroot/ci/build.yml
   - put: buildroot-docker-image
-    params: {image: image/image.tar}
+    params:
+      image: image/image.tar
 
