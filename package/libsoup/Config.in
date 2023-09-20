@@ -1,31 +1,52 @@
 config BR2_PACKAGE_LIBSOUP
 	bool "libsoup"
-	depends on BR2_USE_WCHAR # glib2 and gnutls
+	depends on BR2_USE_WCHAR # glib2, gnutls and libpsl
 	depends on BR2_TOOLCHAIN_HAS_THREADS # glib2
 	depends on BR2_USE_MMU # glib2
 	select BR2_PACKAGE_LIBXML2
 	select BR2_PACKAGE_LIBGLIB2
+	select BR2_PACKAGE_LIBPSL
 	select BR2_PACKAGE_SQLITE
 	help
 	  libsoup is an HTTP client/server library. It uses GObject
 	  and the GLib main loop, to integrate well with GNOME
 	  applications.
 
-	  http://live.gnome.org/LibSoup
+	  https://wiki.gnome.org/Projects/libsoup
 
 if BR2_PACKAGE_LIBSOUP
 
+choice
+	prompt "libsoup version"
+	default BR2_PACKAGE_LIBSOUP_VERSION_3
+	help
+	  Select the version of libsoup you wish to use.
+
+config BR2_PACKAGE_LIBSOUP_VERSION_3
+	select BR2_PACKAGE_NGHTTP2
+	bool "libsoup3"
+
+config BR2_PACKAGE_LIBSOUP_VERSION_2
+	bool "libsoup2"
+
+endchoice
+
 config BR2_PACKAGE_LIBSOUP_GNOME
 	bool "libsoup-gnome"
+	depends on BR2_PACKAGE_LIBSOUP_VERSION_2
 	help
 	  Build libsoup-gnome library.
 
 config BR2_PACKAGE_LIBSOUP_SSL
 	bool "https support"
-	select BR2_PACKAGE_GLIB_NETWORKING
-	select BR2_PACKAGE_GNUTLS
+	depends on !BR2_STATIC_LIBS # glib-networking, gnutls
+	select BR2_PACKAGE_GLIB_NETWORKING # runtime
+	select BR2_PACKAGE_GNUTLS # runtime
 	help
 	  Enable HTTPS (SSL) support.
+
+comment "libsoup https support needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS
 
 endif
 

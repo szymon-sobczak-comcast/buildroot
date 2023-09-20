@@ -1,0 +1,27 @@
+diff --git a/src/third_party/starboard/wpe/shared/player/player_internal.cc b/src/third_party/starboard/wpe/shared/player/player_internal.cc
+index da0bdd1e8..10f148aa0 100644
+--- a/src/third_party/starboard/wpe/shared/player/player_internal.cc
++++ b/src/third_party/starboard/wpe/shared/player/player_internal.cc
+@@ -105,8 +105,7 @@ GType gst_cobalt_src_get_type(void);
+ 
+ G_END_DECLS
+ 
+-#define GST_COBALT_SRC_GET_PRIVATE(obj) \
+-  (G_TYPE_INSTANCE_GET_PRIVATE((obj), GST_COBALT_TYPE_SRC, GstCobaltSrcPrivate))
++#define GST_COBALT_SRC_GET_PRIVATE(obj) (GstCobaltSrcPrivate*) gst_cobalt_src_get_instance_private(obj)
+ 
+ struct _GstCobaltSrcPrivate {
+   gchar* uri;
+@@ -125,10 +124,12 @@ static GstStaticPadTemplate src_template =
+ 
+ static void gst_cobalt_src_uri_handler_init(gpointer gIface,
+                                             gpointer ifaceData);
++
+ #define gst_cobalt_src_parent_class parent_class
+ G_DEFINE_TYPE_WITH_CODE(GstCobaltSrc,
+                         gst_cobalt_src,
+                         GST_TYPE_BIN,
++                        G_ADD_PRIVATE(GstCobaltSrc)
+                         G_IMPLEMENT_INTERFACE(GST_TYPE_URI_HANDLER,
+                                               gst_cobalt_src_uri_handler_init));
+ 

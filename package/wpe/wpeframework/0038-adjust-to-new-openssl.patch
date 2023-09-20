@@ -1,0 +1,88 @@
+diff --git a/Source/cryptography/implementation/OpenSSL/DiffieHellman.cpp b/Source/cryptography/implementation/OpenSSL/DiffieHellman.cpp
+index 8123314..100e0d2 100644
+--- a/Source/cryptography/implementation/OpenSSL/DiffieHellman.cpp
++++ b/Source/cryptography/implementation/OpenSSL/DiffieHellman.cpp
+@@ -70,10 +70,10 @@ public:
+         ASSERT(key != nullptr);
+ 
+         DHKeyHeader header;
+-        header.primeSize = BN_num_bytes(key->p);
+-        header.generatorSize =  BN_num_bytes(key->g);
+-        header.privateKeySize = BN_num_bytes(key->priv_key);
+-        header.publicKeySize = BN_num_bytes(key->pub_key);
++        header.primeSize = BN_num_bytes(DH_get0_p(key));
++        header.generatorSize =  BN_num_bytes(DH_get0_g(key));
++        header.privateKeySize = BN_num_bytes(DH_get0_priv_key(key));
++        header.publicKeySize = BN_num_bytes(DH_get0_pub_key(key));
+ 
+         uint32_t keySize = (sizeof(header) + header.primeSize + header.generatorSize + header.privateKeySize + header.publicKeySize);
+         ASSERT(keySize < USHRT_MAX);
+@@ -83,10 +83,10 @@ public:
+ 
+         ::memcpy(keyBuf, &header, sizeof(header));
+         uint16_t offset = sizeof(header);
+-        offset += BN_bn2bin(key->p, keyBuf + offset);
+-        offset += BN_bn2bin(key->g, keyBuf + offset);
+-        offset += BN_bn2bin(key->priv_key, keyBuf + offset);
+-        offset += BN_bn2bin(key->pub_key, keyBuf + offset);
++        offset += BN_bn2bin(DH_get0_p(key), keyBuf + offset);
++        offset += BN_bn2bin(DH_get0_g(key), keyBuf + offset);
++        offset += BN_bn2bin(DH_get0_priv_key(key), keyBuf + offset);
++        offset += BN_bn2bin(DH_get0_pub_key(key), keyBuf + offset);
+ 
+         return (_vault->Import(keySize, keyBuf, false /* DH private key always sealed */));
+     }
+@@ -110,15 +110,17 @@ public:
+                 ASSERT(key != nullptr);
+ 
+                 DHKeyHeader* header = reinterpret_cast<DHKeyHeader*>(keyBuf);
+-                key->p = BN_bin2bn(header->data, header->primeSize, nullptr);
+-                key->g = BN_bin2bn((header->data + header->primeSize), header->generatorSize, nullptr);
+-                key->priv_key = BN_bin2bn((header->data + header->primeSize + header->generatorSize), header->privateKeySize, nullptr);
+-                key->pub_key = BN_bin2bn((header->data + header->primeSize + header->generatorSize + header->privateKeySize), header->publicKeySize, nullptr);
+-
+-                ASSERT(key->p != nullptr);
+-                ASSERT(key->g != nullptr);
+-                ASSERT(key->priv_key != nullptr);
+-                ASSERT(key->pub_key != nullptr);
++                DH_set0_pqg(key, BN_bin2bn(header->data, header->primeSize, nullptr),
++                            (BIGNUM*)DH_get0_q(key),
++                            BN_bin2bn((header->data + header->primeSize), header->generatorSize, nullptr));
++                DH_set0_key(key,
++                            BN_bin2bn((header->data + header->primeSize + header->generatorSize + header->privateKeySize),
++                            header->publicKeySize, nullptr),
++                            BN_bin2bn((header->data + header->primeSize + header->generatorSize), header->privateKeySize, nullptr));
++                ASSERT(DH_get0_p(key) != nullptr);
++                ASSERT(DH_get0_g(key) != nullptr);
++                ASSERT(DH_get0_priv_key(key) != nullptr);
++                ASSERT(DH_get0_pub_key(key) != nullptr);
+             }
+         }
+     }
+@@ -178,13 +180,12 @@ uint32_t GenerateDiffieHellmanKeys(KeyStore& store,
+     if (dh == nullptr) {
+         TRACE_L1(_T("DH_new() failed"));
+     } else {
+-        dh->p = BN_bin2bn(modulus, modulusSize, NULL);
+-        dh->g = BN_new();
+-        ASSERT(dh->p != nullptr);
++        BIGNUM* g = BN_new();
++        BN_set_word(g, generator);
++        DH_set0_pqg(dh, BN_bin2bn(modulus, modulusSize, NULL), (BIGNUM*)DH_get0_q(dh), g);
++        ASSERT(DH_get0_p(dh) != nullptr);
+         ASSERT(dh->g != nullptr);
+ 
+-        BN_set_word(dh->g, generator);
+-
+         int codes = 0;
+         if ((DH_check(dh, &codes) == 0) || (codes != 0)) {
+             TRACE_L1(_T("DH parameters are invalid [0x%08x]!"), codes);
+@@ -193,7 +194,7 @@ uint32_t GenerateDiffieHellmanKeys(KeyStore& store,
+                 TRACE_L1(_T("DH_generate_key() failed"));
+             } else {
+                 privateKeyId = store.Serialize(dh);
+-                publicKeyId = store.Serialize(dh->pub_key, true /* public key shall not be sealed */);
++                publicKeyId = store.Serialize(DH_get0_pub_key(dh), true /* public key shall not be sealed */);
+ 
+                 ASSERT(privateKeyId != 0);
+                 ASSERT(publicKeyId != 0);

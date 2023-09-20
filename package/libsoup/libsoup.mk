@@ -4,41 +4,72 @@
 #
 ################################################################################
 
-ifeq ($(BR2_PACKAGE_VSS_SDK),y)
-LIBSOUP_VERSION_MAJOR = 2.52
-LIBSOUP_VERSION = $(LIBSOUP_VERSION_MAJOR).2
+ifeq ($(BR2_PACKAGE_LIBSOUP_VERSION_3),y)
+LIBSOUP_VERSION_MAJOR = 3.0
+LIBSOUP_VERSION = $(LIBSOUP_VERSION_MAJOR).6
 else
-LIBSOUP_VERSION_MAJOR = 2.56
+LIBSOUP_VERSION_MAJOR = 2.74
 LIBSOUP_VERSION = $(LIBSOUP_VERSION_MAJOR).0
 endif
 LIBSOUP_SOURCE = libsoup-$(LIBSOUP_VERSION).tar.xz
 LIBSOUP_SITE = http://ftp.gnome.org/pub/gnome/sources/libsoup/$(LIBSOUP_VERSION_MAJOR)
-LIBSOUP_LICENSE = LGPLv2+
+LIBSOUP_LICENSE = LGPL-2.0+
 LIBSOUP_LICENSE_FILES = COPYING
+LIBSOUP_CPE_ID_VENDOR = gnome
 LIBSOUP_INSTALL_STAGING = YES
-LIBSOUP_CONF_ENV = ac_cv_path_GLIB_GENMARSHAL=$(LIBGLIB2_HOST_BINARY)
-LIBSOUP_CONF_OPTS = --disable-glibtest --enable-vala=no --with-gssapi=no
-LIBSOUP_DEPENDENCIES = host-pkgconf host-libglib2 \
-	libglib2 libxml2 sqlite host-intltool
+LIBSOUP_DEPENDENCIES = \
+	host-intltool \
+	host-libglib2 \
+	host-pkgconf \
+	libglib2 \
+	libpsl \
+	libxml2 \
+	sqlite \
+	$(TARGET_NLS_DEPENDENCIES)
 
+LIBSOUP_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
+
+LIBSOUP_CONF_OPTS = \
+	-Dgtk_doc=false \
+	-Dntlm=disabled \
+	-Dsysprof=disabled \
+	-Dtests=false \
+	-Dtls_check=false \
+	-Dvapi=disabled
+
+ifeq ($(BR2_PACKAGE_BROTLI),y)
+LIBSOUP_CONF_OPTS += -Dbrotli=enabled
+LIBSOUP_DEPENDENCIES += brotli
+else
+LIBSOUP_CONF_OPTS += -Dbrotli=disabled
+endif
+
+ifeq ($(BR2_PACKAGE_GOBJECT_INTROSPECTION),y)
+LIBSOUP_CONF_OPTS += -Dintrospection=enabled
+LIBSOUP_DEPENDENCIES += gobject-introspection
+else
+LIBSOUP_CONF_OPTS += -Dintrospection=disabled
+endif
+
+ifeq ($(BR2_PACKAGE_LIBKRB5),y)
+LIBSOUP_CONF_OPTS += \
+	-Dgssapi=enabled \
+	-Dkrb5_config=$(STAGING_DIR)/usr/bin/krb5-config
+LIBSOUP_DEPENDENCIES += libkrb5
+else
+LIBSOUP_CONF_OPTS += -Dgssapi=disabled
+endif
+
+ifeq ($(BR2_PACKAGE_LIBSOUP_VERSION_2),y)
 ifeq ($(BR2_PACKAGE_LIBSOUP_GNOME),y)
-LIBSOUP_CONF_OPTS += --with-gnome
+LIBSOUP_CONF_OPTS += -Dgnome=true
 else
-LIBSOUP_CONF_OPTS += --without-gnome
+LIBSOUP_CONF_OPTS += -Dgnome=false
+endif
 endif
 
-ifeq ($(BR2_PACKAGE_LIBSOUP_SSL),y)
-LIBSOUP_DEPENDENCIES += glib-networking
-else
-LIBSOUP_CONF_OPTS += --disable-tls-check
+ifeq ($(BR2_PACKAGE_LIBSOUP_VERSION_3),y)
+LIBSOUP_DEPENDENCIES += nghttp2
 endif
 
-ifeq ($(BR2_PACKAGE_VSS_SDK),y)
-LIBSOUP_PKGDIR = "$(TOP_DIR)/package/libsoup"
-define LIBSOUP_APPLY_LOCAL_PATCHES
- $(APPLY_PATCHES) $(@D) "$(LIBSOUP_PKGDIR)" 0003-soup-cookie-jar-add-symbol.patch.conditional
-endef
-LIBSOUP_POST_PATCH_HOOKS += LIBSOUP_APPLY_LOCAL_PATCHES
-endif
-
-$(eval $(autotools-package))
+$(eval $(meson-package))
