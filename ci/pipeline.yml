@@ -1,5 +1,5 @@
 resources:
-- name: Divya-Buildroot
+- name: buildroot
   type: git
   icon: github
   source:
@@ -18,9 +18,9 @@ resources:
 
 jobs:
 
-- name: Divya-Buildroot
+- name: Divya-Buildroot-build
   plan:
-  - get: Divya-Buildroot
+  - get: buildroot
   - task: prepare-and-build
     privileged: true
     config:
@@ -28,17 +28,18 @@ jobs:
       image_resource:
         type: registry-image
         source:
-          repository: ubuntu
+          repository: vito/oci-build-task
       inputs:
-        - name: Divya-Buildroot
-          path: .
+        - name: buildroot
       outputs:
         - name: image
       params:
-        CONTEXT: Divya-Buildroot
+        CONTEXT: buildroot
         dockerfile: ./buildroot/Dockerfile
       run: # binary used to build the image
-        path: ls
+       path: build
+  #      path: /bin/sh
+   #     args: ["./build.sh"]
   - put: buildroot-docker-image
     params: {image: image/image.tar}
 
