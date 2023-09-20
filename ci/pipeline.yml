@@ -37,9 +37,9 @@ jobs:
         CONTEXT: buildroot
         dockerfile: ./buildroot/Dockerfile
       run: # binary used to build the image
-       path: build
-  #      path: /bin/sh
-   #     args: ["./build.sh"]
+        path: build
+        path: /bin/sh 
+        args: ["./buildroot/build.sh"]
   - put: buildroot-docker-image
     params: {image: image/image.tar}
 
