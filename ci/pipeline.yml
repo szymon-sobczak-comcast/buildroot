@@ -8,7 +8,7 @@ resources:
     password: ((github-enterprise.access-token))
 
 - name: buildroot-docker-image
-  type: registry-image-resource
+  type: docker-image
   check_every: 72h
   source:
     repository: atlas.comcast.net/tpx-metrological-embedded
@@ -26,7 +26,7 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: registry-image
+        type: docker-image
         source:
           repository: vito/oci-build-task
       inputs:
@@ -38,8 +38,8 @@ jobs:
         dockerfile: ./buildroot/Dockerfile
       run: # binary used to build the image
         path: build
-        path: /bin/sh 
-        args: ["./buildroot/build.sh"]
+       # path: /bin/sh 
+       # args: ["./buildroot/build.sh"]
   - put: buildroot-docker-image
     params: {image: image/image.tar}
 
