@@ -5,8 +5,8 @@ RUN apt-get install -y build-essential git subversion cvs unzip whois ncurses-de
 COPY build.sh /usr/local/bin
 #RUN ls /usr/local/bin
 #RUN cat /usr/local/bin/build.sh
-#ENTRYPOINT ["./build.sh"]i
-WORKDIR buildroot
+#ENTRYPOINT ["./build.sh"]
+WORKDIR ./../
 RUN ls
 RUN make raspberrypi3_wpe_ml_defconfig 
 #RUN make
