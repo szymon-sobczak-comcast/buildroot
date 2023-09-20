@@ -6,9 +6,9 @@ COPY build.sh /usr/local/bin
 #RUN ls /usr/local/bin
 #RUN cat /usr/local/bin/build.sh
 #ENTRYPOINT ["./build.sh"]
-WORKDIR ./../
 RUN git clone https://github.com/WebPlatformForEmbedded/buildroot.git
 RUN cd buildroot
+WORKDIR ./buildroot
 RUN ls
 RUN make raspberrypi3_wpe_ml_defconfig 
 RUN make
