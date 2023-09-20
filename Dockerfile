@@ -9,7 +9,6 @@ COPY build.sh /usr/local/bin
 WORKDIR ./../
 RUN git clone https://github.com/WebPlatformForEmbedded/buildroot.git
 RUN cd buildroot
-RUN git checkout Divya-test
 RUN ls
 RUN make raspberrypi3_wpe_ml_defconfig 
 RUN make
