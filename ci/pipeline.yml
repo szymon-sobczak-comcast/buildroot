@@ -8,8 +8,7 @@ resources:
     password: ((github-enterprise.access-token))
 
 - name: buildroot-docker-image
-  type: registry-image
-  icon: docker
+  type: docker-image
   check_every: 72h
   source:
     repository: atlas.comcast.net/tpx-metrological-embedded
@@ -19,28 +18,12 @@ resources:
 
 jobs:
 
-- name: Divya-Buildroot-build
+jobs:
+- name: build-rootfs
   plan:
   - get: buildroot
-  - task: prepare-and-build
-    privileged: true
-    config:
-      platform: linux
-      image_resource:
-        type: docker-image
-        source:
-          repository: vito/oci-build-task
-      inputs:
-        - name: buildroot
-      outputs:
-        - name: image
-      params:
-        CONTEXT: buildroot
-        dockerfile: ./buildroot/Dockerfile
-      run: # binary used to build the image
-        path: build
-       # path: /bin/sh 
-       # args: ["./buildroot/build.sh"]
   - put: buildroot-docker-image
-    params: {image: image/image.tar}
-
+    params: {build: buildroot}
+    get_params: {rootfs: true}
+  - put: buildroot-docker-image
+    params: {file: buildroot-docker-image/rootfs.tar}
