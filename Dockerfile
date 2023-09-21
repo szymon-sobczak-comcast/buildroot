@@ -5,7 +5,7 @@ RUN apt-get install -y file wget cpio rsync build-essential git subversion cvs u
 COPY build.sh /usr/local/bin
 ARG USER=divya
 ARG PASS="divya"
-RUN adduser -D $USER && echo "$USER:$PASS" | chpasswd
+RUN adduser $USER && echo "$USER:$PASS" | chpasswd
 USER divya
 RUN git clone https://github.com/WebPlatformForEmbedded/buildroot.git
 RUN cd buildroot
