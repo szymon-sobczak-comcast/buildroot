@@ -9,7 +9,6 @@ ARG USER=divya
 RUN adduser $USER
 RUN git clone https://github.com/WebPlatformForEmbedded/buildroot.git
 RUN cd buildroot
-RUN ls
 RUN cp -rf buildroot/ /home/divya/
 #USER divya
 WORKDIR /home/divya/buildroot
