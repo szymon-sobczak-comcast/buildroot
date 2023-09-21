@@ -22,7 +22,9 @@ jobs:
 - name: build-rootfs
   plan:
   - get: buildroot
+    trigger: true
   - put: buildroot-docker-image
+    trigger: true
     params: {build: buildroot}
     get_params: {rootfs: true}
   - put: buildroot-docker-image
