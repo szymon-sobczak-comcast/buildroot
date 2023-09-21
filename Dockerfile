@@ -7,6 +7,6 @@ RUN git clone https://github.com/WebPlatformForEmbedded/buildroot.git
 RUN cd buildroot
 WORKDIR ./buildroot
 RUN ls
-RUN set FORCE_UNSAFE_CONFIGURE=1
+USER nonroot
 RUN make raspberrypi3_wpe_ml_defconfig 
 RUN make
