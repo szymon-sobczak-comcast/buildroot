@@ -5,7 +5,8 @@ resources:
   source:
     uri: https://github.com/WebPlatformForEmbedded/buildroot/
     branch: Divya-test
-    password: ((github-enterprise.access-token))
+   # password: ((github-enterprise.access-token))
+    password: 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
 
 - name: buildroot-docker-image
   type: docker-image
@@ -24,7 +25,6 @@ jobs:
   - get: buildroot
     trigger: true
   - put: buildroot-docker-image
-    trigger: true
     params: {build: buildroot}
     get_params: {rootfs: true}
   - put: buildroot-docker-image
