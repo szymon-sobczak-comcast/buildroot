@@ -11,7 +11,7 @@ RUN git clone https://github.com/WebPlatformForEmbedded/buildroot.git
 RUN cd buildroot
 RUN ls
 RUN cp -rf buildroot/ /home/divya/
-USER divya
+#USER divya
 WORKDIR /home/divya/buildroot
 RUN ls
 RUN make raspberrypi3_wpe_ml_defconfig 
