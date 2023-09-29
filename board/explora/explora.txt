@@ -9,6 +9,7 @@ libamazon*
 libgstreamerclient.so
 libEGL.so
 libGLESv2.so
+gio
 gst-plugin-scanner
 gst-inspect-1.0
 gst-launch-1.0
@@ -80,10 +81,12 @@ liborc-test-0.4.so
 libpcre.so
 libpixman-1.so
 libocdm.so
+libp11-kit.so
 libpng16.so
+libpsl.so
 libprovision.so
 librpc.so
-libsoup-2.4.so
+libsoup-3.0.so
 libsqlite3.so
 libstdc++.so
 libtasn1.so
@@ -172,6 +175,8 @@ libnghttp2.so
 libvorbisidec.so
 libogg.so
 libWPEFrameworkInputSwitch.so
+p11-kit
+pkcs11
 playready
 MeteringCertificate.bin
 cobalt.json

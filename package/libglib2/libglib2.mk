@@ -130,7 +130,7 @@ endef
 # them as well, and better do it in a central place.
 # It's used at run time so it doesn't matter defering it.
 define LIBGLIB2_COMPILE_SCHEMAS
-	$(HOST_DIR)/bin/glib-compile-schemas \
+	$(HOST_DIR)/usr/bin/glib-compile-schemas \
 		$(STAGING_DIR)/usr/share/glib-2.0/schemas \
 		--targetdir=$(TARGET_DIR)/usr/share/glib-2.0/schemas
 endef
@@ -141,4 +141,4 @@ LIBGLIB2_TARGET_FINALIZE_HOOKS += LIBGLIB2_COMPILE_SCHEMAS
 $(eval $(meson-package))
 $(eval $(host-meson-package))
 
-LIBGLIB2_HOST_BINARY = $(HOST_DIR)/bin/glib-genmarshal
+LIBGLIB2_HOST_BINARY = $(HOST_DIR)/usr/bin/glib-genmarshal
