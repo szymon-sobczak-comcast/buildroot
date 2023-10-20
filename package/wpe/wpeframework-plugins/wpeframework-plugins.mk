@@ -3,7 +3,7 @@
 # wpeframework-plugins
 #
 ################################################################################
-WPEFRAMEWORK_PLUGINS_VERSION = R4.4.1
+WPEFRAMEWORK_PLUGINS_VERSION = R4.4.0
 WPEFRAMEWORK_PLUGINS_SITE = $(call github,rdkcentral,ThunderNanoServices,$(WPEFRAMEWORK_PLUGINS_VERSION))
 WPEFRAMEWORK_PLUGINS_INSTALL_STAGING = YES
 WPEFRAMEWORK_PLUGINS_DEPENDENCIES = wpeframework wpeframework-interfaces wpeframework-clientlibraries libpng
@@ -650,6 +650,10 @@ PLUGIN_STREAMER_IMPLEMENTATIONS += CENC
 WPEFRAMEWORK_PLUGINS_DEPENDENCIES += gstreamer1 gst1-cencdecrypt gst1-plugins-base gst1-plugins-good
 endif
 WPEFRAMEWORK_PLUGINS_CONF_OPTS += -DPLUGIN_STREAMER_IMPLEMENTATIONS="$(PLUGIN_STREAMER_IMPLEMENTATIONS)"
+endif
+
+ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_SSOWEATHER),y)
+WPEFRAMEWORK_PLUGINS_CONF_OPTS += -DPLUGIN_SSOWEATHER=ON
 endif
 
 ifeq ($(BR2_PACKAGE_WPEFRAMEWORK_SPARK),y)
